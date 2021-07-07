@@ -3,9 +3,9 @@
 use bevy::prelude::*;
 use wasm_bindgen::prelude::*;
 
-mod player;
+mod game;
 mod states;
-mod utils;
+mod utility;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {

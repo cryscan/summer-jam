@@ -1,10 +1,10 @@
 use crate::{
-    player::{player_movement, Player, Velocity},
+    game::{player::*, rigid_body::*},
     AppState,
 };
 use bevy::prelude::*;
 
-struct GameElement;
+struct GameEntity;
 
 fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     println!("Entering Game");
@@ -16,12 +16,12 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             sprite: Sprite::new(Vec2::new(32.0, 32.0)),
             ..Default::default()
         })
-        .insert(GameElement)
+        .insert(GameEntity)
         .insert(Player {
             speed: 100.0,
             damp: 20.0,
         })
-        .insert(Velocity(Vec2::ZERO));
+        .insert(RigidBody::new(1.0));
 }
 
 fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
@@ -31,7 +31,7 @@ fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<K
     }
 }
 
-fn cleanup_game(mut commands: Commands, query: Query<Entity, With<GameElement>>) {
+fn cleanup_game(mut commands: Commands, query: Query<Entity, With<GameEntity>>) {
     println!("Cleaning-up Title");
 
     for entity in query.iter() {
@@ -47,7 +47,8 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game.system())
-                    .with_system(player_movement.system()),
+                    .with_system(rigid_body_movement.system().label("rigid_body_movement"))
+                    .with_system(player_movement.system().before("rigid_body_movement")),
             )
             .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game.system()));
     }
