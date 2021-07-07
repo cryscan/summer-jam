@@ -2,8 +2,20 @@
 name = "summer-jam"
 version = "0.1.0"
 edition = "2018"
+resolver = "2"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
+# Dependencies for all targets go here.
 [dependencies]
-bevy = "0.5"
+wasm-bindgen = "0.2"
+
+# Dependencies for native only.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bevy = {version = "0.5", default-features = false, features = ["bevy_wgpu", "bevy_winit", "render", "x11"]}
+
+# Dependencies for WASM only.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bevy = {version = "0.5", default-features = false, features = ["bevy_winit", "render"]}
+bevy_webgl2 = "0.5"
