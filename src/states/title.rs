@@ -1,12 +1,28 @@
 use crate::AppState;
 use bevy::prelude::*;
 
-struct TitleText;
+struct TitleElement;
 
-struct ColorText;
+#[derive(Default, Clone, Copy)]
+struct ColorText {
+    bright: Color,
+    dark: Color,
+}
+
+impl ColorText {
+    pub fn get_color(&self, flag: bool) -> Color {
+        match flag {
+            true => self.bright,
+            false => self.dark,
+        }
+    }
+}
+
 struct ColorTimer(Timer);
 
-fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
+    println!("Entering Title");
+
     commands
         .spawn_bundle(TextBundle {
             style: Style {
@@ -29,7 +45,7 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
             ),
             ..Default::default()
         })
-        .insert(TitleText);
+        .insert(TitleElement);
 
     commands
         .spawn_bundle(TextBundle {
@@ -43,7 +59,7 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..Default::default()
             },
             text: Text::with_section(
-                "Press Enter to Play",
+                "Click to Play",
                 TextStyle {
                     font: asset_server.load("fonts/FiraMono-Medium.ttf"),
                     font_size: 20.0,
@@ -53,55 +69,56 @@ fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
             ),
             ..Default::default()
         })
-        .insert(TitleText)
-        .insert(ColorText);
+        .insert(TitleElement)
+        .insert(ColorText {
+            bright: Color::GOLD,
+            dark: Color::GRAY,
+        });
 }
 
-fn main_menu_system(
-    mut commands: Commands,
-    mut app_state: ResMut<State<AppState>>,
-    input: Res<Input<KeyCode>>,
-    query: Query<Entity, With<TitleText>>,
-) {
-    if input.pressed(KeyCode::Return) {
-        for entity in query.iter() {
-            commands.entity(entity).despawn();
-        }
-        app_state.set(AppState::InGame).unwrap();
+fn update_title(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<MouseButton>>) {
+    if input.just_pressed(MouseButton::Left) {
+        input.update();
+        app_state.set(AppState::Game).unwrap();
     }
 }
 
-fn title_color_system(
+fn title_color(
     time: Res<Time>,
     mut timer: ResMut<ColorTimer>,
     mut color_flag: Local<bool>,
-    mut query: Query<&mut Text, With<ColorText>>,
+    mut query: Query<(&mut Text, &ColorText)>,
 ) {
     if timer.0.tick(time.delta()).just_finished() {
-        for mut text in query.iter_mut() {
-            if *color_flag {
-                text.sections[0].style.color = Color::GOLD;
-            } else {
-                text.sections[0].style.color = Color::GRAY;
-            }
+        for (mut text, color) in query.iter_mut() {
+            text.sections[0].style.color = color.get_color(*color_flag);
         }
 
         *color_flag = !*color_flag;
     }
 }
 
-pub struct MainMenuPlugin;
+fn cleanup_title(mut commands: Commands, query: Query<Entity, With<TitleElement>>) {
+    println!("Cleaning-up Title");
 
-impl Plugin for MainMenuPlugin {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
+pub struct TitlePlugin;
+
+impl Plugin for TitlePlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
+            .add_system_set(SystemSet::on_enter(AppState::Title).with_system(setup_title.system()))
             .add_system_set(
-                SystemSet::on_enter(AppState::MainMenu).with_system(setup_main_menu.system()),
+                SystemSet::on_update(AppState::Title)
+                    .with_system(update_title.system())
+                    .with_system(title_color.system()),
             )
             .add_system_set(
-                SystemSet::on_update(AppState::MainMenu)
-                    .with_system(main_menu_system.system())
-                    .with_system(title_color_system.system()),
+                SystemSet::on_exit(AppState::Title).with_system(cleanup_title.system()),
             );
     }
 }
