@@ -1,13 +1,13 @@
 use bevy::{input::system::exit_on_esc_system, prelude::*};
 use wasm_bindgen::prelude::*;
 
+mod main_menu;
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-enum AppState {
+pub enum AppState {
     MainMenu,
     InGame,
 }
-
-struct TitleText;
 
 #[wasm_bindgen]
 pub fn run() {
@@ -26,10 +26,7 @@ pub fn run() {
         .add_startup_system(setup.system())
         .add_system(lock_release_cursor.system())
         .add_system(exit_on_esc_system.system())
-        .add_system_set(
-            SystemSet::on_enter(AppState::MainMenu).with_system(setup_main_menu.system()),
-        )
-        .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(main_menu.system()));
+        .add_plugin(main_menu::MainMenuPlugin);
 
     #[cfg(target_arch = "wasm32")]
     app.add_plugin(bevy_webgl2::WebGL2Plugin);
@@ -61,40 +58,5 @@ fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Wind
                 window.set_cursor_visibility(true);
             }
         }
-    }
-}
-
-fn setup_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands
-        .spawn_bundle(TextBundle {
-            style: Style {
-                align_self: AlignSelf::Center,
-                ..Default::default()
-            },
-            text: Text::with_section(
-                "Cleanup!",
-                TextStyle {
-                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 100.0,
-                    color: Color::WHITE,
-                },
-                Default::default(),
-            ),
-            ..Default::default()
-        })
-        .insert(TitleText);
-}
-
-fn main_menu(
-    mut commands: Commands,
-    mut app_state: ResMut<State<AppState>>,
-    input: Res<Input<KeyCode>>,
-    query: Query<Entity, With<TitleText>>,
-) {
-    if input.pressed(KeyCode::Return) {
-        for entity in query.iter() {
-            commands.entity(entity).despawn();
-        }
-        app_state.set(AppState::InGame).unwrap();
     }
 }
