@@ -1,4 +1,5 @@
 use crate::{
+    config::*,
     game::{player::*, rigid_body::*},
     AppState,
 };
@@ -22,7 +23,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             speed: 100.0,
             damp: 20.0,
         })
-        .insert(RigidBody::new(1.0, 0.5));
+        .insert(RigidBody::new(1.0, 0.5, false));
 
     // Spawn ball
     commands
@@ -33,7 +34,51 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(2.0, 0.5));
+        .insert(RigidBody::new(2.0, 0.5, false));
+
+    // Spawn up wall
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
+            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
+            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 8.0)),
+            ..Default::default()
+        })
+        .insert(GameEntity)
+        .insert(RigidBody::new(1.0, 0.5, true));
+
+    // Spawn down wall
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
+            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
+            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 8.0)),
+            ..Default::default()
+        })
+        .insert(GameEntity)
+        .insert(RigidBody::new(1.0, 0.5, true));
+
+    // Spawn left wall
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
+            transform: Transform::from_xyz(-ARENA_WIDTH / 2.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(8.0, ARENA_HEIGHT)),
+            ..Default::default()
+        })
+        .insert(GameEntity)
+        .insert(RigidBody::new(1.0, 0.5, true));
+
+    // Spawn right wall
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
+            transform: Transform::from_xyz(ARENA_WIDTH / 2.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(8.0, ARENA_HEIGHT)),
+            ..Default::default()
+        })
+        .insert(GameEntity)
+        .insert(RigidBody::new(1.0, 0.5, true));
 }
 
 fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {

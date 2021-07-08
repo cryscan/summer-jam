@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+mod config;
 mod game;
 mod states;
 mod utility;
@@ -16,8 +17,8 @@ pub fn main() {
     app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .insert_resource(WindowDescriptor {
             title: "Cleanup!".into(),
-            width: 480.0,
-            height: 640.0,
+            width: config::ARENA_WIDTH,
+            height: config::ARENA_HEIGHT,
             resizable: false,
             ..Default::default()
         })
