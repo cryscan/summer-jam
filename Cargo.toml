@@ -12,7 +12,7 @@ wasm-bindgen = "0.2"
 
 # Dependencies for native only.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-bevy = { git="https://github.com/bevyengine/bevy", default-features=false, features=[
+bevy = { version="0.5", default-features=false, features=[
     "bevy_wgpu",
     "bevy_winit",
     "render",
@@ -21,8 +21,10 @@ bevy = { git="https://github.com/bevyengine/bevy", default-features=false, featu
 
 # Dependencies for WASM only.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-bevy = { git="https://github.com/bevyengine/bevy", default-features=false, features=["bevy_winit", "render"] }
-bevy_webgl2 = { git="https://github.com/cryscan/bevy_webgl2" }
+bevy = { version="0.5", default-features=false, features=["bevy_winit", "render"] }
+bevy_webgl2 = { version="0.5" }
 
 [patch.crates-io]
+bevy = { git="https://github.com/bevyengine/bevy" }
+bevy_webgl2 = { git="https://github.com/cryscan/bevy_webgl2" }
 winit = { git="https://github.com/cryscan/winit" }
