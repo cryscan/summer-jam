@@ -20,6 +20,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         })
         .insert(GameEntity)
         .insert(Player {
+            speed_limit: 6400.0,
             speed: 100.0,
             damp: 20.0,
         })
