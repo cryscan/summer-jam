@@ -76,9 +76,9 @@ fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
-fn update_title(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<MouseButton>>) {
+fn update_title(mut app_state: ResMut<State<AppState>>, input: ResMut<Input<MouseButton>>) {
     if input.just_pressed(MouseButton::Left) {
-        input.update();
+        // input.update();
         app_state.set(AppState::Game).unwrap();
     }
 }

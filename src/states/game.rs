@@ -82,9 +82,9 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 }
 
-fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
+fn update_game(mut app_state: ResMut<State<AppState>>, input: ResMut<Input<KeyCode>>) {
     if input.just_pressed(KeyCode::Escape) {
-        input.update();
+        // input.update();
         app_state.set(AppState::Title).unwrap();
     }
 }

@@ -2,6 +2,27 @@
 name = "summer-jam"
 version = "0.1.0"
 edition = "2018"
+resolver = "2"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-bevy = "0.5"
+wasm-bindgen = "0.2"
+
+# Dependencies for native only.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bevy = { git="https://github.com/bevyengine/bevy", default-features=false, features=[
+    "bevy_wgpu",
+    "bevy_winit",
+    "render",
+    "x11",
+] }
+
+# Dependencies for WASM only.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bevy = { git="https://github.com/bevyengine/bevy", default-features=false, features=["bevy_winit", "render"] }
+bevy_webgl2 = { git="https://github.com/cryscan/bevy_webgl2" }
+
+[patch.crates-io]
+winit = { git="https://github.com/cryscan/winit" }
