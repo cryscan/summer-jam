@@ -7,15 +7,17 @@ use bevy::{
 pub struct RigidBody {
     pub velocity: Vec2,
     pub mass: f32,
+    pub bounciness: f32,
     pub friction: f32,
     pub kinetic: bool,
 }
 
 impl RigidBody {
-    pub fn new(mass: f32, friction: f32, kinetic: bool) -> Self {
+    pub fn new(mass: f32, bounciness: f32, friction: f32, kinetic: bool) -> Self {
         RigidBody {
             velocity: Vec2::ZERO,
             mass,
+            bounciness,
             friction,
             kinetic,
         }
@@ -69,6 +71,8 @@ pub fn rigid_body_collision_resolution(
                 .map(|second| (first.clone(), second.clone()))
         }) {
             let total_mass = first.mass + second.mass;
+            let bounciness = first.bounciness * second.bounciness;
+            let friction = first.friction * second.friction;
 
             {
                 let mut rigid_body = query.q1_mut().get_mut(event.first).unwrap();
@@ -91,15 +95,13 @@ pub fn rigid_body_collision_resolution(
 
                 if !first.kinetic {
                     if reflect_x {
-                        rigid_body.velocity.x += velocity.x * mass_factor;
-                        rigid_body.velocity.y +=
-                            (first.friction * second.friction) * velocity.y * mass_factor;
+                        rigid_body.velocity.x += bounciness * velocity.x * mass_factor;
+                        rigid_body.velocity.y += friction * velocity.y * mass_factor;
                     }
 
                     if reflect_y {
-                        rigid_body.velocity.y += velocity.y * mass_factor;
-                        rigid_body.velocity.x +=
-                            (first.friction * second.friction) * velocity.x * mass_factor;
+                        rigid_body.velocity.y += bounciness * velocity.y * mass_factor;
+                        rigid_body.velocity.x += friction * velocity.x * mass_factor;
                     }
                 }
             }
@@ -125,15 +127,13 @@ pub fn rigid_body_collision_resolution(
 
                 if !second.kinetic {
                     if reflect_x {
-                        rigid_body.velocity.x += velocity.x * mass_factor;
-                        rigid_body.velocity.y +=
-                            (first.friction * second.friction) * velocity.y * mass_factor;
+                        rigid_body.velocity.x += bounciness * velocity.x * mass_factor;
+                        rigid_body.velocity.y += friction * velocity.y * mass_factor;
                     }
 
                     if reflect_y {
-                        rigid_body.velocity.y += velocity.y * mass_factor;
-                        rigid_body.velocity.x +=
-                            (first.friction * second.friction) * velocity.x * mass_factor;
+                        rigid_body.velocity.y += bounciness * velocity.y * mass_factor;
+                        rigid_body.velocity.x += friction * velocity.x * mass_factor;
                     }
                 }
             }

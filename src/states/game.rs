@@ -24,7 +24,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             speed: 0.5,
             damp: 20.0,
         })
-        .insert(RigidBody::new(1.0, 0.5, false));
+        .insert(RigidBody::new(1.0, 0.9, 0.5, false));
 
     // Spawn ball.
     commands
@@ -35,7 +35,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(2.0, 0.5, false));
+        .insert(RigidBody::new(2.0, 0.9, 0.5, false));
 
     // Spawn up wall.
     commands
@@ -46,7 +46,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(1.0, 0.5, true));
+        .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
     // Spawn down wall.
     commands
@@ -57,7 +57,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(1.0, 0.5, true));
+        .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
     // Spawn left wall.
     commands
@@ -68,7 +68,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(1.0, 0.5, true));
+        .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
     // Spawn right wall.
     commands
@@ -79,7 +79,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(1.0, 0.5, true));
+        .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 }
 
 fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
