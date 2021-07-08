@@ -21,12 +21,12 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(Player {
             speed_limit: 6400.0,
-            speed: 100.0,
+            speed: 0.5,
             damp: 20.0,
         })
         .insert(RigidBody::new(1.0, 0.5, false));
 
-    // Spawn ball
+    // Spawn ball.
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(0.8, 0.8, 0.8).into()),
@@ -37,7 +37,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(2.0, 0.5, false));
 
-    // Spawn up wall
+    // Spawn up wall.
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -48,7 +48,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.5, true));
 
-    // Spawn down wall
+    // Spawn down wall.
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -59,7 +59,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.5, true));
 
-    // Spawn left wall
+    // Spawn left wall.
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -70,7 +70,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.5, true));
 
-    // Spawn right wall
+    // Spawn right wall.
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
