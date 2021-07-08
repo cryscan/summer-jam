@@ -9,10 +9,11 @@ struct GameEntity;
 fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     println!("Entering Game");
 
+    // Spawn player.
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(0.6, 0.6, 0.6).into()),
-            transform: Transform::from_xyz(0.0, -0.0, 0.0),
+            transform: Transform::from_xyz(0.0, -160.0, 0.0),
             sprite: Sprite::new(Vec2::new(32.0, 32.0)),
             ..Default::default()
         })
@@ -21,7 +22,18 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             speed: 100.0,
             damp: 20.0,
         })
-        .insert(RigidBody::new(1.0));
+        .insert(RigidBody::new(1.0, 0.5));
+
+    // Spawn ball
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.add(Color::rgb(0.8, 0.8, 0.8).into()),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(16.0, 16.0)),
+            ..Default::default()
+        })
+        .insert(GameEntity)
+        .insert(RigidBody::new(2.0, 0.5));
 }
 
 fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
@@ -43,12 +55,12 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system_set(SystemSet::on_enter(AppState::Game).with_system(setup_game.system()))
+        app.add_plugin(RigidBodyPlugin)
+            .add_system_set(SystemSet::on_enter(AppState::Game).with_system(setup_game.system()))
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game.system())
-                    .with_system(rigid_body_movement.system().label("rigid_body_movement"))
-                    .with_system(player_movement.system().before("rigid_body_movement")),
+                    .with_system(player_movement.system().before("rigid_body")),
             )
             .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game.system()));
     }
