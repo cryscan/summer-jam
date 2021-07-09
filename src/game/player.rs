@@ -21,7 +21,7 @@ pub fn player_movement(
             .fold(Vec2::ZERO, Vec2::add);
 
         rigid_body.velocity = rigid_body.velocity.damp(
-            delta * player.speed / time.delta_seconds(),
+            (delta * player.speed / time.delta_seconds()).clamp_length_max(player.speed_limit),
             player.damp,
             time.delta_seconds(),
         );

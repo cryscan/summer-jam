@@ -122,6 +122,7 @@ pub fn rigid_body_collision_resolution(
                         transform.translation = rigid_body
                             .translation
                             .lerp(transform.translation, event.time);
+                        rigid_body.translation = transform.translation;
                     }
                 }
             }
@@ -161,6 +162,7 @@ pub fn rigid_body_collision_resolution(
                         transform.translation = rigid_body
                             .translation
                             .lerp(transform.translation, event.time);
+                        rigid_body.translation = transform.translation;
                     }
                 }
             }
