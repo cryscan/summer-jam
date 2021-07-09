@@ -6,6 +6,8 @@ use bevy::{
 #[derive(Default, Clone)]
 pub struct RigidBody {
     pub velocity: Vec2,
+    pub translation: Vec3,
+
     pub mass: f32,
     pub bounciness: f32,
     pub friction: f32,
@@ -16,6 +18,7 @@ impl RigidBody {
     pub fn new(mass: f32, bounciness: f32, friction: f32, kinetic: bool) -> Self {
         RigidBody {
             velocity: Vec2::ZERO,
+            translation: Vec3::ZERO,
             mass,
             bounciness,
             friction,
@@ -30,8 +33,10 @@ pub struct CollisionEvent {
     pub collision: Collision,
 }
 
-pub fn rigid_body_movement(time: Res<Time>, mut query: Query<(&RigidBody, &mut Transform)>) {
-    for (rigid_body, mut transform) in query.iter_mut() {
+pub fn rigid_body_movement(time: Res<Time>, mut query: Query<(&mut RigidBody, &mut Transform)>) {
+    for (mut rigid_body, mut transform) in query.iter_mut() {
+        rigid_body.translation = transform.translation;
+
         let velocity = rigid_body.velocity * time.delta_seconds();
         transform.translation += Vec3::new(velocity.x, velocity.y, 0.0);
     }
@@ -61,7 +66,7 @@ pub fn rigid_body_collision_detection(
 
 pub fn rigid_body_collision_resolution(
     mut event: EventReader<CollisionEvent>,
-    mut query: QuerySet<(Query<&RigidBody>, Query<&mut RigidBody>)>,
+    mut query: QuerySet<(Query<&RigidBody>, Query<(&mut Transform, &mut RigidBody)>)>,
 ) {
     for event in event.iter() {
         if let Ok((first, second)) = query.q0().get(event.first).and_then(|first| {
@@ -75,7 +80,7 @@ pub fn rigid_body_collision_resolution(
             let friction = first.friction * second.friction;
 
             {
-                let mut rigid_body = query.q1_mut().get_mut(event.first).unwrap();
+                let (_, mut rigid_body) = query.q1_mut().get_mut(event.first).unwrap();
                 let velocity = second.velocity - first.velocity;
 
                 let mut reflect_x = false;
@@ -107,7 +112,7 @@ pub fn rigid_body_collision_resolution(
             }
 
             {
-                let mut rigid_body = query.q1_mut().get_mut(event.second).unwrap();
+                let (_, mut rigid_body) = query.q1_mut().get_mut(event.second).unwrap();
                 let velocity = first.velocity - second.velocity;
 
                 let mut reflect_x = false;

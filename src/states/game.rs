@@ -1,6 +1,6 @@
 use crate::{
     config::*,
-    game::{player::*, rigid_body::*},
+    game::{ball::Ball, player::*, rigid_body::*},
     AppState,
 };
 use bevy::prelude::*;
@@ -10,7 +10,7 @@ struct GameEntity;
 fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     println!("Entering Game");
 
-    // Spawn player.
+    // Player
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(0.6, 0.6, 0.6).into()),
@@ -26,7 +26,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         })
         .insert(RigidBody::new(1.0, 0.9, 0.5, false));
 
-    // Spawn ball.
+    // Ball
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(0.8, 0.8, 0.8).into()),
@@ -35,9 +35,10 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
+        .insert(Ball)
         .insert(RigidBody::new(2.0, 0.9, 0.5, false));
 
-    // Spawn up wall.
+    // Up boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -48,7 +49,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
-    // Spawn down wall.
+    // Down boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -59,7 +60,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
-    // Spawn left wall.
+    // Left boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -70,7 +71,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
-    // Spawn right wall.
+    // Right boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
