@@ -29,6 +29,7 @@ pub struct CollisionEvent {
     pub first: Entity,
     pub second: Entity,
     pub collision: Collision,
+    pub impact: f32,
     pub time: f32,
 }
 
@@ -61,10 +62,14 @@ pub fn rigid_body_collision_detection(
                 second.2.translation,
                 second.1.size,
             ) {
+                let speed = (first.3.velocity - second.3.velocity).length();
+                let impact = speed * (first.3.mass + second.3.mass);
+
                 event.send(CollisionEvent {
                     first: first.0,
                     second: second.0,
                     collision: hit.collision,
+                    impact,
                     time: hit.near_time,
                 })
             }
@@ -174,22 +179,22 @@ pub struct RigidBodyPlugin;
 
 impl Plugin for RigidBodyPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_event::<CollisionEvent>();
-        app.add_system_set(
-            SystemSet::new()
-                .label("rigid_body")
-                .with_system(rigid_body_movement.label("rigid_body_movement"))
-                .with_system(
-                    rigid_body_collision_resolution
-                        .label("rigid_body_collision_resolution")
-                        .before("rigid_body_movement"),
-                )
-                .with_system(
-                    rigid_body_collision_detection
-                        .label("rigid_body_collision_detection")
-                        .before("rigid_body_collision_resolution"),
-                )
-                .with_system(rigid_body_added.before("rigid_body_collision_detection")),
-        );
+        let systems = SystemSet::new()
+            .with_system(rigid_body_movement.label("rigid body movement"))
+            .with_system(
+                rigid_body_collision_resolution
+                    .label("rigid body collision resolution")
+                    .before("rigid body movement"),
+            )
+            .with_system(
+                rigid_body_collision_detection
+                    .label("rigid body collision detection")
+                    .before("rigid body collision resolution"),
+            )
+            .with_system(rigid_body_added.before("rigid body collision detection"));
+
+        app.add_event::<CollisionEvent>()
+            .add_stage_after(CoreStage::Update, "physics", SystemStage::parallel())
+            .add_system_set_to_stage("physics", systems);
     }
 }

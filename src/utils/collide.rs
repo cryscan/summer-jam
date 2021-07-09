@@ -44,28 +44,6 @@ pub fn collide_continuous(
     )
 }
 
-/*
-fn sweep_axis(a_min: f32, a_max: f32, b_min: f32, b_max: f32, vel: f32) -> (f32, f32) {
-    let u0 = if a_max < b_min && vel < 0.0 {
-        (a_max - b_min) / vel
-    } else if b_max < a_min && vel > 0.0 {
-        (a_min - b_max) / vel
-    } else {
-        0.0
-    };
-
-    let u1 = if b_max > a_min && vel < 0.0 {
-        (a_min - b_max) / vel
-    } else if a_max > b_min && vel > 0.0 {
-        (a_max - b_min) / vel
-    } else {
-        1.0
-    };
-
-    (u0.clamp(0.0, 1.0), u1.clamp(0.0, 1.0))
-}
-*/
-
 fn intersect_segment(
     box_pos: Vec2,
     box_size: Vec2,

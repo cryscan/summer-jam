@@ -23,6 +23,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             speed_limit: 6400.0,
             speed: 0.5,
             damp: 20.0,
+            recover_timer: Timer::from_seconds(0.3, false),
         })
         .insert(RigidBody::new(1.0, 0.9, 0.5, false));
 
@@ -107,7 +108,7 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
-                    .with_system(player_movement.before("rigid_body")),
+                    .with_system(player_movement),
             )
             .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game));
     }
