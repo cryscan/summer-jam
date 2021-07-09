@@ -29,3 +29,4 @@ bevy_webgl2 = { version="0.5" }
 bevy = { git="https://github.com/bevyengine/bevy" }
 bevy_webgl2 = { git="https://github.com/cryscan/bevy_webgl2" }
 winit = { git="https://github.com/cryscan/winit" }
+big-brain = { git="https://github.com/zkat/big-brain" }
