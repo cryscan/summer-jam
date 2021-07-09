@@ -1,4 +1,4 @@
-use crate::{game::rigid_body::RigidBody, utility::Damp};
+use crate::{game::rigid_body::RigidBody, utils::Damp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::ops::Add;
 
@@ -16,11 +16,12 @@ pub fn player_movement(
     if let Ok((player, mut rigid_body)) = query.single_mut() {
         let delta: Vec2 = mouse_motion_event
             .iter()
-            .map(|mouse_motion| Vec2::new(mouse_motion.delta.x, -mouse_motion.delta.y))
+            .map(|mouse_motion| mouse_motion.delta)
+            .map(|v| Vec2::new(v.x, -v.y))
             .fold(Vec2::ZERO, Vec2::add);
 
         rigid_body.velocity = rigid_body.velocity.damp(
-            (delta * player.speed/ time.delta_seconds()).clamp_length_max(player.speed_limit),
+            delta * player.speed / time.delta_seconds(),
             player.damp,
             time.delta_seconds(),
         );

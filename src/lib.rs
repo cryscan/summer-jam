@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 mod config;
 mod game;
 mod states;
-mod utility;
+mod utils;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {

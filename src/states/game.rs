@@ -10,7 +10,7 @@ struct GameEntity;
 fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     println!("Entering Game");
 
-    // Player
+    // player
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(0.6, 0.6, 0.6).into()),
@@ -26,7 +26,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         })
         .insert(RigidBody::new(1.0, 0.9, 0.5, false));
 
-    // Ball
+    // ball
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(0.8, 0.8, 0.8).into()),
@@ -38,7 +38,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(Ball)
         .insert(RigidBody::new(2.0, 0.9, 0.5, false));
 
-    // Up boundary
+    // top boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -49,7 +49,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
-    // Down boundary
+    // bottom boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -60,7 +60,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
-    // Left boundary
+    // left boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
@@ -71,7 +71,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .insert(GameEntity)
         .insert(RigidBody::new(1.0, 0.9, 0.5, true));
 
-    // Right boundary
+    // right boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
