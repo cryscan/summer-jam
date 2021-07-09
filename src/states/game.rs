@@ -103,12 +103,12 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_plugin(RigidBodyPlugin)
-            .add_system_set(SystemSet::on_enter(AppState::Game).with_system(setup_game.system()))
+            .add_system_set(SystemSet::on_enter(AppState::Game).with_system(setup_game))
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
-                    .with_system(update_game.system())
-                    .with_system(player_movement.system().before("rigid_body")),
+                    .with_system(update_game)
+                    .with_system(player_movement.before("rigid_body")),
             )
-            .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game.system()));
+            .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game));
     }
 }

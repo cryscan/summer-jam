@@ -178,24 +178,18 @@ impl Plugin for RigidBodyPlugin {
         app.add_system_set(
             SystemSet::new()
                 .label("rigid_body")
-                .with_system(rigid_body_movement.system().label("rigid_body_movement"))
+                .with_system(rigid_body_movement.label("rigid_body_movement"))
                 .with_system(
                     rigid_body_collision_resolution
-                        .system()
                         .label("rigid_body_collision_resolution")
                         .before("rigid_body_movement"),
                 )
                 .with_system(
                     rigid_body_collision_detection
-                        .system()
                         .label("rigid_body_collision_detection")
                         .before("rigid_body_collision_resolution"),
                 )
-                .with_system(
-                    rigid_body_added
-                        .system()
-                        .before("rigid_body_collision_detection"),
-                ),
+                .with_system(rigid_body_added.before("rigid_body_collision_detection")),
         );
     }
 }

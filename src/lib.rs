@@ -26,8 +26,8 @@ pub fn run() {
         })
         .add_plugins(DefaultPlugins)
         .add_state(AppState::Title)
-        .add_startup_system(setup.system())
-        .add_system(lock_release_cursor.system())
+        .add_startup_system(setup)
+        .add_system(lock_release_cursor)
         .add_plugin(states::TitlePlugin)
         .add_plugin(states::GamePlugin);
 

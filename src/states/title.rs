@@ -111,14 +111,12 @@ pub struct TitlePlugin;
 impl Plugin for TitlePlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
-            .add_system_set(SystemSet::on_enter(AppState::Title).with_system(setup_title.system()))
+            .add_system_set(SystemSet::on_enter(AppState::Title).with_system(setup_title))
             .add_system_set(
                 SystemSet::on_update(AppState::Title)
-                    .with_system(update_title.system())
-                    .with_system(title_color.system()),
+                    .with_system(update_title)
+                    .with_system(title_color),
             )
-            .add_system_set(
-                SystemSet::on_exit(AppState::Title).with_system(cleanup_title.system()),
-            );
+            .add_system_set(SystemSet::on_exit(AppState::Title).with_system(cleanup_title));
     }
 }
