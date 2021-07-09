@@ -3,6 +3,8 @@ use bevy::{
     sprite::collide_aabb::{collide, Collision},
 };
 
+use crate::utility::merge_result;
+
 #[derive(Default, Clone)]
 pub struct RigidBody {
     pub velocity: Vec2,
@@ -69,12 +71,10 @@ pub fn rigid_body_collision_resolution(
     mut query: QuerySet<(Query<&RigidBody>, Query<(&mut Transform, &mut RigidBody)>)>,
 ) {
     for event in event.iter() {
-        if let Ok((first, second)) = query.q0().get(event.first).and_then(|first| {
-            query
-                .q0()
-                .get(event.second)
-                .map(|second| (first.clone(), second.clone()))
-        }) {
+        if let Ok((first, second)) =
+            merge_result(query.q0().get(event.first), query.q0().get(event.second))
+                .map(|(u, v)| (u.clone(), v.clone()))
+        {
             let total_mass = first.mass + second.mass;
             let bounciness = first.bounciness * second.bounciness;
             let friction = first.friction * second.friction;
