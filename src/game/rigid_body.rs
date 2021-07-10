@@ -14,7 +14,7 @@ pub struct RigidBody {
 
 impl RigidBody {
     pub fn new(mass: f32, bounciness: f32, friction: f32, kinetic: bool) -> Self {
-        RigidBody {
+        Self {
             velocity: Vec2::ZERO,
             translation: Vec3::ZERO,
             mass,

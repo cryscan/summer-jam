@@ -1,6 +1,6 @@
 use crate::{
     config::*,
-    game::{ball::Ball, player::*, rigid_body::*},
+    game::{ball::*, player::*, rigid_body::*},
     AppState,
 };
 use bevy::prelude::*;
@@ -15,7 +15,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(0.6, 0.6, 0.6).into()),
             transform: Transform::from_xyz(0.0, -160.0, 0.0),
-            sprite: Sprite::new(Vec2::new(32.0, 32.0)),
+            sprite: Sprite::new(Vec2::new(64.0, 16.0)),
             ..Default::default()
         })
         .insert(GameEntity)
@@ -35,7 +35,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(Ball)
+        .insert(Ball { gravity: -200.0 })
         .insert(RigidBody::new(1.0, 0.9, 0.5, false));
 
     // top boundary
@@ -107,7 +107,8 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
-                    .with_system(player_movement),
+                    .with_system(player_movement)
+                    .with_system(ball_movement),
             )
             .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game));
     }
