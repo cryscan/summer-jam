@@ -24,7 +24,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             speed: 0.5,
             damp: 20.0,
         })
-        .insert(RigidBody::new(1.0, 0.9, 0.5, false));
+        .insert(RigidBody::new(2.0, 0.9, 0.5, false));
 
     // ball
     commands
@@ -36,7 +36,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         })
         .insert(GameEntity)
         .insert(Ball)
-        .insert(RigidBody::new(2.0, 0.9, 0.5, false));
+        .insert(RigidBody::new(1.0, 0.9, 0.5, false));
 
     // top boundary
     commands
