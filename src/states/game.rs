@@ -20,10 +20,9 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         })
         .insert(GameEntity)
         .insert(Player {
-            speed_limit: 6400.0,
+            speed_limit: 1000.0,
             speed: 0.5,
             damp: 20.0,
-            recover_timer: Timer::from_seconds(0.3, false),
         })
         .insert(RigidBody::new(1.0, 0.9, 0.5, false));
 

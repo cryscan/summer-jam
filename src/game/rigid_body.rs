@@ -29,7 +29,7 @@ pub struct CollisionEvent {
     pub first: Entity,
     pub second: Entity,
     pub collision: Collision,
-    pub impact: f32,
+    pub speed: f32,
     pub time: f32,
 }
 
@@ -53,7 +53,11 @@ pub fn rigid_body_collision_detection(
     query: Query<(Entity, &Sprite, &Transform, &RigidBody)>,
 ) {
     for (i, first) in query.iter().enumerate() {
-        for second in query.iter().skip(i + 1) {
+        for second in query
+            .iter()
+            .skip(i + 1)
+            .filter(|second| !first.3.kinetic || !second.3.kinetic)
+        {
             if let Some(hit) = collide_continuous(
                 first.3.translation,
                 first.2.translation,
@@ -62,14 +66,11 @@ pub fn rigid_body_collision_detection(
                 second.2.translation,
                 second.1.size,
             ) {
-                let speed = (first.3.velocity - second.3.velocity).length();
-                let impact = speed * (first.3.mass + second.3.mass);
-
                 event.send(CollisionEvent {
                     first: first.0,
                     second: second.0,
                     collision: hit.collision,
-                    impact,
+                    speed: (first.3.velocity - second.3.velocity).length(),
                     time: hit.near_time,
                 })
             }
@@ -79,12 +80,13 @@ pub fn rigid_body_collision_detection(
 
 pub fn rigid_body_collision_resolution(
     mut event: EventReader<CollisionEvent>,
-    mut query: QuerySet<(Query<&RigidBody>, Query<(&mut Transform, &mut RigidBody)>)>,
+    mut query: Query<(&mut Transform, &mut RigidBody)>,
 ) {
     for event in event.iter() {
-        if let Ok((first, second)) =
-            merge_result(query.q0().get(event.first), query.q0().get(event.second))
-        {
+        if let Ok((first, second)) = merge_result(
+            query.get_component::<RigidBody>(event.first),
+            query.get_component::<RigidBody>(event.second),
+        ) {
             let total_mass = first.mass + second.mass;
             let bounciness = first.bounciness * second.bounciness;
             let friction = first.friction * second.friction;
@@ -94,7 +96,7 @@ pub fn rigid_body_collision_resolution(
             let second_kinetic = second.kinetic;
 
             {
-                let (mut transform, mut rigid_body) = query.q1_mut().get_mut(event.first).unwrap();
+                let (mut transform, mut rigid_body) = query.get_mut(event.first).unwrap();
 
                 let mut reflect_x = false;
                 let mut reflect_y = false;
@@ -127,13 +129,12 @@ pub fn rigid_body_collision_resolution(
                         transform.translation = rigid_body
                             .translation
                             .lerp(transform.translation, event.time);
-                        rigid_body.translation = transform.translation;
                     }
                 }
             }
 
             {
-                let (mut transform, mut rigid_body) = query.q1_mut().get_mut(event.second).unwrap();
+                let (mut transform, mut rigid_body) = query.get_mut(event.second).unwrap();
                 let velocity = -velocity;
 
                 let mut reflect_x = false;
@@ -167,7 +168,6 @@ pub fn rigid_body_collision_resolution(
                         transform.translation = rigid_body
                             .translation
                             .lerp(transform.translation, event.time);
-                        rigid_body.translation = transform.translation;
                     }
                 }
             }
