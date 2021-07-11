@@ -23,10 +23,6 @@ pub struct RigidBody {
 }
 
 impl Layer {
-    fn enable_collide(self, _other: Self) -> bool {
-        true
-    }
-
     fn bounciness_multiplier(self, other: Self) -> f32 {
         match (self, other) {
             (Layer::Boundary, Layer::Player) => 0.0,
@@ -73,7 +69,6 @@ pub fn rigid_body_collision_detection(
         for second in query
             .iter()
             .skip(i + 1)
-            .filter(|second| first.3.layer.enable_collide(second.3.layer))
             .filter(|second| !first.3.kinetic || !second.3.kinetic)
         {
             if let Some(hit) = collide_continuous(
@@ -114,17 +109,17 @@ pub fn rigid_body_collision_resolution(
             let first_kinetic = first.kinetic;
             let second_kinetic = second.kinetic;
 
+            let mut reflect_x = false;
+            let mut reflect_y = false;
+            match event.hit.collision {
+                Collision::Left => reflect_x = velocity.x < 0.0,
+                Collision::Right => reflect_x = velocity.x > 0.0,
+                Collision::Top => reflect_y = velocity.y > 0.0,
+                Collision::Bottom => reflect_y = velocity.y < 0.0,
+            }
+
             {
                 let (mut transform, mut rigid_body) = query.get_mut(event.first).unwrap();
-
-                let mut reflect_x = false;
-                let mut reflect_y = false;
-                match event.hit.collision {
-                    Collision::Left => reflect_x = velocity.x < 0.0,
-                    Collision::Right => reflect_x = velocity.x > 0.0,
-                    Collision::Top => reflect_y = velocity.y > 0.0,
-                    Collision::Bottom => reflect_y = velocity.y < 0.0,
-                }
 
                 let mass_factor = if second_kinetic {
                     1.0 + bounciness
@@ -155,15 +150,6 @@ pub fn rigid_body_collision_resolution(
             {
                 let (mut transform, mut rigid_body) = query.get_mut(event.second).unwrap();
                 let velocity = -velocity;
-
-                let mut reflect_x = false;
-                let mut reflect_y = false;
-                match event.hit.collision {
-                    Collision::Left => reflect_x = velocity.x > 0.0,
-                    Collision::Right => reflect_x = velocity.x < 0.0,
-                    Collision::Top => reflect_y = velocity.y < 0.0,
-                    Collision::Bottom => reflect_y = velocity.y > 0.0,
-                }
 
                 let mass_factor = if first_kinetic {
                     1.0 + bounciness
