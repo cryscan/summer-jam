@@ -1,26 +1,45 @@
-use crate::utils::{collide_continuous, merge_result};
-use bevy::{prelude::*, sprite::collide_aabb::Collision};
+use crate::utils::{collide_continuous, merge_result, Hit};
+use bevy::{math::bool, prelude::*, sprite::collide_aabb::Collision};
 
-#[derive(Default, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Layer {
+    Boundary,
+    Ball,
+    Player,
+}
+
+#[derive(new)]
 pub struct RigidBody {
+    #[new(default)]
     pub velocity: Vec2,
+    #[new(default)]
     pub translation: Vec3,
 
+    pub layer: Layer,
     pub mass: f32,
     pub bounciness: f32,
     pub friction: f32,
     pub kinetic: bool,
 }
 
-impl RigidBody {
-    pub fn new(mass: f32, bounciness: f32, friction: f32, kinetic: bool) -> Self {
-        Self {
-            velocity: Vec2::ZERO,
-            translation: Vec3::ZERO,
-            mass,
-            bounciness,
-            friction,
-            kinetic,
+impl Layer {
+    fn enable_collide(self, _other: Self) -> bool {
+        true
+    }
+
+    fn bounciness_multiplier(self, other: Self) -> f32 {
+        match (self, other) {
+            (Layer::Boundary, Layer::Player) => 0.0,
+            (Layer::Player, Layer::Boundary) => 0.0,
+            _ => 1.0,
+        }
+    }
+
+    fn friction_multiplier(self, other: Self) -> f32 {
+        match (self, other) {
+            (Layer::Boundary, Layer::Player) => 0.0,
+            (Layer::Player, Layer::Boundary) => 0.0,
+            _ => 1.0,
         }
     }
 }
@@ -28,9 +47,7 @@ impl RigidBody {
 pub struct CollisionEvent {
     pub first: Entity,
     pub second: Entity,
-    pub collision: Collision,
-    pub speed: f32,
-    pub time: f32,
+    pub hit: Hit,
 }
 
 pub fn rigid_body_added(mut query: Query<(&Transform, &mut RigidBody), Added<RigidBody>>) {
@@ -56,6 +73,7 @@ pub fn rigid_body_collision_detection(
         for second in query
             .iter()
             .skip(i + 1)
+            .filter(|second| first.3.layer.enable_collide(second.3.layer))
             .filter(|second| !first.3.kinetic || !second.3.kinetic)
         {
             if let Some(hit) = collide_continuous(
@@ -69,9 +87,7 @@ pub fn rigid_body_collision_detection(
                 event.send(CollisionEvent {
                     first: first.0,
                     second: second.0,
-                    collision: hit.collision,
-                    speed: (first.3.velocity - second.3.velocity).length(),
-                    time: hit.near_time,
+                    hit,
                 })
             }
         }
@@ -88,8 +104,11 @@ pub fn rigid_body_collision_resolution(
             query.get_component::<RigidBody>(event.second),
         ) {
             let total_mass = first.mass + second.mass;
-            let bounciness = first.bounciness * second.bounciness;
-            let friction = first.friction * second.friction;
+            let bounciness = first.layer.bounciness_multiplier(second.layer)
+                * first.bounciness
+                * second.bounciness;
+            let friction =
+                first.layer.friction_multiplier(second.layer) * first.friction * second.friction;
             let velocity = second.velocity - first.velocity;
 
             let first_kinetic = first.kinetic;
@@ -100,7 +119,7 @@ pub fn rigid_body_collision_resolution(
 
                 let mut reflect_x = false;
                 let mut reflect_y = false;
-                match event.collision {
+                match event.hit.collision {
                     Collision::Left => reflect_x = velocity.x < 0.0,
                     Collision::Right => reflect_x = velocity.x > 0.0,
                     Collision::Top => reflect_y = velocity.y > 0.0,
@@ -108,27 +127,27 @@ pub fn rigid_body_collision_resolution(
                 }
 
                 let mass_factor = if second_kinetic {
-                    2.0
+                    1.0 + bounciness
                 } else {
-                    2.0 * (total_mass - rigid_body.mass) / total_mass
+                    (1.0 + bounciness) * (total_mass - rigid_body.mass) / total_mass
                 };
 
                 if !rigid_body.kinetic {
                     if reflect_x {
-                        rigid_body.velocity.x += bounciness * velocity.x * mass_factor;
-                        rigid_body.velocity.y += friction * velocity.y * mass_factor;
+                        rigid_body.velocity.x += mass_factor * velocity.x;
+                        rigid_body.velocity.y += friction * velocity.y;
                     }
 
                     if reflect_y {
-                        rigid_body.velocity.y += bounciness * velocity.y * mass_factor;
-                        rigid_body.velocity.x += friction * velocity.x * mass_factor;
+                        rigid_body.velocity.y += mass_factor * velocity.y;
+                        rigid_body.velocity.x += friction * velocity.x;
                     }
 
                     // reset current and previous transform
-                    if event.time > 0.0 {
+                    if event.hit.near_time > 0.0 {
                         transform.translation = rigid_body
                             .translation
-                            .lerp(transform.translation, event.time);
+                            .lerp(transform.translation, event.hit.near_time);
                     }
                 }
             }
@@ -139,7 +158,7 @@ pub fn rigid_body_collision_resolution(
 
                 let mut reflect_x = false;
                 let mut reflect_y = false;
-                match event.collision {
+                match event.hit.collision {
                     Collision::Left => reflect_x = velocity.x > 0.0,
                     Collision::Right => reflect_x = velocity.x < 0.0,
                     Collision::Top => reflect_y = velocity.y < 0.0,
@@ -147,27 +166,27 @@ pub fn rigid_body_collision_resolution(
                 }
 
                 let mass_factor = if first_kinetic {
-                    2.0
+                    1.0 + bounciness
                 } else {
-                    2.0 * (total_mass - rigid_body.mass) / total_mass
+                    (1.0 + bounciness) * (total_mass - rigid_body.mass) / total_mass
                 };
 
                 if !rigid_body.kinetic {
                     if reflect_x {
-                        rigid_body.velocity.x += bounciness * velocity.x * mass_factor;
-                        rigid_body.velocity.y += friction * velocity.y * mass_factor;
+                        rigid_body.velocity.x += mass_factor * velocity.x;
+                        rigid_body.velocity.y += friction * velocity.y;
                     }
 
                     if reflect_y {
-                        rigid_body.velocity.y += bounciness * velocity.y * mass_factor;
-                        rigid_body.velocity.x += friction * velocity.x * mass_factor;
+                        rigid_body.velocity.y += mass_factor * velocity.y;
+                        rigid_body.velocity.x += friction * velocity.x;
                     }
 
                     // reset current and previous transform
-                    if event.time > 0.0 {
+                    if event.hit.near_time > 0.0 {
                         transform.translation = rigid_body
                             .translation
-                            .lerp(transform.translation, event.time);
+                            .lerp(transform.translation, event.hit.near_time);
                     }
                 }
             }

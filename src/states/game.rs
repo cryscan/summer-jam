@@ -24,7 +24,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             speed: 0.5,
             damp: 20.0,
         })
-        .insert(RigidBody::new(4.0, 0.9, 1.0, false));
+        .insert(RigidBody::new(Layer::Player, 4.0, 0.9, 1.0, false));
 
     // ball
     commands
@@ -36,7 +36,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
         })
         .insert(GameEntity)
         .insert(Ball { gravity: -1000.0 })
-        .insert(RigidBody::new(1.0, 0.9, 0.5, false));
+        .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5, false));
 
     // top boundary
     commands
@@ -47,7 +47,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(1.0, 0.9, 0.5, true));
+        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5, true));
 
     // bottom boundary
     commands
@@ -58,7 +58,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(1.0, 0.9, 0.5, true));
+        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5, true));
 
     // left boundary
     commands
@@ -69,7 +69,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(1.0, 0.9, 0.5, true));
+        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5, true));
 
     // right boundary
     commands
@@ -80,7 +80,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(1.0, 0.9, 0.5, true));
+        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5, true));
 }
 
 fn update_game(mut app_state: ResMut<State<AppState>>, input: ResMut<Input<KeyCode>>) {

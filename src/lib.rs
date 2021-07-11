@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate derive_new;
+
 use bevy::prelude::*;
 use wasm_bindgen::prelude::*;
 
