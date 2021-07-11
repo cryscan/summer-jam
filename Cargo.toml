@@ -13,7 +13,7 @@ big-brain = "0.6.0"
 
 # Dependencies for native only.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-bevy = { version="0.5", default-features=false, features=[
+bevy = { version = "0.5", default-features = false, features = [
     "bevy_wgpu",
     "bevy_winit",
     "render",
@@ -22,11 +22,14 @@ bevy = { version="0.5", default-features=false, features=[
 
 # Dependencies for WASM only.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-bevy = { version="0.5", default-features=false, features=["bevy_winit", "render"] }
-bevy_webgl2 = { version="0.5" }
+bevy = { version = "0.5", default-features = false, features = [
+    "bevy_winit",
+    "render",
+] }
+bevy_webgl2 = { version = "0.5" }
 
 [patch.crates-io]
-bevy = { git="https://github.com/bevyengine/bevy" }
-bevy_webgl2 = { git="https://github.com/cryscan/bevy_webgl2" }
-winit = { git="https://github.com/cryscan/winit" }
-big-brain = { git="https://github.com/zkat/big-brain" }
+bevy_webgl2 = { git = "https://github.com/mrk-its/bevy_webgl2" }
+bevy = { git = "https://github.com/bevyengine/bevy" }
+winit = { git = "https://github.com/cryscan/winit" }
+big-brain = { git = "https://github.com/zkat/big-brain" }
