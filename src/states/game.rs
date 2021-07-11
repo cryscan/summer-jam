@@ -24,7 +24,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             speed: 0.5,
             damp: 20.0,
         })
-        .insert(RigidBody::new(2.0, 0.9, 0.5, false));
+        .insert(RigidBody::new(4.0, 0.9, 1.0, false));
 
     // ball
     commands
@@ -35,14 +35,14 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(Ball { gravity: -200.0 })
+        .insert(Ball { gravity: -1000.0 })
         .insert(RigidBody::new(1.0, 0.9, 0.5, false));
 
     // top boundary
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
+            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0 + 4.0, 0.0),
             sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 8.0)),
             ..Default::default()
         })
@@ -53,7 +53,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
+            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0 - 4.0, 0.0),
             sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 8.0)),
             ..Default::default()
         })
@@ -64,7 +64,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-            transform: Transform::from_xyz(-ARENA_WIDTH / 2.0, 0.0, 0.0),
+            transform: Transform::from_xyz(-ARENA_WIDTH / 2.0 - 4.0, 0.0, 0.0),
             sprite: Sprite::new(Vec2::new(8.0, ARENA_HEIGHT)),
             ..Default::default()
         })
@@ -75,7 +75,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-            transform: Transform::from_xyz(ARENA_WIDTH / 2.0, 0.0, 0.0),
+            transform: Transform::from_xyz(ARENA_WIDTH / 2.0 + 4.0, 0.0, 0.0),
             sprite: Sprite::new(Vec2::new(8.0, ARENA_HEIGHT)),
             ..Default::default()
         })
