@@ -1,4 +1,4 @@
-use crate::AppState;
+use crate::{config::*, AppState};
 use bevy::prelude::*;
 
 struct TitleEntity;
@@ -37,7 +37,7 @@ fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
             text: Text::with_section(
                 "Cleanup!",
                 TextStyle {
-                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font: asset_server.load(FONT_FIRA_SANS),
                     font_size: 50.0,
                     color: Color::WHITE,
                 },
@@ -61,7 +61,7 @@ fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
             text: Text::with_section(
                 "Click to Play",
                 TextStyle {
-                    font: asset_server.load("fonts/FiraMono-Medium.ttf"),
+                    font: asset_server.load(FONT_FIRA_MONO),
                     font_size: 20.0,
                     color: Color::WHITE,
                 },
@@ -76,9 +76,9 @@ fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
-fn update_title(mut app_state: ResMut<State<AppState>>, input: ResMut<Input<MouseButton>>) {
+fn update_title(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<MouseButton>>) {
     if input.just_pressed(MouseButton::Left) {
-        // input.update();
+        input.reset(MouseButton::Left);
         app_state.set(AppState::Game).unwrap();
     }
 }

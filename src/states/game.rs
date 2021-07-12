@@ -7,7 +7,11 @@ use bevy::prelude::*;
 
 struct GameEntity;
 
-fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
+fn setup_game(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     println!("Entering Game");
 
     // player
@@ -24,19 +28,23 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             speed: 0.5,
             damp: 20.0,
         })
-        .insert(RigidBody::new(Layer::Player, 4.0, 0.9, 1.0, false));
+        .insert(RigidBody::new(Layer::Player, 4.0, 0.9, 1.0))
+        .insert(Motion::default());
 
     // ball
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.add(Color::rgb(0.8, 0.8, 0.8).into()),
+            material: materials.add(asset_server.load(BALL_SPRITE).into()),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(16.0, 16.0)),
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(Ball { gravity: -1000.0 })
-        .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5, false));
+        .insert(Ball {
+            gravity: -1000.0,
+            timer: Timer::from_seconds(1.0, false),
+        })
+        .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5))
+        .insert(Motion::default());
 
     // top boundary
     commands
@@ -47,7 +55,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5, true));
+        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 
     // bottom boundary
     commands
@@ -58,7 +66,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5, true));
+        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 
     // left boundary
     commands
@@ -69,7 +77,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5, true));
+        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 
     // right boundary
     commands
@@ -80,12 +88,12 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5, true));
+        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 }
 
-fn update_game(mut app_state: ResMut<State<AppState>>, input: ResMut<Input<KeyCode>>) {
+fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
     if input.just_pressed(KeyCode::Escape) {
-        // input.update();
+        input.reset(KeyCode::Escape);
         app_state.set(AppState::Title).unwrap();
     }
 }
