@@ -63,10 +63,10 @@ pub fn movement(time: Res<Time>, mut query: Query<(&mut Motion, &mut Transform)>
 }
 
 pub fn continuous_translation_correction(
-    mut event: EventReader<CollisionEvent>,
+    mut events: EventReader<CollisionEvent>,
     mut query: Query<(&Motion, &mut Transform)>,
 ) {
-    for event in event.iter() {
+    for event in events.iter() {
         if let Ok((motion, mut transform)) = query.get_mut(event.first) {
             if event.hit.near_time > 0.0 {
                 transform.translation = motion
@@ -86,7 +86,7 @@ pub fn continuous_translation_correction(
 }
 
 pub fn collision_detection(
-    mut event: EventWriter<CollisionEvent>,
+    mut events: EventWriter<CollisionEvent>,
     query: Query<(Entity, &Sprite, &Transform, &RigidBody, Option<&Motion>)>,
 ) {
     for (i, first) in query.iter().enumerate() {
@@ -106,7 +106,7 @@ pub fn collision_detection(
                 second.2.translation,
                 second.1.size,
             ) {
-                event.send(CollisionEvent {
+                events.send(CollisionEvent {
                     first: first.0,
                     second: second.0,
                     hit,
@@ -117,13 +117,13 @@ pub fn collision_detection(
 }
 
 pub fn collision_resolution(
-    mut event: EventReader<CollisionEvent>,
+    mut events: EventReader<CollisionEvent>,
     mut query: QuerySet<(
         Query<(&RigidBody, Option<&Motion>)>,
         Query<Option<(&mut Motion, &mut Transform)>>,
     )>,
 ) {
-    for event in event.iter() {
+    for event in events.iter() {
         let mut resolve = || -> Result<(), Box<dyn Error>> {
             let first = query.q0().get(event.first)?;
             let second = query.q0().get(event.second)?;
