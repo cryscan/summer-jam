@@ -37,6 +37,8 @@ impl Layer {
         match (self, other) {
             (Self::Boundary, Self::Player) => 0.0,
             (Self::Player, Self::Boundary) => 0.0,
+            (Self::Separate, Self::Player) => 0.0,
+            (Self::Player, Self::Separate) => 0.0,
             _ => 1.0,
         }
     }
@@ -45,6 +47,8 @@ impl Layer {
         match (self, other) {
             (Self::Boundary, Self::Player) => 0.0,
             (Self::Player, Self::Boundary) => 0.0,
+            (Self::Separate, Self::Player) => 0.0,
+            (Self::Player, Self::Separate) => 0.0,
             _ => 1.0,
         }
     }

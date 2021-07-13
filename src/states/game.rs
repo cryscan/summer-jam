@@ -18,9 +18,9 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
     // middle Separate
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.add(Color::NONE.into()),
+            material: materials.add(Color::rgba(1.0, 1.0, 1.0, 0.1).into()),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 32.0)),
+            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 16.0)),
             ..Default::default()
         })
         .insert(GameEntity)
