@@ -15,6 +15,17 @@ struct GameEntity;
 fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     println!("Entering Game");
 
+    // middle Separate
+    commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.add(Color::NONE.into()),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 32.0)),
+            ..Default::default()
+        })
+        .insert(GameEntity)
+        .insert(RigidBody::new(Layer::Separate, 1.0, 0.9, 0.5));
+
     // top boundary
     commands
         .spawn_bundle(SpriteBundle {
@@ -24,6 +35,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
+        .insert(EnemyBase::new(10000.0))
         .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 
     // bottom boundary
@@ -35,7 +47,7 @@ fn setup_game(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial
             ..Default::default()
         })
         .insert(GameEntity)
-        .insert(PlayerBase { lives: 3 })
+        .insert(PlayerBase::new(3))
         .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 
     // left boundary
@@ -140,6 +152,7 @@ impl Plugin for GamePlugin {
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
                     .with_system(player_movement)
+                    .with_system(player_goal)
                     .with_system(player_miss)
                     .with_system(remake_ball)
                     .with_system(ball_movement)

@@ -1,8 +1,5 @@
 use crate::{
-    game::{
-        ball::Ball,
-        rigid_body::{CollisionEvent, Motion},
-    },
+    game::{ball::Ball, rigid_body::*},
     states::{make_ball, GameOverEvent},
     utils::Damp,
 };
@@ -38,8 +35,39 @@ pub fn player_movement(
     }
 }
 
+#[derive(new)]
 pub struct PlayerBase {
     pub lives: i32,
+}
+
+#[derive(new)]
+pub struct EnemyBase {
+    pub hp: f32,
+}
+
+pub fn player_goal(
+    mut collision_events: EventReader<CollisionEvent>,
+    mut game_over_events: EventWriter<GameOverEvent>,
+    mut query: QuerySet<(Query<&RigidBody, With<Ball>>, Query<&mut EnemyBase>)>,
+) {
+    for event in collision_events.iter() {
+        let mut resolve =
+            |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
+                let mass = query.q0().get(ball_entity)?.mass;
+                let mut base = query.q1_mut().get_mut(base_entity)?;
+
+                if base.hp < 0.0 {
+                    game_over_events.send(GameOverEvent::Win);
+                } else {
+                    base.hp -= event.speed * mass;
+                }
+
+                Ok(())
+            };
+
+        resolve(event.first, event.second).unwrap_or_default();
+        resolve(event.second, event.first).unwrap_or_default();
+    }
 }
 
 pub fn player_miss(
@@ -49,7 +77,7 @@ pub fn player_miss(
     mut query: QuerySet<(Query<&Ball>, Query<&mut PlayerBase>)>,
 ) {
     let mut resolve = |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
-        let _ball = query.q0().get(ball_entity)?.clone();
+        let _ball = query.q0().get(ball_entity)?;
         let mut base = query.q1_mut().get_mut(base_entity)?;
 
         if base.lives == 0 {
@@ -58,7 +86,6 @@ pub fn player_miss(
             base.lives -= 1;
         }
 
-        // re-spawn the ball
         commands.entity(ball_entity).despawn();
 
         Ok(())

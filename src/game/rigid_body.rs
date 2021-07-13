@@ -5,6 +5,7 @@ use std::error::Error;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Layer {
     Boundary,
+    Separate,
     Ball,
     Player,
 }
@@ -24,18 +25,26 @@ pub struct Motion {
 }
 
 impl Layer {
+    fn enabled_collision(self, other: Self) -> bool {
+        match (self, other) {
+            (Self::Separate, Self::Ball) => false,
+            (Self::Ball, Self::Separate) => false,
+            _ => true,
+        }
+    }
+
     fn bounciness_multiplier(self, other: Self) -> f32 {
         match (self, other) {
-            (Layer::Boundary, Layer::Player) => 0.0,
-            (Layer::Player, Layer::Boundary) => 0.0,
+            (Self::Boundary, Self::Player) => 0.0,
+            (Self::Player, Self::Boundary) => 0.0,
             _ => 1.0,
         }
     }
 
     fn friction_multiplier(self, other: Self) -> f32 {
         match (self, other) {
-            (Layer::Boundary, Layer::Player) => 0.0,
-            (Layer::Player, Layer::Boundary) => 0.0,
+            (Self::Boundary, Self::Player) => 0.0,
+            (Self::Player, Self::Boundary) => 0.0,
             _ => 1.0,
         }
     }
@@ -44,6 +53,7 @@ impl Layer {
 pub struct CollisionEvent {
     pub first: Entity,
     pub second: Entity,
+    pub speed: f32,
     pub hit: Hit,
 }
 
@@ -90,13 +100,20 @@ pub fn collision_detection(
     query: Query<(Entity, &Sprite, &Transform, &RigidBody, Option<&Motion>)>,
 ) {
     for (i, first) in query.iter().enumerate() {
-        for second in query.iter().skip(i + 1) {
+        for second in query
+            .iter()
+            .skip(i + 1)
+            .filter(|second| first.3.layer.enabled_collision(second.3.layer))
+        {
             let (a_prev_pos, b_prev_pos) = match (first.4, second.4) {
                 (None, None) => continue,
                 (None, Some(motion)) => (first.2.translation, motion.translation),
                 (Some(motion), None) => (motion.translation, second.2.translation),
                 (Some(first), Some(second)) => (first.translation, second.translation),
             };
+
+            let first_velocity = first.4.map(|motion| motion.velocity).unwrap_or_default();
+            let second_velocity = second.4.map(|motion| motion.velocity).unwrap_or_default();
 
             if let Some(hit) = collide_continuous(
                 a_prev_pos,
@@ -109,6 +126,7 @@ pub fn collision_detection(
                 events.send(CollisionEvent {
                     first: first.0,
                     second: second.0,
+                    speed: (first_velocity - second_velocity).length(),
                     hit,
                 })
             }
@@ -162,58 +180,48 @@ pub fn collision_resolution(
 
             if let Some((mut motion, mut transform)) = query.q1_mut().get_mut(event.first)? {
                 let mass_factor = if kinetic.1 { 1.0 } else { mass_factor };
+                let correct_translation = |translation: &mut f32, previous: f32| {
+                    if event.hit.depth.abs() > 0.0 {
+                        *translation = previous + mass_factor * event.hit.depth;
+                    } else if event.hit.near_time < f32::EPSILON - 1.0 {
+                        *translation = previous;
+                    }
+                };
 
                 if reflect_x {
                     motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
-
-                    if event.hit.depth.abs() > 0.0 {
-                        transform.translation.x =
-                            motion.translation.x + mass_factor * event.hit.depth;
-                    } else if event.hit.near_time < f32::EPSILON - 1.0 {
-                        transform.translation.x = motion.translation.x;
-                    }
+                    correct_translation(&mut transform.translation.x, motion.translation.x);
                 }
 
                 if reflect_y {
                     motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
-
-                    if event.hit.depth.abs() > 0.0 {
-                        transform.translation.y =
-                            motion.translation.y + mass_factor * event.hit.depth;
-                    } else if event.hit.near_time < f32::EPSILON - 1.0 {
-                        transform.translation.y = motion.translation.y;
-                    }
+                    correct_translation(&mut transform.translation.y, motion.translation.y);
                 }
             }
 
             if let Some((mut motion, mut transform)) = query.q1_mut().get_mut(event.second)? {
                 let velocity = -velocity;
                 let mass_factor = if kinetic.0 { 1.0 } else { 1.0 - mass_factor };
+                let correct_translation = |translation: &mut f32, previous: f32| {
+                    if event.hit.depth.abs() > 0.0 {
+                        *translation = previous - mass_factor * event.hit.depth;
+                    } else if event.hit.near_time < f32::EPSILON - 1.0 {
+                        *translation = previous;
+                    }
+                };
 
                 if reflect_x {
                     motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
-
-                    if event.hit.depth.abs() > 0.0 {
-                        transform.translation.x =
-                            motion.translation.x - mass_factor * event.hit.depth;
-                    } else if event.hit.near_time < f32::EPSILON - 1.0 {
-                        transform.translation.x = motion.translation.x;
-                    }
+                    correct_translation(&mut transform.translation.x, motion.translation.x);
                 }
 
                 if reflect_y {
                     motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
-
-                    if event.hit.depth.abs() > 0.0 {
-                        transform.translation.y =
-                            motion.translation.y - mass_factor * event.hit.depth;
-                    } else if event.hit.near_time < f32::EPSILON - 1.0 {
-                        transform.translation.y = motion.translation.y;
-                    }
+                    correct_translation(&mut transform.translation.y, motion.translation.y);
                 }
             }
 
