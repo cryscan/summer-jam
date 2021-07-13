@@ -167,7 +167,7 @@ pub fn collision_resolution(
                     motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
 
-                    if event.hit.near_time < f32::EPSILON {
+                    if event.hit.depth.abs() > 0.0 || event.hit.near_time < f32::EPSILON - 1.0 {
                         transform.translation.x =
                             motion.translation.x + mass_factor * event.hit.depth;
                     }
@@ -177,7 +177,7 @@ pub fn collision_resolution(
                     motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
 
-                    if event.hit.near_time < f32::EPSILON {
+                    if event.hit.depth.abs() > 0.0 || event.hit.near_time < f32::EPSILON - 1.0 {
                         transform.translation.y =
                             motion.translation.y + mass_factor * event.hit.depth;
                     }
@@ -192,7 +192,7 @@ pub fn collision_resolution(
                     motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
 
-                    if event.hit.near_time < f32::EPSILON {
+                    if event.hit.depth.abs() > 0.0 || event.hit.near_time < f32::EPSILON - 1.0 {
                         transform.translation.x =
                             motion.translation.x - mass_factor * event.hit.depth;
                     }
@@ -202,9 +202,9 @@ pub fn collision_resolution(
                     motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
 
-                    if event.hit.near_time < f32::EPSILON {
+                    if event.hit.depth.abs() > 0.0 || event.hit.near_time < f32::EPSILON - 1.0 {
                         transform.translation.y =
-                            motion.translation.y - mass_factor * event.hit.depth;
+                            motion.translation.y + mass_factor * event.hit.depth;
                     }
                 }
             }
