@@ -49,8 +49,8 @@ fn setup_game(
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0 + 4.0, 0.0),
-            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 8.0)),
+            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0 + 16.0, 0.0),
+            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 32.0)),
             ..Default::default()
         })
         .insert(GameEntity)
@@ -60,8 +60,8 @@ fn setup_game(
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0 - 4.0, 0.0),
-            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 8.0)),
+            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0 - 16.0, 0.0),
+            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 32.0)),
             ..Default::default()
         })
         .insert(GameEntity)
@@ -71,8 +71,8 @@ fn setup_game(
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-            transform: Transform::from_xyz(-ARENA_WIDTH / 2.0 - 4.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(8.0, ARENA_HEIGHT)),
+            transform: Transform::from_xyz(-ARENA_WIDTH / 2.0 - 16.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(32.0, ARENA_HEIGHT)),
             ..Default::default()
         })
         .insert(GameEntity)
@@ -82,8 +82,8 @@ fn setup_game(
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(1.0, 1.0, 1.0).into()),
-            transform: Transform::from_xyz(ARENA_WIDTH / 2.0 + 4.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(8.0, ARENA_HEIGHT)),
+            transform: Transform::from_xyz(ARENA_WIDTH / 2.0 + 16.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(32.0, ARENA_HEIGHT)),
             ..Default::default()
         })
         .insert(GameEntity)

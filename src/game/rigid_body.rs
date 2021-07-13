@@ -166,13 +166,13 @@ pub fn collision_resolution(
                 if reflect_x {
                     motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
-                    transform.translation.x += event.hit.depth;
+                    transform.translation.x += mass_factor * event.hit.depth;
                 }
 
                 if reflect_y {
                     motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
-                    transform.translation.y += event.hit.depth;
+                    transform.translation.y += mass_factor * event.hit.depth;
                 }
             }
 
@@ -183,13 +183,13 @@ pub fn collision_resolution(
                 if reflect_x {
                     motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
-                    transform.translation.x -= event.hit.depth;
+                    transform.translation.x -= mass_factor * event.hit.depth;
                 }
 
                 if reflect_y {
                     motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
-                    transform.translation.y -= event.hit.depth;
+                    transform.translation.y -= mass_factor * event.hit.depth;
                 }
             }
 
@@ -212,16 +212,20 @@ impl Plugin for RigidBodyPlugin {
         let systems = SystemSet::new()
             .with_system(continuous_translation_correction.label(LABEL_TRANSLATION_CORRECTION))
             .with_system(
-                movement
-                    .label(LABEL_MOVEMENT)
+                collision_resolution
+                    .label(LABEL_COLLISION_RESOLUTION)
                     .before(LABEL_TRANSLATION_CORRECTION),
             )
             .with_system(
-                collision_resolution
-                    .label(LABEL_COLLISION_RESOLUTION)
-                    .before(LABEL_MOVEMENT),
+                collision_detection
+                    .label(LABEL_COLLISION_DETECTION)
+                    .before(LABEL_COLLISION_RESOLUTION),
             )
-            .with_system(collision_detection.label(LABEL_COLLISION_DETECTION))
+            .with_system(
+                movement
+                    .label(LABEL_MOVEMENT)
+                    .before(LABEL_COLLISION_DETECTION),
+            )
             .with_system(motion_added.before(LABEL_COLLISION_DETECTION));
 
         app.add_event::<CollisionEvent>()
