@@ -43,8 +43,7 @@ fn setup_game(
             gravity: -1000.0,
             timer: Timer::from_seconds(1.0, false),
         })
-        .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5))
-        .insert(Motion::default());
+        .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5));
 
     // top boundary
     commands
@@ -116,7 +115,8 @@ impl Plugin for GamePlugin {
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
                     .with_system(player_movement)
-                    .with_system(ball_movement),
+                    .with_system(ball_movement)
+                    .with_system(ball_setup),
             )
             .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game));
     }

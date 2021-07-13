@@ -182,78 +182,6 @@ pub fn collision_resolution(
         };
 
         resolve().unwrap();
-
-        /*
-        if let Ok((first, second)) = merge_result(
-            query.get_component::<RigidBody>(event.first),
-            query.get_component::<RigidBody>(event.second),
-        ) {
-            let total_mass = first.mass + second.mass;
-            let bounciness = first.layer.bounciness_multiplier(second.layer)
-                * first.bounciness
-                * second.bounciness;
-            let friction =
-                first.layer.friction_multiplier(second.layer) * first.friction * second.friction;
-            let velocity = second.velocity - first.velocity;
-
-            let first_kinetic = first.kinetic;
-            let second_kinetic = second.kinetic;
-
-            let mut reflect_x = false;
-            let mut reflect_y = false;
-            match event.hit.collision {
-                Collision::Left => reflect_x = velocity.x < 0.0,
-                Collision::Right => reflect_x = velocity.x > 0.0,
-                Collision::Top => reflect_y = velocity.y > 0.0,
-                Collision::Bottom => reflect_y = velocity.y < 0.0,
-            }
-
-            {
-                let mut rigid_body = query.get_mut(event.first).unwrap();
-
-                let mass_factor = if second_kinetic {
-                    1.0 + bounciness
-                } else {
-                    (1.0 + bounciness) * (total_mass - rigid_body.mass) / total_mass
-                };
-
-                if !rigid_body.kinetic {
-                    if reflect_x {
-                        rigid_body.velocity.x += mass_factor * velocity.x;
-                        rigid_body.velocity.y += friction * velocity.y;
-                    }
-
-                    if reflect_y {
-                        rigid_body.velocity.y += mass_factor * velocity.y;
-                        rigid_body.velocity.x += friction * velocity.x;
-                    }
-                }
-            }
-
-            {
-                let mut rigid_body = query.get_mut(event.second).unwrap();
-                let velocity = -velocity;
-
-                let mass_factor = if first_kinetic {
-                    1.0 + bounciness
-                } else {
-                    (1.0 + bounciness) * (total_mass - rigid_body.mass) / total_mass
-                };
-
-                if !rigid_body.kinetic {
-                    if reflect_x {
-                        rigid_body.velocity.x += mass_factor * velocity.x;
-                        rigid_body.velocity.y += friction * velocity.y;
-                    }
-
-                    if reflect_y {
-                        rigid_body.velocity.y += mass_factor * velocity.y;
-                        rigid_body.velocity.x += friction * velocity.x;
-                    }
-                }
-            }
-        }
-        */
     }
 }
 
@@ -278,11 +206,7 @@ impl Plugin for RigidBodyPlugin {
                     .label(LABEL_COLLISION_RESOLUTION)
                     .before(LABEL_MOVEMENT),
             )
-            .with_system(
-                collision_detection
-                    .label(LABEL_COLLISION_DETECTION)
-                    .before(LABEL_COLLISION_RESOLUTION),
-            )
+            .with_system(collision_detection.label(LABEL_COLLISION_DETECTION))
             .with_system(motion_added.before(LABEL_COLLISION_DETECTION));
 
         app.add_event::<CollisionEvent>()
