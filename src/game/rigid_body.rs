@@ -166,13 +166,21 @@ pub fn collision_resolution(
                 if reflect_x {
                     motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
-                    transform.translation.x += mass_factor * event.hit.depth;
+
+                    if event.hit.near_time < f32::EPSILON {
+                        transform.translation.x =
+                            motion.translation.x + mass_factor * event.hit.depth;
+                    }
                 }
 
                 if reflect_y {
                     motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
-                    transform.translation.y += mass_factor * event.hit.depth;
+
+                    if event.hit.near_time < f32::EPSILON {
+                        transform.translation.y =
+                            motion.translation.y + mass_factor * event.hit.depth;
+                    }
                 }
             }
 
@@ -183,13 +191,21 @@ pub fn collision_resolution(
                 if reflect_x {
                     motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
-                    transform.translation.x -= mass_factor * event.hit.depth;
+
+                    if event.hit.near_time < f32::EPSILON {
+                        transform.translation.x =
+                            motion.translation.x - mass_factor * event.hit.depth;
+                    }
                 }
 
                 if reflect_y {
                     motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
-                    transform.translation.y -= mass_factor * event.hit.depth;
+
+                    if event.hit.near_time < f32::EPSILON {
+                        transform.translation.y =
+                            motion.translation.y - mass_factor * event.hit.depth;
+                    }
                 }
             }
 
