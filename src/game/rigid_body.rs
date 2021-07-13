@@ -1,4 +1,4 @@
-use crate::utils::*;
+use crate::{config::REST_SPEED, utils::*};
 use bevy::{prelude::*, sprite::collide_aabb::Collision};
 use std::error::Error;
 
@@ -62,25 +62,25 @@ pub fn movement(time: Res<Time>, mut query: Query<(&mut Motion, &mut Transform)>
     }
 }
 
-pub fn translation_correction(
+pub fn continuous_translation_correction(
     mut event: EventReader<CollisionEvent>,
     mut query: Query<(&Motion, &mut Transform)>,
 ) {
     for event in event.iter() {
-        let reset_translation = |motion: &Motion, mut transform: Mut<Transform>| {
+        if let Ok((motion, mut transform)) = query.get_mut(event.first) {
             if event.hit.near_time > 0.0 {
                 transform.translation = motion
                     .translation
                     .lerp(transform.translation, event.hit.near_time);
             }
-        };
-
-        if let Ok((motion, transform)) = query.get_mut(event.first) {
-            reset_translation(motion, transform);
         }
 
-        if let Ok((motion, transform)) = query.get_mut(event.second) {
-            reset_translation(motion, transform);
+        if let Ok((motion, mut transform)) = query.get_mut(event.second) {
+            if event.hit.near_time > 0.0 {
+                transform.translation = motion
+                    .translation
+                    .lerp(transform.translation, event.hit.near_time);
+            }
         }
     }
 }
@@ -120,7 +120,7 @@ pub fn collision_resolution(
     mut event: EventReader<CollisionEvent>,
     mut query: QuerySet<(
         Query<(&RigidBody, Option<&Motion>)>,
-        Query<Option<&mut Motion>>,
+        Query<Option<(&mut Motion, &mut Transform)>>,
     )>,
 ) {
     for event in event.iter() {
@@ -129,8 +129,11 @@ pub fn collision_resolution(
             let second = query.q0().get(event.second)?;
             let kinetic = (first.1.is_none(), second.1.is_none());
 
-            let velocity = -first.1.map_or(Vec2::ZERO, |motion| motion.velocity)
-                + second.1.map_or(Vec2::ZERO, |motion| motion.velocity);
+            let velocity = {
+                let first = first.1.map_or(Vec2::ZERO, |motion| motion.velocity);
+                let second = second.1.map_or(Vec2::ZERO, |motion| motion.velocity);
+                second - first
+            };
 
             let mut reflect_x = false;
             let mut reflect_y = false;
@@ -142,46 +145,58 @@ pub fn collision_resolution(
             }
 
             let (first, second) = (first.0, second.0);
-            let mass_factor = second.mass / (first.mass + second.mass);
             let bounciness = first.layer.bounciness_multiplier(second.layer)
                 * first.bounciness
                 * second.bounciness;
             let friction =
                 first.layer.friction_multiplier(second.layer) * first.friction * second.friction;
 
-            if let Some(mut motion) = query.q1_mut().get_mut(event.first)? {
+            let mass_factor = second.mass / (first.mass + second.mass);
+            let bounce_factor = |velocity: f32| {
+                if velocity.abs() < REST_SPEED {
+                    1.0
+                } else {
+                    1.0 + bounciness
+                }
+            };
+
+            if let Some((mut motion, mut transform)) = query.q1_mut().get_mut(event.first)? {
                 let mass_factor = if kinetic.1 { 1.0 } else { mass_factor };
 
                 if reflect_x {
-                    motion.velocity.x += (1.0 + bounciness) * mass_factor * velocity.x;
+                    motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
+                    transform.translation.x += event.hit.depth;
                 }
 
                 if reflect_y {
-                    motion.velocity.y += (1.0 + bounciness) * mass_factor * velocity.y;
+                    motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
+                    transform.translation.y += event.hit.depth;
                 }
             }
 
-            if let Some(mut motion) = query.q1_mut().get_mut(event.second)? {
+            if let Some((mut motion, mut transform)) = query.q1_mut().get_mut(event.second)? {
                 let velocity = -velocity;
                 let mass_factor = if kinetic.0 { 1.0 } else { 1.0 - mass_factor };
 
                 if reflect_x {
-                    motion.velocity.x += (1.0 + bounciness) * mass_factor * velocity.x;
+                    motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
                     motion.velocity.y += friction * velocity.y;
+                    transform.translation.x -= event.hit.depth;
                 }
 
                 if reflect_y {
-                    motion.velocity.y += (1.0 + bounciness) * mass_factor * velocity.y;
+                    motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
                     motion.velocity.x += friction * velocity.x;
+                    transform.translation.y -= event.hit.depth;
                 }
             }
 
             Ok(())
         };
 
-        resolve().unwrap();
+        resolve().unwrap_or_default();
     }
 }
 
@@ -195,7 +210,7 @@ pub struct RigidBodyPlugin;
 impl Plugin for RigidBodyPlugin {
     fn build(&self, app: &mut AppBuilder) {
         let systems = SystemSet::new()
-            .with_system(translation_correction.label(LABEL_TRANSLATION_CORRECTION))
+            .with_system(continuous_translation_correction.label(LABEL_TRANSLATION_CORRECTION))
             .with_system(
                 movement
                     .label(LABEL_MOVEMENT)
