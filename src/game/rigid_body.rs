@@ -232,7 +232,7 @@ pub fn collision_resolution(
             Ok(())
         };
 
-        resolve().unwrap_or_default();
+        resolve().unwrap_or_default()
     }
 }
 

@@ -1,9 +1,9 @@
 use crate::{
     config::*,
-    game::{ball::*, player::*, rigid_body::*},
+    game::{ball::*, base::*, player::*, rigid_body::*},
     AppState,
 };
-use bevy::prelude::*;
+use bevy::{math::f32, prelude::*};
 use std::error::Error;
 
 pub enum GameOverEvent {
@@ -11,23 +11,16 @@ pub enum GameOverEvent {
     Lose,
 }
 
+pub struct PlayerHitEvent(pub f32);
+pub struct PlayerMissEvent;
+
 struct GameStateTag;
 
 struct Materials {
-    pub player_material: Handle<ColorMaterial>,
-    pub ball_material: Handle<ColorMaterial>,
-    pub boundary_material: Handle<ColorMaterial>,
-    pub separate_material: Handle<ColorMaterial>,
-}
-
-#[derive(new)]
-pub struct PlayerBase {
-    pub lives: i32,
-}
-
-#[derive(new)]
-pub struct EnemyBase {
-    pub hp: f32,
+    player_material: Handle<ColorMaterial>,
+    ball_material: Handle<ColorMaterial>,
+    boundary_material: Handle<ColorMaterial>,
+    separate_material: Handle<ColorMaterial>,
 }
 
 fn setup_game(
@@ -67,7 +60,7 @@ fn cleanup_game(mut commands: Commands, query: Query<Entity, With<GameStateTag>>
     println!("Cleaning-up Title");
 
     for entity in query.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
 }
 
@@ -92,7 +85,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(EnemyBase::new(10000.0))
+        .insert(EnemyBase::new(10000.0, 10000.0))
         .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 
     // bottom boundary
@@ -130,6 +123,46 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 }
 
+fn make_ui(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.0), Val::Px(4.0)),
+                position_type: PositionType::Absolute,
+                position: Rect {
+                    top: Val::Px(0.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            material: materials.add(Color::NONE.into()),
+            ..Default::default()
+        })
+        .insert(GameStateTag)
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                        ..Default::default()
+                    },
+                    material: materials.add(Color::AQUAMARINE.into()),
+                    ..Default::default()
+                })
+                .insert(HealthBar);
+            parent
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(0.0), Val::Percent(100.0)),
+                        ..Default::default()
+                    },
+                    material: materials.add(Color::RED.into()),
+                    ..Default::default()
+                })
+                .insert(HealthBarTracker::new(1.0, 10.0));
+        });
+}
+
 fn make_player(mut commands: Commands, materials: Res<Materials>) {
     commands
         .spawn_bundle(SpriteBundle {
@@ -139,11 +172,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(Player {
-            speed_limit: 1000.0,
-            speed: 0.5,
-            damp: 20.0,
-        })
+        .insert(Player::new(1000.0, 0.5, 20.0))
         .insert(RigidBody::new(Layer::Player, 4.0, 0.9, 1.0))
         .insert(Motion::default());
 }
@@ -157,29 +186,30 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
                 ..Default::default()
             })
             .insert(GameStateTag)
-            .insert(Ball {
-                gravity: -1000.0,
-                timer: Timer::from_seconds(1.0, false),
-            })
+            .insert(Ball::new(-1000.0, Timer::from_seconds(1.0, false)))
             .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5));
     }
 }
 
-fn player_goal(
+fn player_hit(
     mut collision_events: EventReader<CollisionEvent>,
+    mut player_hit_events: EventWriter<PlayerHitEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    mut query: QuerySet<(Query<&RigidBody, With<Ball>>, Query<&mut EnemyBase>)>,
+    ball_query: Query<&RigidBody, With<Ball>>,
+    mut base_query: Query<&mut EnemyBase>,
 ) {
     for event in collision_events.iter() {
         let mut resolve =
             |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
-                let mass = query.q0().get(ball_entity)?.mass;
-                let mut base = query.q1_mut().get_mut(base_entity)?;
+                let mass = ball_query.get(ball_entity)?.mass;
+                let mut base = base_query.get_mut(base_entity)?;
 
-                if base.hp < 0.0 {
+                if base.hp <= 0.0 {
                     game_over_events.send(GameOverEvent::Win);
                 } else {
-                    base.hp -= event.speed * mass;
+                    let hit = base.hp.min(event.speed * mass);
+                    base.hp -= hit;
+                    player_hit_events.send(PlayerHitEvent(hit));
                 }
 
                 Ok(())
@@ -193,6 +223,7 @@ fn player_goal(
 fn player_miss(
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
+    mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
     mut query: QuerySet<(Query<&Ball>, Query<&mut PlayerBase>)>,
 ) {
@@ -204,6 +235,7 @@ fn player_miss(
             game_over_events.send(GameOverEvent::Lose);
         } else {
             base.lives -= 1;
+            player_miss_events.send(PlayerMissEvent);
         }
 
         commands.entity(ball_entity).despawn();
@@ -223,18 +255,22 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_plugin(RigidBodyPlugin)
             .add_event::<GameOverEvent>()
+            .add_event::<PlayerHitEvent>()
+            .add_event::<PlayerMissEvent>()
             .add_startup_system(setup_game)
             .add_system_set(
                 SystemSet::on_enter(AppState::Game)
                     .with_system(make_static_entities)
+                    .with_system(make_ui)
                     .with_system(make_player),
             )
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
                     .with_system(player_movement)
-                    .with_system(player_goal)
+                    .with_system(player_hit)
                     .with_system(player_miss)
+                    .with_system(health_bar)
                     .with_system(make_ball)
                     .with_system(ball_movement)
                     .with_system(ball_setup),

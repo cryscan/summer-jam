@@ -4,9 +4,9 @@ use std::ops::Add;
 
 #[derive(new)]
 pub struct Player {
-    pub speed_limit: f32,
-    pub speed: f32,
-    pub damp: f32,
+    speed_limit: f32,
+    speed: f32,
+    damp: f32,
 }
 
 pub fn player_movement(
