@@ -146,7 +146,7 @@ fn make_ui(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>)
                         size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    material: materials.add(Color::AQUAMARINE.into()),
+                    material: materials.add(Color::TURQUOISE.into()),
                     ..Default::default()
                 })
                 .insert(HealthBar);
