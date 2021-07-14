@@ -131,7 +131,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 }
 
-fn make_ui(mut commands: Commands, materials: Res<Materials>) {
+fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<AssetServer>) {
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -168,6 +168,60 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>) {
                     ..Default::default()
                 })
                 .insert(HealthBarTracker::new(1.0, 10.0));
+        });
+
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.0), Val::Px(16.0)),
+                position_type: PositionType::Absolute,
+                position: Rect {
+                    left: Val::Px(16.0),
+                    bottom: Val::Px(16.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            material: materials.node_material.clone(),
+            ..Default::default()
+        })
+        .insert(GameStateTag)
+        .with_children(|parent| {
+            parent.spawn_bundle(NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Px(16.0), Val::Px(16.0)),
+                    ..Default::default()
+                },
+                material: materials.ball_material.clone(),
+                ..Default::default()
+            });
+
+            parent
+                .spawn_bundle(TextBundle {
+                    text: Text {
+                        sections: vec![
+                            TextSection {
+                                value: " x ".into(),
+                                style: TextStyle {
+                                    font: asset_server.load(FONT_FIRA_MONO),
+                                    font_size: 20.0,
+                                    color: Color::WHITE,
+                                },
+                            },
+                            TextSection {
+                                value: "".into(),
+                                style: TextStyle {
+                                    font: asset_server.load(FONT_FIRA_MONO),
+                                    font_size: 20.0,
+                                    color: Color::WHITE,
+                                },
+                            },
+                        ],
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(BallCounter);
         });
 }
 
@@ -207,7 +261,7 @@ fn player_hit(
     mut base_query: Query<&mut EnemyBase>,
 ) {
     for event in collision_events.iter() {
-        let mut resolve =
+        let mut closure =
             |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
                 let mass = ball_query.get(ball_entity)?.mass;
                 let mut base = base_query.get_mut(base_entity)?;
@@ -223,8 +277,8 @@ fn player_hit(
                 Ok(())
             };
 
-        resolve(event.first, event.second).unwrap_or_default();
-        resolve(event.second, event.first).unwrap_or_default();
+        closure(event.first, event.second).unwrap_or_default();
+        closure(event.second, event.first).unwrap_or_default();
     }
 }
 
@@ -235,14 +289,14 @@ fn player_miss(
     mut game_over_events: EventWriter<GameOverEvent>,
     mut query: QuerySet<(Query<&Ball>, Query<&mut PlayerBase>)>,
 ) {
-    let mut resolve = |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
+    let mut closure = |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
         let _ball = query.q0().get(ball_entity)?;
         let mut base = query.q1_mut().get_mut(base_entity)?;
 
-        if base.lives == 0 {
+        if base.balls == 0 {
             game_over_events.send(GameOverEvent::Lose);
         } else {
-            base.lives -= 1;
+            base.balls -= 1;
             player_miss_events.send(PlayerMissEvent);
         }
 
@@ -252,8 +306,8 @@ fn player_miss(
     };
 
     for event in collision_events.iter() {
-        resolve(event.first, event.second).unwrap_or_default();
-        resolve(event.second, event.first).unwrap_or_default();
+        closure(event.first, event.second).unwrap_or_default();
+        closure(event.second, event.first).unwrap_or_default();
     }
 }
 
@@ -278,6 +332,7 @@ impl Plugin for GamePlugin {
                     .with_system(player_movement)
                     .with_system(player_hit)
                     .with_system(player_miss)
+                    .with_system(ball_counter)
                     .with_system(health_bar)
                     .with_system(make_ball)
                     .with_system(ball_movement)

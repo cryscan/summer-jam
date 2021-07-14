@@ -146,7 +146,7 @@ pub fn collision_resolution(
     )>,
 ) {
     for event in events.iter() {
-        let mut resolve = || -> Result<(), Box<dyn Error>> {
+        let mut closure = || -> Result<(), Box<dyn Error>> {
             let first = query.q0().get(event.first)?;
             let second = query.q0().get(event.second)?;
             let kinetic = (first.1.is_none(), second.1.is_none());
@@ -232,7 +232,7 @@ pub fn collision_resolution(
             Ok(())
         };
 
-        resolve().unwrap_or_default()
+        closure().unwrap_or_default()
     }
 }
 
