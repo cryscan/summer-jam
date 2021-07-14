@@ -41,7 +41,7 @@ fn setup_game(
         separate_material: materials.add(Color::rgba(0.5, 0.5, 0.5, 0.1).into()),
 
         node_material: materials.add(Color::NONE.into()),
-        health_bar_material: materials.add(Color::rgb_u8(48, 96, 130).into()),
+        health_bar_material: materials.add(Color::rgb_u8(155, 173, 183).into()),
         health_bar_tracker_material: materials.add(Color::rgb_u8(217, 87, 99).into()),
     });
 }
