@@ -21,6 +21,10 @@ struct Materials {
     ball_material: Handle<ColorMaterial>,
     boundary_material: Handle<ColorMaterial>,
     separate_material: Handle<ColorMaterial>,
+
+    node_material: Handle<ColorMaterial>,
+    health_bar_material: Handle<ColorMaterial>,
+    health_bar_tracker_material: Handle<ColorMaterial>,
 }
 
 fn setup_game(
@@ -35,6 +39,10 @@ fn setup_game(
         ball_material: materials.add(asset_server.load(BALL_SPRITE).into()),
         boundary_material: materials.add(Color::NONE.into()),
         separate_material: materials.add(Color::rgba(0.5, 0.5, 0.5, 0.1).into()),
+
+        node_material: materials.add(Color::NONE.into()),
+        health_bar_material: materials.add(Color::rgb_u8(48, 96, 130).into()),
+        health_bar_tracker_material: materials.add(Color::rgb_u8(217, 87, 99).into()),
     });
 }
 
@@ -123,7 +131,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
 }
 
-fn make_ui(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
+fn make_ui(mut commands: Commands, materials: Res<Materials>) {
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -135,7 +143,7 @@ fn make_ui(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>)
                 },
                 ..Default::default()
             },
-            material: materials.add(Color::NONE.into()),
+            material: materials.node_material.clone(),
             ..Default::default()
         })
         .insert(GameStateTag)
@@ -146,7 +154,7 @@ fn make_ui(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>)
                         size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    material: materials.add(Color::TURQUOISE.into()),
+                    material: materials.health_bar_material.clone(),
                     ..Default::default()
                 })
                 .insert(HealthBar);
@@ -156,7 +164,7 @@ fn make_ui(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>)
                         size: Size::new(Val::Percent(0.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    material: materials.add(Color::RED.into()),
+                    material: materials.health_bar_tracker_material.clone(),
                     ..Default::default()
                 })
                 .insert(HealthBarTracker::new(1.0, 10.0));
