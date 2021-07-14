@@ -1,7 +1,7 @@
 use crate::{config::*, AppState};
 use bevy::prelude::*;
 
-struct TitleEntity;
+struct TitleStateTag;
 
 #[derive(Default, Clone, Copy)]
 struct ColorText {
@@ -45,7 +45,7 @@ fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
             ),
             ..Default::default()
         })
-        .insert(TitleEntity);
+        .insert(TitleStateTag);
 
     commands
         .spawn_bundle(TextBundle {
@@ -69,7 +69,7 @@ fn setup_title(mut commands: Commands, asset_server: Res<AssetServer>) {
             ),
             ..Default::default()
         })
-        .insert(TitleEntity)
+        .insert(TitleStateTag)
         .insert(ColorText {
             bright: Color::GOLD,
             dark: Color::GRAY,
@@ -98,7 +98,7 @@ fn title_color(
     }
 }
 
-fn cleanup_title(mut commands: Commands, query: Query<Entity, With<TitleEntity>>) {
+fn cleanup_title(mut commands: Commands, query: Query<Entity, With<TitleStateTag>>) {
     println!("Cleaning-up Title");
 
     for entity in query.iter() {

@@ -1,5 +1,5 @@
-mod game;
-mod title;
+pub mod game;
+pub mod title;
 
-pub use game::{make_ball, make_player, GameOverEvent, GamePlugin};
+pub use game::GamePlugin;
 pub use title::TitlePlugin;
