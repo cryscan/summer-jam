@@ -1,4 +1,4 @@
-use crate::{game::rigid_body::*, utils::Damp};
+use crate::{game::physics::*, utils::Damp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::ops::Add;
 

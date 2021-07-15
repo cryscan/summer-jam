@@ -1,4 +1,4 @@
-use super::rigid_body::Motion;
+use super::physics::Motion;
 use bevy::prelude::*;
 
 #[derive(Clone, new)]

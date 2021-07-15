@@ -1,6 +1,6 @@
 use crate::{
     config::*,
-    game::{ball::*, base::*, player::*, rigid_body::*},
+    game::{ball::*, base::*, physics::*, player::*},
     AppState,
 };
 use bevy::{math::f32, prelude::*};

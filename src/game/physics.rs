@@ -1,13 +1,100 @@
 use crate::{config::REST_SPEED, utils::*};
 use bevy::{prelude::*, sprite::collide_aabb::Collision};
-use std::error::Error;
+use std::{error::Error, ops};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum Layer {
-    Boundary,
-    Separate,
-    Ball,
-    Player,
+    Boundary = 0,
+    Separate = 1,
+    Ball = 2,
+    Player = 3,
+}
+
+impl Layer {
+    pub const fn bits(self) -> LayerBits {
+        LayerBits(1 << self as u8)
+    }
+
+    pub fn collision_bits(self) -> LayerBits {
+        match self {
+            Layer::Boundary => LayerBits::BALL | LayerBits::PLAYER,
+            Layer::Separate => LayerBits::PLAYER,
+            Layer::Ball => LayerBits::BOUNDARY | LayerBits::BALL | LayerBits::PLAYER,
+            Layer::Player => LayerBits::ALL,
+        }
+    }
+
+    pub fn bounciness_bits(self) -> LayerBits {
+        match self {
+            Layer::Boundary => LayerBits::BALL,
+            Layer::Separate => LayerBits::NONE,
+            Layer::Ball => LayerBits::ALL,
+            Layer::Player => LayerBits::BALL | LayerBits::PLAYER,
+        }
+    }
+
+    pub fn friction_bits(self) -> LayerBits {
+        match self {
+            Layer::Boundary => LayerBits::BALL,
+            Layer::Separate => LayerBits::NONE,
+            Layer::Ball => LayerBits::ALL,
+            Layer::Player => LayerBits::BALL | LayerBits::PLAYER,
+        }
+    }
+
+    pub fn test(self, other: Self, method: fn(Self) -> LayerBits) -> bool {
+        (method(self) & other.into()).into()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LayerBits(u8);
+
+impl LayerBits {
+    pub const BOUNDARY: LayerBits = Layer::Boundary.bits();
+    pub const SEPARATE: LayerBits = Layer::Separate.bits();
+    pub const BALL: LayerBits = Layer::Ball.bits();
+    pub const PLAYER: LayerBits = Layer::Player.bits();
+
+    pub const NONE: LayerBits = LayerBits(u8::MIN);
+    pub const ALL: LayerBits = LayerBits(u8::MAX);
+}
+
+impl From<Layer> for LayerBits {
+    fn from(layer: Layer) -> Self {
+        layer.bits()
+    }
+}
+
+impl From<LayerBits> for bool {
+    fn from(layer_bits: LayerBits) -> Self {
+        layer_bits != LayerBits::NONE
+    }
+}
+
+impl ops::BitAnd<Self> for LayerBits {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self(self.0 & rhs.0)
+    }
+}
+
+impl ops::BitOr<Self> for LayerBits {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl ops::BitXor<Self> for LayerBits {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self(self.0 ^ rhs.0)
+    }
 }
 
 #[derive(new)]
@@ -22,36 +109,6 @@ pub struct RigidBody {
 pub struct Motion {
     pub velocity: Vec2,
     pub translation: Vec3,
-}
-
-impl Layer {
-    fn enabled_collision(self, other: Self) -> bool {
-        match (self, other) {
-            (Self::Separate, Self::Ball) => false,
-            (Self::Ball, Self::Separate) => false,
-            _ => true,
-        }
-    }
-
-    fn bounciness_multiplier(self, other: Self) -> f32 {
-        match (self, other) {
-            (Self::Boundary, Self::Player) => 0.0,
-            (Self::Player, Self::Boundary) => 0.0,
-            (Self::Separate, Self::Player) => 0.0,
-            (Self::Player, Self::Separate) => 0.0,
-            _ => 1.0,
-        }
-    }
-
-    fn friction_multiplier(self, other: Self) -> f32 {
-        match (self, other) {
-            (Self::Boundary, Self::Player) => 0.0,
-            (Self::Player, Self::Boundary) => 0.0,
-            (Self::Separate, Self::Player) => 0.0,
-            (Self::Player, Self::Separate) => 0.0,
-            _ => 1.0,
-        }
-    }
 }
 
 pub struct CollisionEvent {
@@ -107,7 +164,7 @@ pub fn collision_detection(
         for second in query
             .iter()
             .skip(i + 1)
-            .filter(|second| first.3.layer.enabled_collision(second.3.layer))
+            .filter(|second| first.3.layer.test(second.3.layer, Layer::collision_bits))
         {
             let (a_prev_pos, b_prev_pos) = match (first.4, second.4) {
                 (None, None) => continue,
@@ -167,11 +224,16 @@ pub fn collision_resolution(
             }
 
             let (first, second) = (first.0, second.0);
-            let bounciness = first.layer.bounciness_multiplier(second.layer)
-                * first.bounciness
-                * second.bounciness;
-            let friction =
-                first.layer.friction_multiplier(second.layer) * first.friction * second.friction;
+            let bounciness = if first.layer.test(second.layer, Layer::bounciness_bits) {
+                first.bounciness * second.bounciness
+            } else {
+                0.0
+            };
+            let friction = if first.layer.test(second.layer, Layer::friction_bits) {
+                first.friction * second.friction
+            } else {
+                0.0
+            };
 
             let mass_factor = second.mass / (first.mass + second.mass);
             let bounce_factor = |velocity: f32| {
