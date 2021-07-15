@@ -187,7 +187,7 @@ pub fn collision_resolution(
                 let correct_translation = |translation: &mut f32, previous: f32| {
                     if event.hit.depth.abs() > 0.0 {
                         *translation = previous + mass_factor * event.hit.depth;
-                    } else if event.hit.near_time < f32::EPSILON - 1.0 {
+                    } else if event.hit.near_time < -0.99 {
                         *translation = previous;
                     }
                 };
@@ -211,7 +211,7 @@ pub fn collision_resolution(
                 let correct_translation = |translation: &mut f32, previous: f32| {
                     if event.hit.depth.abs() > 0.0 {
                         *translation = previous - mass_factor * event.hit.depth;
-                    } else if event.hit.near_time < f32::EPSILON - 1.0 {
+                    } else if event.hit.near_time < -0.99 {
                         *translation = previous;
                     }
                 };
