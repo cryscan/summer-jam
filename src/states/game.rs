@@ -17,11 +17,16 @@ pub struct PlayerMissEvent;
 struct GameStateTag;
 
 struct Materials {
+    // dynamic entities
     player_material: Handle<ColorMaterial>,
+    paddle_material: Handle<ColorMaterial>,
     ball_material: Handle<ColorMaterial>,
+
+    // static entities
     boundary_material: Handle<ColorMaterial>,
     separate_material: Handle<ColorMaterial>,
 
+    // ui
     node_material: Handle<ColorMaterial>,
     health_bar_material: Handle<ColorMaterial>,
     health_bar_tracker_material: Handle<ColorMaterial>,
@@ -36,7 +41,9 @@ fn setup_game(
 
     commands.insert_resource(Materials {
         player_material: materials.add(asset_server.load(PLAYER_SPRITE).into()),
+        paddle_material: materials.add(Color::rgba_u8(155, 173, 183, 50).into()),
         ball_material: materials.add(asset_server.load(BALL_SPRITE).into()),
+
         boundary_material: materials.add(Color::NONE.into()),
         separate_material: materials.add(Color::rgba(0.5, 0.5, 0.5, 0.1).into()),
 
@@ -226,17 +233,32 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
 }
 
 fn make_player(mut commands: Commands, materials: Res<Materials>) {
+    const WIDTH: f32 = 96.0;
+
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.player_material.clone(),
+            material: materials.paddle_material.clone(),
             transform: Transform::from_xyz(0.0, -160.0, 0.0),
-            sprite: Sprite::new(Vec2::new(64.0, 16.0)),
+            sprite: Sprite::new(Vec2::new(WIDTH, 16.0)),
             ..Default::default()
         })
         .insert(GameStateTag)
         .insert(Player::new(1000.0, 0.5, 20.0))
         .insert(RigidBody::new(Layer::Player, 4.0, 0.9, 1.0))
-        .insert(Motion::default());
+        .insert(Motion::default())
+        .with_children(|parent| {
+            parent.spawn_bundle(SpriteBundle {
+                material: materials.player_material.clone(),
+                transform: Transform::from_xyz(-WIDTH / 2.0 + 8.0, 0.0, 0.1),
+                ..Default::default()
+            });
+
+            parent.spawn_bundle(SpriteBundle {
+                material: materials.player_material.clone(),
+                transform: Transform::from_xyz(WIDTH / 2.0 - 8.0, 0.0, 0.1),
+                ..Default::default()
+            });
+        });
 }
 
 fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ball>) {
