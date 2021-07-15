@@ -279,19 +279,21 @@ fn player_hit(
     mut collision_events: EventReader<CollisionEvent>,
     mut player_hit_events: EventWriter<PlayerHitEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    ball_query: Query<&RigidBody, With<Ball>>,
+    ball_query: Query<(&RigidBody, &Motion), With<Ball>>,
     mut base_query: Query<&mut EnemyBase>,
 ) {
     for event in collision_events.iter() {
         let mut closure =
             |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
-                let mass = ball_query.get(ball_entity)?.mass;
-                let mut base = base_query.get_mut(base_entity)?;
+                let (rigid_body, motion) = ball_query.get(ball_entity)?;
+                let mass = rigid_body.mass;
+                let speed = motion.velocity.length();
 
+                let mut base = base_query.get_mut(base_entity)?;
                 if base.hp <= 0.0 {
                     game_over_events.send(GameOverEvent::Win);
                 } else {
-                    let hit = base.hp.min(event.speed * mass);
+                    let hit = base.hp.min(speed * mass);
                     base.hp -= hit;
                     player_hit_events.send(PlayerHitEvent(hit));
                 }

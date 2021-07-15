@@ -114,7 +114,6 @@ pub struct Motion {
 pub struct CollisionEvent {
     pub first: Entity,
     pub second: Entity,
-    pub speed: f32,
     pub hit: Hit,
 }
 
@@ -166,28 +165,21 @@ pub fn collision_detection(
             .skip(i + 1)
             .filter(|second| first.3.layer.test(second.3.layer, Layer::collision_bits))
         {
-            let (a_prev_pos, b_prev_pos) = match (first.4, second.4) {
-                (None, None) => continue,
-                (None, Some(motion)) => (first.2.translation, motion.translation),
-                (Some(motion), None) => (motion.translation, second.2.translation),
-                (Some(first), Some(second)) => (first.translation, second.translation),
-            };
-
-            let first_velocity = first.4.map(|motion| motion.velocity).unwrap_or_default();
-            let second_velocity = second.4.map(|motion| motion.velocity).unwrap_or_default();
-
             if let Some(hit) = collide_continuous(
-                a_prev_pos,
+                first
+                    .4
+                    .map_or(first.2.translation, |motion| motion.translation),
                 first.2.translation,
                 first.1.size,
-                b_prev_pos,
+                second
+                    .4
+                    .map_or(second.2.translation, |motion| motion.translation),
                 second.2.translation,
                 second.1.size,
             ) {
                 events.send(CollisionEvent {
                     first: first.0,
                     second: second.0,
-                    speed: (first_velocity - second_velocity).length(),
                     hit,
                 })
             }
