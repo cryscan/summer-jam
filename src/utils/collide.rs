@@ -2,6 +2,7 @@ use core::f32;
 
 use bevy::{prelude::*, sprite::collide_aabb::Collision};
 
+#[derive(Debug)]
 pub struct Hit {
     pub collision: Collision,
     pub depth: f32,
@@ -103,8 +104,8 @@ fn intersect_segment(
     delta: Vec2,
     padding: Vec2,
 ) -> Option<Hit> {
-    let scale = delta.recip();
     let sign = delta.signum();
+    let scale = (delta + sign * 0.01).recip();
 
     let near_time_x = (box_pos.x - sign.x * (box_size.x / 2.0 + padding.x) - origin.x) * scale.x;
     let near_time_y = (box_pos.y - sign.y * (box_size.y / 2.0 + padding.y) - origin.y) * scale.y;
