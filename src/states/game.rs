@@ -281,7 +281,14 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(Enemy::new(1000.0, 400.0, 20.0, WIDTH, -100.0))
+        .insert(Enemy::new(
+            1000.0,
+            600.0,
+            20.0,
+            WIDTH,
+            -100.0,
+            0.125 * ARENA_HEIGHT,
+        ))
         .insert(Controller::new(Timer::from_seconds(0.2, false)))
         .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
         .insert(Motion::default())

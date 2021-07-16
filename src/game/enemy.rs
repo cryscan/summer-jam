@@ -13,6 +13,7 @@ pub struct Enemy {
 
     hit_range: f32,
     hit_speed_threshold: f32,
+    hit_height_threshold: f32,
 }
 
 #[derive(new)]
@@ -55,7 +56,7 @@ pub fn enemy_controller(
                 && direction.y > -enemy.hit_range
                 && direction.y < -0.0
                 && motion.velocity.y > enemy.hit_speed_threshold
-                && position.y > 0.25 * ARENA_HEIGHT
+                && position.y > enemy.hit_height_threshold
             {
                 // very close to the ball, reacts in maximum speed
                 updated_velocity = enemy.max_speed * direction.normalize();
