@@ -1,6 +1,6 @@
 use crate::{config::REST_SPEED, utils::*};
 use bevy::{prelude::*, sprite::collide_aabb::Collision};
-use std::{error::Error, ops};
+use std::error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -12,88 +12,46 @@ pub enum Layer {
 }
 
 impl Layer {
-    pub const fn bits(self) -> LayerBits {
-        LayerBits(1 << self as u8)
+    pub const NONE: u8 = u8::MIN;
+    pub const ALL: u8 = u8::MAX;
+
+    const BOUNDARY: u8 = Self::Boundary.bits();
+    const BALL: u8 = Self::Ball.bits();
+    const PLAYER: u8 = Self::Player.bits();
+
+    pub const fn bits(self) -> u8 {
+        1 << self as u8
     }
 
-    pub fn collision_bits(self) -> LayerBits {
+    pub const fn collision_bits(self) -> u8 {
         match self {
-            Layer::Boundary => LayerBits::BALL | LayerBits::PLAYER,
-            Layer::Separate => LayerBits::PLAYER,
-            Layer::Ball => LayerBits::BOUNDARY | LayerBits::BALL | LayerBits::PLAYER,
-            Layer::Player => LayerBits::ALL,
+            Self::Boundary => Self::BALL | Self::PLAYER,
+            Self::Separate => Self::PLAYER,
+            Self::Ball => Self::BOUNDARY | Self::BALL | Self::PLAYER,
+            Self::Player => Self::ALL,
         }
     }
 
-    pub fn bounciness_bits(self) -> LayerBits {
+    pub const fn bounciness_bits(self) -> u8 {
         match self {
-            Layer::Boundary => LayerBits::BALL,
-            Layer::Separate => LayerBits::NONE,
-            Layer::Ball => LayerBits::ALL,
-            Layer::Player => LayerBits::BALL | LayerBits::PLAYER,
+            Self::Boundary => Self::BALL,
+            Self::Separate => Self::NONE,
+            Self::Ball => Self::ALL,
+            Self::Player => Self::BALL | Self::PLAYER,
         }
     }
 
-    pub fn friction_bits(self) -> LayerBits {
+    pub const fn friction_bits(self) -> u8 {
         match self {
-            Layer::Boundary => LayerBits::BALL,
-            Layer::Separate => LayerBits::NONE,
-            Layer::Ball => LayerBits::ALL,
-            Layer::Player => LayerBits::BALL | LayerBits::PLAYER,
+            Self::Boundary => Self::BALL,
+            Self::Separate => Self::NONE,
+            Self::Ball => Self::ALL,
+            Self::Player => Self::BALL | Self::PLAYER,
         }
     }
 
-    pub fn test(self, other: Self, method: fn(Self) -> LayerBits) -> bool {
-        (method(self) & other.into()).into()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LayerBits(u8);
-
-impl LayerBits {
-    pub const BOUNDARY: LayerBits = Layer::Boundary.bits();
-    pub const SEPARATE: LayerBits = Layer::Separate.bits();
-    pub const BALL: LayerBits = Layer::Ball.bits();
-    pub const PLAYER: LayerBits = Layer::Player.bits();
-
-    pub const NONE: LayerBits = LayerBits(u8::MIN);
-    pub const ALL: LayerBits = LayerBits(u8::MAX);
-}
-
-impl From<Layer> for LayerBits {
-    fn from(layer: Layer) -> Self {
-        layer.bits()
-    }
-}
-
-impl From<LayerBits> for bool {
-    fn from(layer_bits: LayerBits) -> Self {
-        layer_bits != LayerBits::NONE
-    }
-}
-
-impl ops::BitAnd<Self> for LayerBits {
-    type Output = Self;
-
-    fn bitand(self, rhs: Self) -> Self::Output {
-        Self(self.0 & rhs.0)
-    }
-}
-
-impl ops::BitOr<Self> for LayerBits {
-    type Output = Self;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        Self(self.0 | rhs.0)
-    }
-}
-
-impl ops::BitXor<Self> for LayerBits {
-    type Output = Self;
-
-    fn bitxor(self, rhs: Self) -> Self::Output {
-        Self(self.0 ^ rhs.0)
+    pub fn test(self, other: Self, method: fn(Self) -> u8) -> bool {
+        (method(self) & other.bits()) != Self::NONE
     }
 }
 
