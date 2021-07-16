@@ -330,8 +330,8 @@ fn player_hit(
                 Ok(())
             };
 
-        closure(event.first, event.second).unwrap_or_default();
-        closure(event.second, event.first).unwrap_or_default();
+        closure(event.first, event.second)
+            .unwrap_or_else(|_| closure(event.second, event.first).unwrap_or_default())
     }
 }
 
@@ -359,8 +359,8 @@ fn player_miss(
     };
 
     for event in collision_events.iter() {
-        closure(event.first, event.second).unwrap_or_default();
-        closure(event.second, event.first).unwrap_or_default();
+        closure(event.first, event.second)
+            .unwrap_or_else(|_| closure(event.second, event.first).unwrap_or_default())
     }
 }
 
