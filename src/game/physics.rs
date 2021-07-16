@@ -253,9 +253,9 @@ const LABEL_MOVEMENT: &str = "movement";
 const LABEL_COLLISION_RESOLUTION: &str = "collision resolution";
 const LABEL_COLLISION_DETECTION: &str = "collision detection";
 
-pub struct RigidBodyPlugin;
+pub struct PhysicsPlugin;
 
-impl Plugin for RigidBodyPlugin {
+impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut AppBuilder) {
         let systems = SystemSet::new()
             .with_system(continuous_translation_correction.label(LABEL_TRANSLATION_CORRECTION))

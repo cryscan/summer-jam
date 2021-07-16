@@ -2,6 +2,12 @@ use crate::{config::*, game::prelude::*, AppState};
 use bevy::{core::FixedTimestep, prelude::*};
 use std::error::Error;
 
+pub struct Score {
+    pub timestamp: f64,
+    pub hits: i32,
+    pub miss: i32,
+}
+
 pub enum GameOverEvent {
     Win,
     Lose,
@@ -31,11 +37,10 @@ struct Materials {
 
 fn setup_game(
     mut commands: Commands,
+    time: Res<Time>,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    println!("Entering Game");
-
     commands.insert_resource(Materials {
         player_material: materials.add(asset_server.load(PLAYER_SPRITE).into()),
         enemy_material: materials.add(asset_server.load(ENEMY_SPRITE).into()),
@@ -48,6 +53,12 @@ fn setup_game(
         node_material: materials.add(Color::NONE.into()),
         health_bar_material: materials.add(Color::rgb_u8(155, 173, 183).into()),
         health_bar_tracker_material: materials.add(Color::rgb_u8(217, 87, 99).into()),
+    });
+
+    commands.insert_resource(Score {
+        timestamp: time.seconds_since_startup(),
+        hits: 0,
+        miss: 0,
     });
 }
 
@@ -63,7 +74,7 @@ fn update_game(
 
     for event in events.iter() {
         match event {
-            GameOverEvent::Win => app_state.set(AppState::Title).unwrap(),
+            GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
             GameOverEvent::Lose => app_state.set(AppState::Title).unwrap(),
         }
     }
@@ -270,7 +281,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(Enemy::new(1000.0, 400.0, 20.0, 48.0))
+        .insert(Enemy::new(1000.0, 400.0, 20.0, WIDTH, -100.0))
         .insert(Controller::new(Timer::from_seconds(0.2, false)))
         .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
         .insert(Motion::default())
@@ -367,12 +378,25 @@ fn player_miss(
     }
 }
 
+pub fn score_system(
+    mut player_hit_events: EventReader<PlayerHitEvent>,
+    mut player_miss_events: EventReader<PlayerMissEvent>,
+    mut score: ResMut<Score>,
+) {
+    for _ in player_hit_events.iter() {
+        score.hits += 1;
+    }
+
+    for _ in player_miss_events.iter() {
+        score.miss += 1;
+    }
+}
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_plugin(RigidBodyPlugin)
-            .add_event::<GameOverEvent>()
+        app.add_event::<GameOverEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
             .add_startup_system(setup_game)
@@ -395,7 +419,8 @@ impl Plugin for GamePlugin {
                     .with_system(make_ball)
                     .with_system(ball_movement)
                     .with_system(ball_setup)
-                    .with_system(ball_predict_debug),
+                    .with_system(ball_predict_debug)
+                    .with_system(score_system),
             )
             .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game))
             .add_system_set(

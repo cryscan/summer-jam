@@ -13,6 +13,7 @@ mod utils;
 pub enum AppState {
     Title,
     Game,
+    Win,
 }
 
 #[wasm_bindgen]
@@ -31,8 +32,10 @@ pub fn run() {
         .add_state(AppState::Title)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
+        .add_plugin(game::prelude::PhysicsPlugin)
         .add_plugin(states::TitlePlugin)
-        .add_plugin(states::GamePlugin);
+        .add_plugin(states::GamePlugin)
+        .add_plugin(states::WinPlugin);
 
     #[cfg(not(target_arch = "wasm32"))]
     app.add_plugin(bevy_canvas::CanvasPlugin);
