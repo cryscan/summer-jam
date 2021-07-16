@@ -252,7 +252,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(Player::new(1000.0, 0.5, 20.0))
+        .insert(Player::new(2000.0, 0.5, 20.0))
         .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
         .insert(Motion::default())
         .with_children(|parent| {
