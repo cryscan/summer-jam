@@ -12,3 +12,6 @@ pub const BALL_SPRITE: &str = "sprites/ball.png";
 
 pub const PLAYER_WIDTH: f32 = 96.0;
 pub const ENEMY_WIDTH: f32 = 96.0;
+
+pub const TRAJECTORY_SIZE: usize = 100;
+pub const PREDICT_TIME_STEP: f64 = 0.01;
