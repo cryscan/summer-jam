@@ -1,11 +1,11 @@
-use crate::{game::physics::*, utils::Damp};
+use crate::{game::prelude::*, utils::Damp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::ops::Add;
 
 #[derive(new)]
 pub struct Player {
-    speed_limit: f32,
-    speed: f32,
+    max_speed: f32,
+    sensitivity: f32,
     damp: f32,
 }
 
@@ -24,10 +24,10 @@ pub fn player_movement(
         motion.velocity = motion
             .velocity
             .damp(
-                delta * player.speed / time.delta_seconds(),
+                delta * player.sensitivity / time.delta_seconds(),
                 player.damp,
                 time.delta_seconds(),
             )
-            .clamp_length_max(player.speed_limit);
+            .clamp_length_max(player.max_speed);
     }
 }

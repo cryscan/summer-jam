@@ -232,7 +232,6 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
 
 fn make_player(mut commands: Commands, materials: Res<Materials>) {
     const WIDTH: f32 = PLAYER_WIDTH;
-    const MASS: f32 = PLAYER_MASS;
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -243,7 +242,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(GameStateTag)
         .insert(Player::new(1000.0, 0.5, 20.0))
-        .insert(RigidBody::new(Layer::Player, MASS, 0.9, 1.0))
+        .insert(RigidBody::new(Layer::Player, 2.0, 0.9, 1.0))
         .insert(Motion::default())
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
@@ -262,7 +261,6 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
 
 fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
     const WIDTH: f32 = ENEMY_WIDTH;
-    const MASS: f32 = ENEMY_MASS;
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -272,8 +270,9 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(Enemy)
-        .insert(RigidBody::new(Layer::Player, MASS, 0.9, 1.0))
+        .insert(Enemy::new(1000.0, 20.0))
+        .insert(EnemyController::default())
+        .insert(RigidBody::new(Layer::Player, 2.0, 0.9, 1.0))
         .insert(Motion::default())
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
@@ -384,6 +383,7 @@ impl Plugin for GamePlugin {
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
                     .with_system(player_movement)
+                    .with_system(enemy_movement)
                     .with_system(player_hit)
                     .with_system(player_miss)
                     .with_system(ball_counter)

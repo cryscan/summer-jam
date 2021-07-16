@@ -11,7 +11,4 @@ pub const ENEMY_SPRITE: &str = "sprites/enemy.png";
 pub const BALL_SPRITE: &str = "sprites/ball.png";
 
 pub const PLAYER_WIDTH: f32 = 96.0;
-pub const PLAYER_MASS: f32 = 2.0;
-
 pub const ENEMY_WIDTH: f32 = 96.0;
-pub const ENEMY_MASS: f32 = 2.0;
