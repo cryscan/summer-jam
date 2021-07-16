@@ -175,12 +175,12 @@ pub fn collision_resolution(
 
             let (first, second) = (first.0, second.0);
             let bounciness = if first.layer.test(second.layer, Layer::bounciness_bits) {
-                first.bounciness * second.bounciness
+                (first.bounciness * second.bounciness).sqrt()
             } else {
                 0.0
             };
             let friction = if first.layer.test(second.layer, Layer::friction_bits) {
-                first.friction * second.friction
+                (first.friction * second.friction).sqrt()
             } else {
                 0.0
             };

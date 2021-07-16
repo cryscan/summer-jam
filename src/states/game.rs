@@ -1,5 +1,5 @@
 use crate::{config::*, game::prelude::*, AppState};
-use bevy::prelude::*;
+use bevy::{core::FixedTimestep, prelude::*};
 use std::error::Error;
 
 pub enum GameOverEvent {
@@ -242,7 +242,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(GameStateTag)
         .insert(Player::new(1000.0, 0.5, 20.0))
-        .insert(RigidBody::new(Layer::Player, 2.0, 0.9, 1.0))
+        .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
         .insert(Motion::default())
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
@@ -270,9 +270,9 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(Enemy::new(1000.0, 20.0))
-        .insert(EnemyController::default())
-        .insert(RigidBody::new(Layer::Player, 2.0, 0.9, 1.0))
+        .insert(Enemy::new(1000.0, 400.0, 20.0, 48.0))
+        .insert(Controller::new(Timer::from_seconds(0.2, false)))
+        .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
         .insert(Motion::default())
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
@@ -299,7 +299,11 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
             })
             .insert(GameStateTag)
             .insert(Ball::new(-1000.0, Timer::from_seconds(1.0, false)))
-            .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5));
+            .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5))
+            .insert(Trajectory {
+                start_time: 0.0,
+                points: Box::new([Point::default(); TRAJECTORY_SIZE]),
+            });
     }
 }
 
@@ -390,8 +394,15 @@ impl Plugin for GamePlugin {
                     .with_system(health_bar)
                     .with_system(make_ball)
                     .with_system(ball_movement)
-                    .with_system(ball_setup),
+                    .with_system(ball_setup)
+                    .with_system(ball_predict_debug),
             )
-            .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game));
+            .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game))
+            .add_system_set(
+                SystemSet::new()
+                    .with_run_criteria(FixedTimestep::step(0.1))
+                    .with_system(ball_predict)
+                    .with_system(enemy_controller),
+            );
     }
 }

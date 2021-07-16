@@ -34,6 +34,9 @@ pub fn run() {
         .add_plugin(states::TitlePlugin)
         .add_plugin(states::GamePlugin);
 
+    #[cfg(not(target_arch = "wasm32"))]
+    app.add_plugin(bevy_canvas::CanvasPlugin);
+
     #[cfg(target_arch = "wasm32")]
     app.add_plugin(bevy_webgl2::WebGL2Plugin);
 
