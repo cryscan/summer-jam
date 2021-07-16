@@ -11,7 +11,7 @@ struct ColorText {
 
 struct ColorTimer(Timer);
 
-fn setup_title(
+fn make_title(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -119,7 +119,7 @@ pub struct TitlePlugin;
 impl Plugin for TitlePlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
-            .add_system_set(SystemSet::on_enter(AppState::Title).with_system(setup_title))
+            .add_system_set(SystemSet::on_enter(AppState::Title).with_system(make_title))
             .add_system_set(
                 SystemSet::on_update(AppState::Title)
                     .with_system(update_title)

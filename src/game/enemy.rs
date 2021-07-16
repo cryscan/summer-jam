@@ -10,7 +10,9 @@ pub struct Enemy {
     max_speed: f32,
     normal_speed: f32,
     damp: f32,
+
     hit_range: f32,
+    hit_speed_threshold: f32,
 }
 
 #[derive(new)]
@@ -38,10 +40,12 @@ pub fn enemy_movement(
 pub fn enemy_controller(
     time: Res<Time>,
     mut controller_query: Query<(&Transform, &Enemy, &mut Controller), Without<Ball>>,
-    ball_query: Query<(&Transform, &Trajectory), With<Ball>>,
+    ball_query: Query<(&Transform, &Motion, &Trajectory), With<Ball>>,
 ) {
     for (transform, enemy, mut controller) in controller_query.iter_mut() {
-        for (ball_transform, trajectory) in ball_query.iter() {
+        controller.velocity = Vec2::ZERO;
+
+        for (ball_transform, motion, trajectory) in ball_query.iter() {
             let updated_velocity;
 
             let direction = (ball_transform.translation - transform.translation).truncate();
@@ -49,7 +53,8 @@ pub fn enemy_controller(
 
             if direction.x.abs() < ENEMY_WIDTH / 2.0
                 && direction.y > -enemy.hit_range
-                && direction.y < 0.0
+                && direction.y < -0.0
+                && motion.velocity.y > enemy.hit_speed_threshold
                 && position.y > 0.25 * ARENA_HEIGHT
             {
                 // very close to the ball, reacts in maximum speed
@@ -117,7 +122,7 @@ pub fn enemy_controller(
                 }
             }
 
-            controller.velocity = updated_velocity;
+            controller.velocity += updated_velocity;
         }
     }
 }
