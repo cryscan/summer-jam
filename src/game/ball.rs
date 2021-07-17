@@ -1,12 +1,6 @@
 use crate::{config::*, game::prelude::*};
 use bevy::prelude::*;
 
-#[cfg(not(target_arch = "wasm32"))]
-use bevy_canvas::{common_shapes::Line, Canvas, DrawMode, StrokeOptions};
-
-#[cfg(not(target_arch = "wasm32"))]
-use itertools::Itertools;
-
 #[derive(Clone, new)]
 pub struct Ball {
     gravity: f32,
@@ -91,16 +85,4 @@ pub fn ball_predict(
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub fn ball_predict_debug(query: Query<&Trajectory>, mut canvas: ResMut<Canvas>) {
-    for trajectory in query.iter() {
-        for (previous, current) in trajectory.points.iter().tuple_windows() {
-            let draw_mode = DrawMode::Stroke(StrokeOptions::DEFAULT);
-            let line = Line(previous.position, current.position);
-            canvas.draw(&line, draw_mode, Color::AQUAMARINE);
-        }
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
 pub fn ball_predict_debug() {}
