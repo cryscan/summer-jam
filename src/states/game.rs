@@ -62,6 +62,13 @@ fn setup_game(
     });
 }
 
+fn enter_game(time: Res<Time>, mut score: ResMut<Score>) {
+    // clear score state
+    score.timestamp = time.seconds_since_startup();
+    score.hits = 0;
+    score.miss = 0;
+}
+
 fn update_game(
     mut app_state: ResMut<State<AppState>>,
     mut input: ResMut<Input<KeyCode>>,
@@ -409,6 +416,7 @@ impl Plugin for GamePlugin {
             .add_startup_system(setup_game)
             .add_system_set(
                 SystemSet::on_enter(AppState::Game)
+                    .with_system(enter_game)
                     .with_system(make_static_entities)
                     .with_system(make_ui)
                     .with_system(make_player)
