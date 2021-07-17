@@ -68,6 +68,7 @@ pub fn enemy_controller(
                     .points
                     .iter()
                     .filter(|point| point.position.y > 0.0)
+                    .filter(|point| point.position.y < ARENA_HEIGHT / 2.0 - 16.0)
                     .filter(|point| point.velocity.y > 0.0)
                     .filter(|point| {
                         // filter reachable points
@@ -98,16 +99,18 @@ pub fn enemy_controller(
                         .map(|point| point.position)
                         .filter(|position| position.y > -ARENA_HEIGHT / 2.0)
                         .map(|position| {
+                            let mut contribution = position;
                             if position.y < 0.0 {
-                                position
+                                contribution.y = -position.y
                             } else {
-                                Vec2::new(-position.x, position.y)
+                                contribution.x = -position.x
                             }
+                            contribution
                         })
                         .collect();
 
-                    let mut candidate = collection.iter().sum::<Vec2>() / collection.len() as f32;
-                    candidate.y = -candidate.y;
+                    let mut candidate: Vec2 = collection.iter().sum();
+                    candidate /= collection.len() as f32;
                     candidate.y = candidate
                         .y
                         .clamp(0.125 * ARENA_HEIGHT, 0.375 * ARENA_HEIGHT);
