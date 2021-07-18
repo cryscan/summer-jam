@@ -1,6 +1,8 @@
-use crate::{config::REST_SPEED, utils::*};
-use bevy::{prelude::*, sprite::collide_aabb::Collision};
-use std::error::Error;
+use crate::{
+    config::{PHYSICS_REST_SPEED, PHYSICS_TIME_STEP},
+    utils::*,
+};
+use bevy::{core::FixedTimestep, prelude::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -55,12 +57,32 @@ impl Layer {
     }
 }
 
-#[derive(new)]
 pub struct RigidBody {
     pub layer: Layer,
-    pub mass: f32,
+    pub inverted_mass: f32,
     pub bounciness: f32,
     pub friction: f32,
+}
+
+impl RigidBody {
+    pub fn new(layer: Layer, mass: f32, bounciness: f32, friction: f32) -> Self {
+        let inverted_mass = if mass < f32::EPSILON {
+            0.0
+        } else {
+            mass.recip()
+        };
+
+        Self {
+            layer,
+            inverted_mass,
+            bounciness,
+            friction,
+        }
+    }
+
+    pub fn mass(&self) -> f32 {
+        self.inverted_mass.recip()
+    }
 }
 
 #[derive(Default)]
@@ -72,6 +94,10 @@ pub struct Motion {
 pub struct CollisionEvent {
     pub first: Entity,
     pub second: Entity,
+    pub velocity: Vec2,
+    pub impulse: f32,
+    pub bounciness: f32,
+    pub friction: f32,
     pub hit: Hit,
 }
 
@@ -81,35 +107,12 @@ pub fn motion_added(mut query: Query<(&Transform, &mut Motion), Added<Motion>>) 
     }
 }
 
-pub fn movement(time: Res<Time>, mut query: Query<(&mut Motion, &mut Transform)>) {
+pub fn movement(_time: Res<Time>, mut query: Query<(&mut Motion, &mut Transform)>) {
     for (mut motion, mut transform) in query.iter_mut() {
         motion.translation = transform.translation;
 
-        let velocity = motion.velocity * time.delta_seconds();
+        let velocity = motion.velocity * PHYSICS_TIME_STEP as f32;
         transform.translation += (velocity, 0.0).into();
-    }
-}
-
-pub fn continuous_translation_correction(
-    mut events: EventReader<CollisionEvent>,
-    mut query: Query<(&Motion, &mut Transform)>,
-) {
-    for event in events.iter() {
-        if let Ok((motion, mut transform)) = query.get_mut(event.first) {
-            if event.hit.near_time > 0.0 {
-                transform.translation = motion
-                    .translation
-                    .lerp(transform.translation, event.hit.near_time);
-            }
-        }
-
-        if let Ok((motion, mut transform)) = query.get_mut(event.second) {
-            if event.hit.near_time > 0.0 {
-                transform.translation = motion
-                    .translation
-                    .lerp(transform.translation, event.hit.near_time);
-            }
-        }
     }
 }
 
@@ -135,9 +138,31 @@ pub fn collision_detection(
                 second.2.translation,
                 second.1.size,
             ) {
+                let velocity = {
+                    let first = first.4.map_or(Vec2::ZERO, |motion| motion.velocity);
+                    let second = second.4.map_or(Vec2::ZERO, |motion| motion.velocity);
+                    second - first
+                };
+
+                let bounciness = if first.3.layer.test(second.3.layer, Layer::bounciness_bits) {
+                    (first.3.bounciness * second.3.bounciness).sqrt()
+                } else {
+                    0.0
+                };
+
+                let friction = if first.3.layer.test(second.3.layer, Layer::friction_bits) {
+                    (first.3.friction * second.3.friction).sqrt()
+                } else {
+                    0.0
+                };
+
                 events.send(CollisionEvent {
                     first: first.0,
                     second: second.0,
+                    impulse: (first.3.inverted_mass + second.3.inverted_mass).recip(),
+                    velocity,
+                    bounciness,
+                    friction,
                     hit,
                 })
             }
@@ -147,104 +172,72 @@ pub fn collision_detection(
 
 pub fn collision_resolution(
     mut events: EventReader<CollisionEvent>,
-    mut query: QuerySet<(
-        Query<(&RigidBody, Option<&Motion>)>,
-        Query<Option<(&mut Motion, &mut Transform)>>,
-    )>,
+    mut query: Query<(&RigidBody, &mut Motion)>,
 ) {
     for event in events.iter() {
-        let mut closure = || -> Result<(), Box<dyn Error>> {
-            let first = query.q0().get(event.first)?;
-            let second = query.q0().get(event.second)?;
-            let kinetic = (first.1.is_none(), second.1.is_none());
+        let mut closure = |entity: Entity, velocity: Vec2, normal: Vec2| {
+            if let Ok((rigid_body, mut motion)) = query.get_mut(entity) {
+                let normal_speed = velocity.dot(normal);
 
-            let velocity = {
-                let first = first.1.map_or(Vec2::ZERO, |motion| motion.velocity);
-                let second = second.1.map_or(Vec2::ZERO, |motion| motion.velocity);
-                second - first
-            };
+                // do not process if objects are moving apart
+                if normal_speed < 0.0 {
+                    return;
+                }
 
-            let mut reflect_x = false;
-            let mut reflect_y = false;
-            match event.hit.collision {
-                Collision::Left => reflect_x = velocity.x < 0.0,
-                Collision::Right => reflect_x = velocity.x > 0.0,
-                Collision::Top => reflect_y = velocity.y > 0.0,
-                Collision::Bottom => reflect_y = velocity.y < 0.0,
-            }
+                let normal_velocity = normal_speed * normal;
+                let tangential_velocity = velocity - normal_velocity;
 
-            let (first, second) = (first.0, second.0);
-            let bounciness = if first.layer.test(second.layer, Layer::bounciness_bits) {
-                (first.bounciness * second.bounciness).sqrt()
-            } else {
-                0.0
-            };
-            let friction = if first.layer.test(second.layer, Layer::friction_bits) {
-                (first.friction * second.friction).sqrt()
-            } else {
-                0.0
-            };
-
-            let mass_factor = second.mass / (first.mass + second.mass);
-            let bounce_factor = |velocity: f32| {
-                if velocity.abs() < REST_SPEED {
-                    1.0
+                let bounciness = if normal_speed < PHYSICS_REST_SPEED {
+                    0.0
                 } else {
-                    1.0 + bounciness
-                }
-            };
-
-            if let Some((mut motion, mut transform)) = query.q1_mut().get_mut(event.first)? {
-                let mass_factor = if kinetic.1 { 1.0 } else { mass_factor };
-                let correct_translation = |translation: &mut f32, previous: f32| {
-                    if event.hit.depth.abs() > 0.0 {
-                        *translation = previous + mass_factor * event.hit.depth;
-                    } else if (event.hit.near_time + 1.0).abs() < 0.01 {
-                        *translation = previous;
-                    }
+                    event.bounciness
                 };
 
-                if reflect_x {
-                    motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
-                    motion.velocity.y += friction * velocity.y;
-                    correct_translation(&mut transform.translation.x, motion.translation.x);
-                }
+                let normal_velocity =
+                    (1.0 + bounciness) * event.impulse * rigid_body.inverted_mass * normal_velocity;
+                let tangential_velocity =
+                    event.friction * event.impulse * rigid_body.inverted_mass * tangential_velocity;
 
-                if reflect_y {
-                    motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
-                    motion.velocity.x += friction * velocity.x;
-                    correct_translation(&mut transform.translation.y, motion.translation.y);
-                }
+                motion.velocity += normal_velocity + tangential_velocity;
             }
-
-            if let Some((mut motion, mut transform)) = query.q1_mut().get_mut(event.second)? {
-                let velocity = -velocity;
-                let mass_factor = if kinetic.0 { 1.0 } else { 1.0 - mass_factor };
-                let correct_translation = |translation: &mut f32, previous: f32| {
-                    if event.hit.depth.abs() > 0.0 {
-                        *translation = previous - mass_factor * event.hit.depth;
-                    } else if (event.hit.near_time + 1.0).abs() < 0.01 {
-                        *translation = previous;
-                    }
-                };
-
-                if reflect_x {
-                    motion.velocity.x += bounce_factor(velocity.x) * mass_factor * velocity.x;
-                    motion.velocity.y += friction * velocity.y;
-                    correct_translation(&mut transform.translation.x, motion.translation.x);
-                }
-
-                if reflect_y {
-                    motion.velocity.y += bounce_factor(velocity.y) * mass_factor * velocity.y;
-                    motion.velocity.x += friction * velocity.x;
-                    correct_translation(&mut transform.translation.y, motion.translation.y);
-                }
-            }
-
-            Ok(())
         };
 
-        closure().unwrap_or_default()
+        closure(event.first, event.velocity, event.hit.normal);
+        closure(event.second, -event.velocity, -event.hit.normal);
+    }
+}
+
+pub fn translation_correction(
+    mut events: EventReader<CollisionEvent>,
+    mut query: Query<(&RigidBody, &Motion, &mut Transform)>,
+) {
+    for event in events.iter() {
+        let mut closure = |entity: Entity, normal: Vec2| {
+            if let Ok((rigid_body, motion, mut transform)) = query.get_mut(entity) {
+                let depth = event.hit.depth.abs();
+                let delta = (motion.translation - transform.translation).truncate();
+
+                if depth > 0.0 {
+                    // correct penetration
+                    let correction = depth * event.impulse * rigid_body.inverted_mass * normal;
+                    let normal_delta = (delta + correction).dot(normal) * normal;
+                    transform.translation += normal_delta.extend(0.0);
+                }
+                if (event.hit.near_time + 1.0).abs() < 0.01 {
+                    // this is a hack that deals with numerical issue in collision detection
+                    let normal_delta = delta.dot(normal) * normal;
+                    transform.translation += normal_delta.extend(0.0);
+                }
+                if event.hit.near_time > 0.0 {
+                    transform.translation = motion
+                        .translation
+                        .lerp(transform.translation, event.hit.near_time);
+                }
+            }
+        };
+
+        closure(event.first, event.hit.normal);
+        closure(event.second, -event.hit.normal);
     }
 }
 
@@ -258,7 +251,8 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut AppBuilder) {
         let systems = SystemSet::new()
-            .with_system(continuous_translation_correction.label(LABEL_TRANSLATION_CORRECTION))
+            .with_run_criteria(FixedTimestep::step(PHYSICS_TIME_STEP))
+            .with_system(translation_correction.label(LABEL_TRANSLATION_CORRECTION))
             .with_system(
                 collision_resolution
                     .label(LABEL_COLLISION_RESOLUTION)

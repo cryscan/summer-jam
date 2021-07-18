@@ -1,5 +1,5 @@
 use crate::{config::*, game::prelude::*};
-use bevy::prelude::*;
+use bevy::{math::f32, prelude::*};
 
 #[derive(Clone, new)]
 pub struct Ball {
@@ -34,7 +34,7 @@ pub struct Point {
 
 pub struct Trajectory {
     pub start_time: f64,
-    pub points: Box<[Point; TRAJECTORY_SIZE]>,
+    pub points: Vec<Point>,
 }
 
 pub fn ball_predict(
