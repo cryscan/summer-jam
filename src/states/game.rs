@@ -140,7 +140,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
+        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.0));
 
     // right boundary
     commands
@@ -151,7 +151,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
+        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.0));
 }
 
 fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<AssetServer>) {
@@ -425,19 +425,22 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
+                    .with_system(make_ball),
+            )
+            .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game))
+            .add_system_set(
+                SystemSet::new()
                     .with_system(player_movement)
                     .with_system(enemy_movement)
                     .with_system(player_hit)
                     .with_system(player_miss)
                     .with_system(ball_counter)
                     .with_system(health_bar)
-                    .with_system(make_ball)
                     .with_system(ball_movement)
                     .with_system(ball_setup)
                     .with_system(ball_predict_debug)
                     .with_system(score_system),
             )
-            .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game))
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(FixedTimestep::step(AI_TIME_STEP))
