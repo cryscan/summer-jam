@@ -7,6 +7,7 @@ pub const FONT_FIRA_SANS: &str = "fonts/FiraSans-Bold.ttf";
 pub const PLAYER_SPRITE: &str = "sprites/player.png";
 pub const ENEMY_SPRITE: &str = "sprites/enemy.png";
 pub const BALL_SPRITE: &str = "sprites/ball.png";
+pub const HINT_SPRITE: &str = "sprites/hint.png";
 
 pub const PLAYER_WIDTH: f32 = 96.0;
 pub const ENEMY_WIDTH: f32 = 96.0;

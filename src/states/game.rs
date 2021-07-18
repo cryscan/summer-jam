@@ -24,6 +24,7 @@ struct Materials {
     enemy_material: Handle<ColorMaterial>,
     paddle_material: Handle<ColorMaterial>,
     ball_material: Handle<ColorMaterial>,
+    hint_material: Handle<ColorMaterial>,
 
     // static entities
     boundary_material: Handle<ColorMaterial>,
@@ -46,6 +47,7 @@ fn setup_game(
         enemy_material: materials.add(asset_server.load(ENEMY_SPRITE).into()),
         paddle_material: materials.add(Color::rgba_u8(155, 173, 183, 50).into()),
         ball_material: materials.add(asset_server.load(BALL_SPRITE).into()),
+        hint_material: materials.add(asset_server.load(HINT_SPRITE).into()),
 
         boundary_material: materials.add(Color::NONE.into()),
         separate_material: materials.add(Color::rgba(0.5, 0.5, 0.5, 0.1).into()),
@@ -251,6 +253,15 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
 fn make_player(mut commands: Commands, materials: Res<Materials>) {
     const WIDTH: f32 = PLAYER_WIDTH;
 
+    let hint = commands
+        .spawn_bundle(SpriteBundle {
+            material: materials.hint_material.clone(),
+            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
+            ..Default::default()
+        })
+        .insert(GameStateTag)
+        .id();
+
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.paddle_material.clone(),
@@ -262,6 +273,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         .insert(Player::new(0.5, 20.0))
         .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
         .insert(Motion::default())
+        .insert(Hint(hint))
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
                 material: materials.player_material.clone(),
@@ -316,6 +328,15 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
 
 fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ball>) {
     if query.iter().count() == 0 {
+        let hint = commands
+            .spawn_bundle(SpriteBundle {
+                material: materials.hint_material.clone(),
+                transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
+                ..Default::default()
+            })
+            .insert(GameStateTag)
+            .id();
+
         commands
             .spawn_bundle(SpriteBundle {
                 material: materials.ball_material.clone(),
@@ -328,7 +349,8 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
             .insert(Trajectory {
                 start_time: 0.0,
                 points: vec![Point::default(); PREDICT_SIZE],
-            });
+            })
+            .insert(Hint(hint));
     }
 }
 
@@ -368,10 +390,10 @@ fn player_miss(
     mut collision_events: EventReader<CollisionEvent>,
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    mut query: QuerySet<(Query<&Ball>, Query<&mut PlayerBase>)>,
+    mut query: QuerySet<(Query<Option<&Hint>, With<Ball>>, Query<&mut PlayerBase>)>,
 ) {
     let mut closure = |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
-        let _ball = query.q0().get(ball_entity)?;
+        let _ = query.q0().get(ball_entity)?;
         let mut base = query.q1_mut().get_mut(base_entity)?;
 
         if base.balls == 0 {
@@ -381,6 +403,9 @@ fn player_miss(
             player_miss_events.send(PlayerMissEvent);
         }
 
+        if let Some(hint) = query.q0().get(ball_entity)? {
+            commands.entity(hint.0).despawn();
+        }
         commands.entity(ball_entity).despawn();
 
         Ok(())
@@ -439,7 +464,8 @@ impl Plugin for GamePlugin {
                     .with_system(ball_movement)
                     .with_system(ball_setup)
                     .with_system(ball_predict_debug)
-                    .with_system(score_system),
+                    .with_system(score_system)
+                    .with_system(hint_system),
             )
             .add_system_set(
                 SystemSet::new()
