@@ -105,7 +105,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(RigidBody::new(Layer::Separate, 1.0, 0.9, 0.5));
+        .insert(RigidBody::new(Layer::Separate, 0.0, 0.9, 0.5));
 
     // top boundary
     commands
@@ -117,7 +117,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(GameStateTag)
         .insert(EnemyBase::new(10000.0, 10000.0))
-        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
+        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
 
     // bottom boundary
     commands
@@ -129,7 +129,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(GameStateTag)
         .insert(PlayerBase::new(3))
-        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
+        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
 
     // left boundary
     commands
@@ -140,7 +140,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
+        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
 
     // right boundary
     commands
@@ -151,7 +151,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(GameStateTag)
-        .insert(RigidBody::new(Layer::Boundary, 1.0, 0.9, 0.5));
+        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
 }
 
 fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<AssetServer>) {
@@ -327,7 +327,7 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
             .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5))
             .insert(Trajectory {
                 start_time: 0.0,
-                points: Box::new([Point::default(); TRAJECTORY_SIZE]),
+                points: vec![Point::default(); PREDICT_SIZE],
             });
     }
 }
@@ -343,7 +343,7 @@ fn player_hit(
         let mut closure =
             |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
                 let (rigid_body, motion) = ball_query.get(ball_entity)?;
-                let mass = rigid_body.mass;
+                let mass = rigid_body.mass();
                 let speed = motion.velocity.length();
 
                 let mut base = base_query.get_mut(base_entity)?;
@@ -440,7 +440,7 @@ impl Plugin for GamePlugin {
             .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup_game))
             .add_system_set(
                 SystemSet::new()
-                    .with_run_criteria(FixedTimestep::step(0.1))
+                    .with_run_criteria(FixedTimestep::step(AI_TIME_STEP))
                     .with_system(ball_predict)
                     .with_system(enemy_controller),
             );

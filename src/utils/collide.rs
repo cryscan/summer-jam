@@ -4,10 +4,25 @@ use bevy::{prelude::*, sprite::collide_aabb::Collision};
 
 #[derive(Debug)]
 pub struct Hit {
-    pub collision: Collision,
+    pub normal: Vec2,
     pub depth: f32,
     pub near_time: f32,
     pub far_time: f32,
+}
+
+trait Normal {
+    fn to_normal(self) -> Vec2;
+}
+
+impl Normal for Collision {
+    fn to_normal(self) -> Vec2 {
+        match self {
+            Collision::Left => -Vec2::X,
+            Collision::Right => Vec2::X,
+            Collision::Top => Vec2::Y,
+            Collision::Bottom => -Vec2::Y,
+        }
+    }
 }
 
 /// Axis-aligned bounding box collision with "side" detection
@@ -71,7 +86,7 @@ pub fn collide_continuous(
     // check if already overlapped
     if let Some((collision, depth)) = collide(a_prev_pos, a_size, b_prev_pos, b_size) {
         return Some(Hit {
-            collision,
+            normal: collision.to_normal(),
             depth,
             near_time: 0.0,
             far_time: 1.0,
@@ -136,7 +151,7 @@ fn intersect_segment(
     };
 
     Some(Hit {
-        collision,
+        normal: collision.to_normal(),
         depth: 0.0,
         near_time,
         far_time,
