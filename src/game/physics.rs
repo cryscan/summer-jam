@@ -192,11 +192,17 @@ pub fn collision_resolution(
                 } else {
                     event.bounciness
                 };
+                let friction = if event.friction < f32::EPSILON {
+                    0.0
+                } else {
+                    let k = (1.0 - event.friction) / event.friction;
+                    1.0 - k / (normal_speed + k)
+                };
 
                 let normal_velocity =
                     (1.0 + bounciness) * event.impulse * rigid_body.inverted_mass * normal_velocity;
                 let tangential_velocity =
-                    event.friction * event.impulse * rigid_body.inverted_mass * tangential_velocity;
+                    friction * event.impulse * rigid_body.inverted_mass * tangential_velocity;
 
                 motion.velocity += normal_velocity + tangential_velocity;
             }
