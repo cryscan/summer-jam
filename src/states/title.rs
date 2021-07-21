@@ -40,7 +40,7 @@ fn make_title(
                     ..Default::default()
                 },
                 text: Text::with_section(
-                    "Cleanup!",
+                    "Bounce Up!",
                     TextStyle {
                         font: asset_server.load(FONT_FIRA_SANS),
                         font_size: 50.0,
