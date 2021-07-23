@@ -9,6 +9,8 @@ pub const ENEMY_SPRITE: &str = "sprites/enemy.png";
 pub const BALL_SPRITE: &str = "sprites/ball.png";
 pub const HINT_SPRITE: &str = "sprites/hint.png";
 
+pub const MAX_DAMAGE: f32 = 2000.0;
+
 pub const PLAYER_WIDTH: f32 = 96.0;
 pub const ENEMY_WIDTH: f32 = 96.0;
 
