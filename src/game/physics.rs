@@ -101,7 +101,7 @@ pub struct CollisionEvent {
     pub hit: Hit,
 }
 
-pub fn motion_added(mut query: Query<(&Transform, &mut Motion), Added<Motion>>) {
+pub fn init_motion(mut query: Query<(&Transform, &mut Motion), Added<Motion>>) {
     for (transform, mut motion) in query.iter_mut() {
         motion.translation = transform.translation;
     }
@@ -247,10 +247,28 @@ pub fn translation_correction(
     }
 }
 
-const LABEL_TRANSLATION_CORRECTION: &str = "translation correction";
-const LABEL_MOVEMENT: &str = "movement";
-const LABEL_COLLISION_RESOLUTION: &str = "collision resolution";
-const LABEL_COLLISION_DETECTION: &str = "collision detection";
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicsSystem {
+    Movement,
+    CollisionDetection,
+    CollisionResolution,
+    TranslationCorrection,
+}
+
+impl SystemLabel for PhysicsSystem {
+    fn dyn_clone(&self) -> Box<dyn SystemLabel> {
+        Box::new(self.clone())
+    }
+}
+
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicsStage;
+
+impl StageLabel for PhysicsStage {
+    fn dyn_clone(&self) -> Box<dyn StageLabel> {
+        Box::new(self.clone())
+    }
+}
 
 pub struct PhysicsPlugin;
 
@@ -258,26 +276,26 @@ impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut AppBuilder) {
         let systems = SystemSet::new()
             .with_run_criteria(FixedTimestep::step(PHYSICS_TIME_STEP))
-            .with_system(translation_correction.label(LABEL_TRANSLATION_CORRECTION))
-            .with_system(
-                collision_resolution
-                    .label(LABEL_COLLISION_RESOLUTION)
-                    .before(LABEL_TRANSLATION_CORRECTION),
-            )
+            .with_system(init_motion.before(PhysicsSystem::CollisionDetection))
+            .with_system(movement.label(PhysicsSystem::Movement))
             .with_system(
                 collision_detection
-                    .label(LABEL_COLLISION_DETECTION)
-                    .before(LABEL_COLLISION_RESOLUTION),
+                    .label(PhysicsSystem::CollisionDetection)
+                    .after(PhysicsSystem::Movement),
             )
             .with_system(
-                movement
-                    .label(LABEL_MOVEMENT)
-                    .before(LABEL_COLLISION_DETECTION),
+                collision_resolution
+                    .label(PhysicsSystem::CollisionResolution)
+                    .after(PhysicsSystem::CollisionDetection),
             )
-            .with_system(motion_added.before(LABEL_COLLISION_DETECTION));
+            .with_system(
+                translation_correction
+                    .label(PhysicsSystem::TranslationCorrection)
+                    .after(PhysicsSystem::CollisionResolution),
+            );
 
         app.add_event::<CollisionEvent>()
-            .add_stage_after(CoreStage::Update, "physics", SystemStage::parallel())
-            .add_system_set_to_stage("physics", systems);
+            .add_stage_after(CoreStage::Update, PhysicsStage, SystemStage::parallel())
+            .add_system_set_to_stage(PhysicsStage, systems);
     }
 }
