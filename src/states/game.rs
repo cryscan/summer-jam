@@ -372,9 +372,9 @@ fn player_hit(
                 if base.hp <= 0.0 {
                     game_over_events.send(GameOverEvent::Win);
                 } else {
-                    let hit = base.hp.min(speed * mass);
-                    base.hp -= hit;
-                    player_hit_events.send(PlayerHitEvent(hit));
+                    let damage = base.hp.min(speed * mass).min(MAX_DAMAGE);
+                    base.hp -= damage;
+                    player_hit_events.send(PlayerHitEvent(damage));
                 }
 
                 Ok(())
