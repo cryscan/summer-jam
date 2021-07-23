@@ -1,4 +1,4 @@
-use crate::{states::game::*, utils::Damp};
+use crate::{states::prelude::*, utils::Damp};
 use bevy::prelude::*;
 use std::error::Error;
 

@@ -1,5 +1,11 @@
-use crate::{config::*, states::game::Score, AppState};
+use crate::{config::*, AppState};
 use bevy::prelude::*;
+
+pub struct Score {
+    pub timestamp: f64,
+    pub hits: i32,
+    pub miss: i32,
+}
 
 pub fn make_ui(
     mut commands: Commands,
@@ -147,9 +153,9 @@ pub fn make_ui(
         });
 }
 
-pub struct WinPlugin;
+pub struct ScorePlugin;
 
-impl Plugin for WinPlugin {
+impl Plugin for ScorePlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_system_set(SystemSet::on_enter(AppState::Win).with_system(make_ui));
     }

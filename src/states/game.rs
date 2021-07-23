@@ -1,12 +1,6 @@
-use crate::{config::*, game::prelude::*, AppState};
+use crate::{config::*, game::prelude::*, states::score::Score, AppState};
 use bevy::{core::FixedTimestep, prelude::*};
 use std::error::Error;
-
-pub struct Score {
-    pub timestamp: f64,
-    pub hits: i32,
-    pub miss: i32,
-}
 
 pub enum GameOverEvent {
     Win,
@@ -16,7 +10,7 @@ pub enum GameOverEvent {
 pub struct PlayerHitEvent(pub f32);
 pub struct PlayerMissEvent;
 
-struct GameStateTag;
+struct StateMarker;
 
 struct Materials {
     // dynamic entities
@@ -89,7 +83,7 @@ fn update_game(
     }
 }
 
-fn cleanup_game(mut commands: Commands, query: Query<Entity, With<GameStateTag>>) {
+fn cleanup_game(mut commands: Commands, query: Query<Entity, With<StateMarker>>) {
     println!("Cleaning-up Title");
 
     for entity in query.iter() {
@@ -106,7 +100,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 16.0)),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .insert(RigidBody::new(Layer::Separate, 0.0, 0.9, 0.5));
 
     // top boundary
@@ -117,7 +111,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 32.0)),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .insert(EnemyBase::new(10000.0, 10000.0))
         .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
 
@@ -129,7 +123,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 32.0)),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .insert(PlayerBase::new(3))
         .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
 
@@ -141,7 +135,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             sprite: Sprite::new(Vec2::new(32.0, ARENA_HEIGHT)),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.0));
 
     // right boundary
@@ -152,7 +146,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             sprite: Sprite::new(Vec2::new(32.0, ARENA_HEIGHT)),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.0));
 }
 
@@ -171,7 +165,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
             material: materials.node_material.clone(),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .with_children(|parent| {
             parent
                 .spawn_bundle(NodeBundle {
@@ -210,7 +204,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
             material: materials.node_material.clone(),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .with_children(|parent| {
             parent.spawn_bundle(NodeBundle {
                 style: Style {
@@ -259,7 +253,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .id();
 
     commands
@@ -269,7 +263,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             sprite: Sprite::new(Vec2::new(WIDTH, 16.0)),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .insert(Player::new(0.5, 20.0))
         .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
         .insert(Motion::default())
@@ -299,7 +293,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             sprite: Sprite::new(Vec2::new(WIDTH, 16.0)),
             ..Default::default()
         })
-        .insert(GameStateTag)
+        .insert(StateMarker)
         .insert(Enemy::new(
             2000.0,
             600.0,
@@ -334,7 +328,7 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
                 transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
                 ..Default::default()
             })
-            .insert(GameStateTag)
+            .insert(StateMarker)
             .id();
 
         commands
@@ -343,7 +337,7 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..Default::default()
             })
-            .insert(GameStateTag)
+            .insert(StateMarker)
             .insert(Ball::new(-1000.0, Timer::from_seconds(1.0, false)))
             .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5))
             .insert(Trajectory {
