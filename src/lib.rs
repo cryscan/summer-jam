@@ -9,9 +9,6 @@ mod game;
 mod states;
 mod utils;
 
-use game::prelude::*;
-use states::prelude::*;
-
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
     Title,
@@ -35,10 +32,8 @@ pub fn run() {
         .add_state(AppState::Title)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
-        .add_plugin(PhysicsPlugin)
-        .add_plugin(TitlePlugin)
-        .add_plugin(GamePlugin)
-        .add_plugin(ScorePlugin);
+        .add_plugin(game::prelude::PhysicsPlugin)
+        .add_plugins(states::GamePlugins);
 
     #[cfg(target_arch = "wasm32")]
     app.add_plugin(bevy_webgl2::WebGL2Plugin);

@@ -1,4 +1,4 @@
-use crate::{states::prelude::*, utils::Damp};
+use crate::utils::Damp;
 use bevy::prelude::*;
 use std::error::Error;
 
@@ -38,42 +38,34 @@ pub struct HealthBar;
 pub struct HealthBarTracker {
     damp: f32,
     bias: f32,
-    #[new(default)]
+    #[new(value = "100.0")]
     percent: f32,
 }
 
-pub fn health_bar(
-    time: Res<Time>,
-    mut events: EventReader<PlayerHitEvent>,
-    base_query: Query<&EnemyBase>,
-    mut health_bar_query: QuerySet<(
-        Query<&mut Style, With<HealthBar>>,
-        Query<(&mut Style, &mut HealthBarTracker)>,
-    )>,
-) {
-    let mut closure = || -> Result<(), Box<dyn Error>> {
-        let base = base_query.single()?;
-
-        for mut health_bar in health_bar_query.q0_mut().iter_mut() {
+pub fn health_bar(base_query: Query<&EnemyBase>, mut query: Query<&mut Style, With<HealthBar>>) {
+    if let Ok(base) = base_query.single() {
+        for mut health_bar in query.iter_mut() {
             health_bar.size.width = Val::Percent(base.hp / base.full_hp * 100.0);
         }
+    }
+}
 
-        for (mut health_bar, mut tracker) in health_bar_query.q1_mut().iter_mut() {
-            tracker.percent = 0.0_f32.max(
-                (tracker.percent + tracker.bias).damp(0.0, tracker.damp, time.delta_seconds())
-                    - tracker.bias,
+pub fn health_bar_tracker(
+    time: Res<Time>,
+    base_query: Query<&EnemyBase>,
+    mut query: Query<(&mut Style, &mut HealthBarTracker)>,
+) {
+    if let Ok(base) = base_query.single() {
+        for (mut health_bar, mut tracker) in query.iter_mut() {
+            let percent_hp = base.hp / base.full_hp * 100.0;
+            tracker.percent = percent_hp.max(
+                (tracker.percent + tracker.bias).damp(
+                    percent_hp,
+                    tracker.damp,
+                    time.delta_seconds(),
+                ) - tracker.bias,
             );
-            health_bar.size.width = Val::Percent(tracker.percent);
+            health_bar.size.width = Val::Percent(tracker.percent - percent_hp);
         }
-
-        for event in events.iter() {
-            for (_, mut tracker) in health_bar_query.q1_mut().iter_mut() {
-                tracker.percent += event.0 / base.full_hp * 100.0;
-            }
-        }
-
-        Ok(())
-    };
-
-    closure().unwrap_or_default()
+    }
 }

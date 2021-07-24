@@ -2,13 +2,13 @@ use crate::{config::*, game::prelude::*, states::score::Score, AppState};
 use bevy::{core::FixedTimestep, prelude::*};
 use std::error::Error;
 
-pub enum GameOverEvent {
+enum GameOverEvent {
     Win,
     Lose,
 }
 
-pub struct PlayerHitEvent(pub f32);
-pub struct PlayerMissEvent;
+struct PlayerHitEvent(pub f32);
+struct PlayerMissEvent;
 
 struct StateMarker;
 
@@ -411,7 +411,7 @@ fn player_miss(
     }
 }
 
-pub fn score_system(
+fn score_system(
     mut player_hit_events: EventReader<PlayerHitEvent>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut score: ResMut<Score>,
@@ -455,6 +455,7 @@ impl Plugin for GamePlugin {
                     .with_system(player_miss)
                     .with_system(ball_counter)
                     .with_system(health_bar)
+                    .with_system(health_bar_tracker)
                     .with_system(ball_movement)
                     .with_system(ball_setup)
                     .with_system(ball_predict_debug)
