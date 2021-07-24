@@ -7,7 +7,7 @@ pub struct Score {
     pub miss: i32,
 }
 
-pub fn make_ui(
+fn make_ui(
     mut commands: Commands,
     time: Res<Time>,
     score: Res<Score>,
