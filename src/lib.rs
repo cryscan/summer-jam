@@ -2,6 +2,7 @@
 extern crate derive_new;
 
 use bevy::prelude::*;
+use bevy_kira_audio::AudioPlugin;
 use wasm_bindgen::prelude::*;
 
 mod config;
@@ -29,6 +30,7 @@ pub fn run() {
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
+        .add_plugin(AudioPlugin)
         .add_state(AppState::Title)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
