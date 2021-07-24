@@ -23,6 +23,7 @@ struct Materials {
 
     // static entities
     boundary_material: Handle<ColorMaterial>,
+    base_material: Handle<ColorMaterial>,
     separate_material: Handle<ColorMaterial>,
 
     // ui
@@ -36,6 +37,7 @@ struct Audios {
     hit_audio: Handle<AudioSource>,
     miss_audio: Handle<AudioSource>,
     explosion_audio: Handle<AudioSource>,
+    lose_audio: Handle<AudioSource>,
 }
 
 fn setup_game(
@@ -51,7 +53,8 @@ fn setup_game(
         ball_material: materials.add(asset_server.load(BALL_SPRITE).into()),
         hint_material: materials.add(asset_server.load(HINT_SPRITE).into()),
 
-        boundary_material: materials.add(Color::NONE.into()),
+        boundary_material: materials.add(Color::WHITE.into()),
+        base_material: materials.add(Color::rgb_u8(155, 173, 183).into()),
         separate_material: materials.add(Color::rgba(0.5, 0.5, 0.5, 0.1).into()),
 
         node_material: materials.add(Color::NONE.into()),
@@ -64,6 +67,7 @@ fn setup_game(
         hit_audio: asset_server.load(HIT_AUDIO),
         miss_audio: asset_server.load(MISS_AUDIO),
         explosion_audio: asset_server.load(EXPLOSION_AUDIO),
+        lose_audio: asset_server.load(LOSE_AUDIO),
     });
 
     commands.insert_resource(Score {
@@ -121,9 +125,9 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
     // top boundary
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.boundary_material.clone(),
-            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0 + 16.0, 0.0),
-            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 32.0)),
+            material: materials.base_material.clone(),
+            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0 + 8.0, 0.0),
+            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 16.0)),
             ..Default::default()
         })
         .insert(StateMarker)
@@ -133,9 +137,9 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
     // bottom boundary
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.boundary_material.clone(),
-            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0 - 16.0, 0.0),
-            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 32.0)),
+            material: materials.base_material.clone(),
+            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0 - 8.0, 0.0),
+            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 16.0)),
             ..Default::default()
         })
         .insert(StateMarker)
@@ -146,8 +150,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.boundary_material.clone(),
-            transform: Transform::from_xyz(-ARENA_WIDTH / 2.0 - 16.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(32.0, ARENA_HEIGHT)),
+            transform: Transform::from_xyz(-ARENA_WIDTH / 2.0 - 8.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(16.0, ARENA_HEIGHT + 32.0)),
             ..Default::default()
         })
         .insert(StateMarker)
@@ -157,8 +161,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.boundary_material.clone(),
-            transform: Transform::from_xyz(ARENA_WIDTH / 2.0 + 16.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(32.0, ARENA_HEIGHT)),
+            transform: Transform::from_xyz(ARENA_WIDTH / 2.0 + 8.0, 0.0, 0.0),
+            sprite: Sprite::new(Vec2::new(16.0, ARENA_HEIGHT + 32.0)),
             ..Default::default()
         })
         .insert(StateMarker)
@@ -485,7 +489,7 @@ fn score_audio(
     for event in game_over_events.iter() {
         match event {
             GameOverEvent::Win => audio.play(audios.explosion_audio.clone()),
-            GameOverEvent::Lose => (),
+            GameOverEvent::Lose => audio.play(audios.lose_audio.clone()),
         }
     }
 }

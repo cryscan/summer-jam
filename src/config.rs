@@ -13,6 +13,7 @@ pub const BOUNCE_AUDIO: &str = "audios/bounce.flac";
 pub const HIT_AUDIO: &str = "audios/hit.flac";
 pub const MISS_AUDIO: &str = "audios/miss.flac";
 pub const EXPLOSION_AUDIO: &str = "audios/explosion.flac";
+pub const LOSE_AUDIO: &str = "audios/lose.flac";
 
 pub const PREDICT_SIZE: usize = 100;
 pub const PREDICT_TIME_STEP: f64 = 0.01;

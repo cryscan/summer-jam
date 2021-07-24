@@ -23,7 +23,7 @@ pub fn run() {
 
     app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .insert_resource(WindowDescriptor {
-            title: "Cleanup!".into(),
+            title: "Bounce Up!".into(),
             width: config::ARENA_WIDTH,
             height: config::ARENA_HEIGHT,
             resizable: false,
