@@ -1,5 +1,6 @@
 use crate::{config::*, game::prelude::*, states::score::Score, AppState};
 use bevy::{core::FixedTimestep, prelude::*};
+use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
 use std::error::Error;
 
 enum GameOverEvent {
@@ -30,6 +31,13 @@ struct Materials {
     health_bar_tracker_material: Handle<ColorMaterial>,
 }
 
+struct Audios {
+    bounce_audio: Handle<AudioSource>,
+    hit_audio: Handle<AudioSource>,
+    miss_audio: Handle<AudioSource>,
+    explosion_audio: Handle<AudioSource>,
+}
+
 fn setup_game(
     mut commands: Commands,
     time: Res<Time>,
@@ -49,6 +57,13 @@ fn setup_game(
         node_material: materials.add(Color::NONE.into()),
         health_bar_material: materials.add(Color::rgb_u8(155, 173, 183).into()),
         health_bar_tracker_material: materials.add(Color::rgb_u8(217, 87, 99).into()),
+    });
+
+    commands.insert_resource(Audios {
+        bounce_audio: asset_server.load(BOUNCE_AUDIO),
+        hit_audio: asset_server.load(HIT_AUDIO),
+        miss_audio: asset_server.load(MISS_AUDIO),
+        explosion_audio: asset_server.load(EXPLOSION_AUDIO),
     });
 
     commands.insert_resource(Score {
@@ -425,6 +440,56 @@ fn score_system(
     }
 }
 
+fn bounce_audio(
+    audios: Res<Audios>,
+    audio: Res<Audio>,
+    mut events: EventReader<CollisionEvent>,
+    query: Query<&Ball>,
+) {
+    for event in events.iter() {
+        let ref channel = AudioChannel::new("bounce".into());
+
+        let closure = |entity: Entity| -> Result<(), Box<dyn Error>> {
+            let _ = query.get(entity)?;
+
+            let speed = event.velocity.length();
+            if speed > MIN_BOUNCE_AUDIO_SPEED {
+                let volume = (speed - MIN_BOUNCE_AUDIO_SPEED)
+                    / (MAX_BOUNCE_AUDIO_SPEED - MIN_BOUNCE_AUDIO_SPEED);
+                audio.set_volume_in_channel(volume, channel);
+                audio.play_in_channel(audios.bounce_audio.clone(), channel);
+            }
+
+            Ok(())
+        };
+
+        closure(event.first).unwrap_or_else(|_| closure(event.second).unwrap_or_default())
+    }
+}
+
+fn score_audio(
+    audios: Res<Audios>,
+    audio: Res<Audio>,
+    mut player_hit_events: EventReader<PlayerHitEvent>,
+    mut player_miss_events: EventReader<PlayerMissEvent>,
+    mut game_over_events: EventReader<GameOverEvent>,
+) {
+    for _ in player_hit_events.iter() {
+        audio.play(audios.hit_audio.clone());
+    }
+
+    for _ in player_miss_events.iter() {
+        audio.play(audios.miss_audio.clone());
+    }
+
+    for event in game_over_events.iter() {
+        match event {
+            GameOverEvent::Win => audio.play(audios.explosion_audio.clone()),
+            GameOverEvent::Lose => (),
+        }
+    }
+}
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
@@ -460,7 +525,9 @@ impl Plugin for GamePlugin {
                     .with_system(ball_setup)
                     .with_system(ball_predict_debug)
                     .with_system(score_system)
-                    .with_system(hint_system),
+                    .with_system(hint_system)
+                    .with_system(bounce_audio)
+                    .with_system(score_audio),
             )
             .add_system_set(
                 SystemSet::new()
