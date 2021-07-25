@@ -1,6 +1,8 @@
-use crate::{config::*, game::prelude::*, states::score::Score, AppState};
+use crate::{config::*, game::prelude::*, states::score::Score, utils::Interpolation, AppState};
 use bevy::{core::FixedTimestep, prelude::*};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
+use itertools::Itertools;
+use rand::prelude::SliceRandom;
 use std::error::Error;
 
 enum GameOverEvent {
@@ -8,8 +10,10 @@ enum GameOverEvent {
     Lose,
 }
 
-struct PlayerHitEvent(pub f32);
+struct PlayerHitEvent(f32);
 struct PlayerMissEvent;
+
+struct DebounceTimer(Timer);
 
 struct StateMarker;
 
@@ -33,11 +37,11 @@ struct Materials {
 }
 
 struct Audios {
-    bounce_audio: Handle<AudioSource>,
     hit_audio: Handle<AudioSource>,
     miss_audio: Handle<AudioSource>,
     explosion_audio: Handle<AudioSource>,
     lose_audio: Handle<AudioSource>,
+    impact_audios: Vec<Handle<AudioSource>>,
 }
 
 fn setup_game(
@@ -63,11 +67,14 @@ fn setup_game(
     });
 
     commands.insert_resource(Audios {
-        bounce_audio: asset_server.load(BOUNCE_AUDIO),
         hit_audio: asset_server.load(HIT_AUDIO),
         miss_audio: asset_server.load(MISS_AUDIO),
         explosion_audio: asset_server.load(EXPLOSION_AUDIO),
         lose_audio: asset_server.load(LOSE_AUDIO),
+        impact_audios: IMPACT_AUDIOS
+            .iter()
+            .map(|path| asset_server.load(*path))
+            .collect_vec(),
     });
 
     commands.insert_resource(Score {
@@ -447,27 +454,43 @@ fn score_system(
 fn bounce_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
+    time: Res<Time>,
+    mut timer: ResMut<DebounceTimer>,
     mut events: EventReader<CollisionEvent>,
     query: Query<&Ball>,
 ) {
+    let can_play_audio = timer.0.tick(time.delta()).finished();
+
     for event in events.iter() {
         let ref channel = AudioChannel::new("bounce".into());
 
-        let closure = |entity: Entity| -> Result<(), Box<dyn Error>> {
+        let mut closure = |entity: Entity| -> Result<(), Box<dyn Error>> {
             let _ = query.get(entity)?;
 
             let speed = event.velocity.length();
             if speed > MIN_BOUNCE_AUDIO_SPEED {
-                let volume = (speed - MIN_BOUNCE_AUDIO_SPEED)
-                    / (MAX_BOUNCE_AUDIO_SPEED - MIN_BOUNCE_AUDIO_SPEED);
+                let volume = speed
+                    .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)
+                    .clamp(0.0, 1.0)
+                    / 2.0;
                 audio.set_volume_in_channel(volume, channel);
-                audio.play_in_channel(audios.bounce_audio.clone(), channel);
+
+                let audio_source = audios
+                    .impact_audios
+                    .choose(&mut rand::thread_rng())
+                    .unwrap()
+                    .clone();
+                audio.play_in_channel(audio_source, channel);
+
+                timer.0.reset();
             }
 
             Ok(())
         };
 
-        closure(event.first).unwrap_or_else(|_| closure(event.second).unwrap_or_default())
+        if can_play_audio {
+            closure(event.first).unwrap_or_else(|_| closure(event.second).unwrap_or_default());
+        }
     }
 }
 
@@ -501,6 +524,7 @@ impl Plugin for GamePlugin {
         app.add_event::<GameOverEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
+            .insert_resource(DebounceTimer(Timer::from_seconds(0.1, false)))
             .add_startup_system(setup_game)
             .add_system_set(
                 SystemSet::on_enter(AppState::Game)
