@@ -20,6 +20,7 @@ pub const IMPACT_AUDIOS: [&str; 4] = [
     "audios/impacts/impact-f.wav",
     "audios/impacts/impact-g.wav",
 ];
+pub const MAX_IMPACT_AUDIO_CHANNELS: u32 = 10;
 
 pub const PREDICT_SIZE: usize = 100;
 pub const PREDICT_TIME_STEP: f64 = 0.01;
