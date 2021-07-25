@@ -7,6 +7,7 @@ use bevy::prelude::*;
 
 #[derive(new)]
 pub struct Enemy {
+    min_speed: f32,
     max_speed: f32,
     normal_speed: f32,
     damp: f32,
@@ -79,18 +80,23 @@ pub fn enemy_controller(
                     .min_by(|a, b| {
                         let cost = |target: Vec2| {
                             (target - position).length_squared()
-                                + 4.0 * (ARENA_HEIGHT / 2.0 - target.y).powi(2)
+                                + (ARENA_HEIGHT / 2.0 - target.y).powi(2)
                         };
                         cost(a.position)
                             .partial_cmp(&cost(b.position))
                             .unwrap_or(std::cmp::Ordering::Equal)
                     }) {
                     let direction = candidate.position - position;
-                    let speed = if direction.length() < ENEMY_WIDTH {
-                        enemy.normal_speed * direction.length() / ENEMY_WIDTH
-                    } else {
-                        enemy.normal_speed
-                    };
+                    let time = (candidate.time - delta_seconds) as f32;
+                    let distance = direction.length();
+
+                    let mut speed =
+                        (distance / time + 1.0).clamp(enemy.min_speed, enemy.normal_speed);
+
+                    let stop_distance = 1.5 * ENEMY_WIDTH;
+                    if distance < stop_distance {
+                        speed *= distance / stop_distance;
+                    }
                     speed * direction.normalize()
                 } else {
                     let collection: Vec<_> = trajectory

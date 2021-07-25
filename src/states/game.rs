@@ -288,7 +288,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(Player::new(0.5, 20.0))
+        .insert(Player::new(PLAYER_MAX_SPEED, 0.5, 20.0))
         .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
         .insert(Motion::default())
         .insert(Hint(hint))
@@ -319,8 +319,9 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(Cleanup)
         .insert(Enemy::new(
-            2000.0,
-            600.0,
+            ENEMY_MIN_SPEED,
+            ENEMY_MAX_SPEED,
+            ENEMY_NORMAL_SPEED,
             20.0,
             WIDTH,
             -100.0,

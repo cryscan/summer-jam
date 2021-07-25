@@ -184,27 +184,23 @@ pub fn collision_resolution(
                     return;
                 }
 
-                let normal_velocity = normal_speed * normal;
-                let tangential_velocity = velocity - normal_velocity;
+                let tangential = (velocity - normal_speed * normal).normalize_or_zero();
+                let tangential_speed = velocity.dot(tangential);
 
                 let bounciness = if normal_speed < PHYSICS_REST_SPEED {
                     0.0
                 } else {
                     event.bounciness
                 };
-                let friction = if event.friction < f32::EPSILON {
-                    0.0
-                } else {
-                    let k = (1.0 - event.friction) / event.friction;
-                    1.0 - k / (normal_speed + k)
-                };
 
-                let normal_velocity =
-                    (1.0 + bounciness) * event.impulse * rigid_body.inverted_mass * normal_velocity;
-                let tangential_velocity =
-                    friction * event.impulse * rigid_body.inverted_mass * tangential_velocity;
+                let normal_impulse = (1.0 + bounciness) * event.impulse * normal_speed;
+                let tangential_impulse =
+                    (event.impulse * tangential_speed).min(event.friction * normal_impulse);
 
-                motion.velocity += normal_velocity + tangential_velocity;
+                let normal_delta = normal_impulse * rigid_body.inverted_mass * normal;
+                let tangential_delta = tangential_impulse * rigid_body.inverted_mass * tangential;
+
+                motion.velocity += normal_delta + tangential_delta;
             }
         };
 
