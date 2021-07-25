@@ -457,22 +457,24 @@ fn bounce_audio(
     time: Res<Time>,
     mut timer: ResMut<DebounceTimer>,
     mut events: EventReader<CollisionEvent>,
+    mut index: Local<u32>,
     query: Query<&Ball>,
 ) {
     let can_play_audio = timer.0.tick(time.delta()).finished();
 
     for event in events.iter() {
-        let ref channel = AudioChannel::new("bounce".into());
+        let ref channel = AudioChannel::new(format!("impact-{}", *index).into());
+        *index = (*index + 1) % MAX_IMPACT_AUDIO_CHANNELS;
 
         let mut closure = |entity: Entity| -> Result<(), Box<dyn Error>> {
             let _ = query.get(entity)?;
 
             let speed = event.velocity.length();
             if speed > MIN_BOUNCE_AUDIO_SPEED {
-                let volume = speed
-                    .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)
-                    .clamp(0.0, 1.0)
-                    / 2.0;
+                let volume = 0.2
+                    * speed
+                        .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)
+                        .clamp(0.0, 1.0);
                 audio.set_volume_in_channel(volume, channel);
 
                 let audio_source = audios
