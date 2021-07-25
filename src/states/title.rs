@@ -1,7 +1,7 @@
-use crate::{config::*, AppState};
+use crate::{config::*, utils::cleanup_system, AppState};
 use bevy::prelude::*;
 
-struct StateMarker;
+struct Cleanup;
 
 #[derive(Default, Clone, Copy)]
 struct ColorText {
@@ -29,7 +29,7 @@ fn make_title(
             material: materials.add(Color::NONE.into()),
             ..Default::default()
         })
-        .insert(StateMarker)
+        .insert(Cleanup)
         .with_children(|parent| {
             parent.spawn_bundle(TextBundle {
                 style: Style {
@@ -106,14 +106,6 @@ fn title_color(
     }
 }
 
-fn cleanup_title(mut commands: Commands, query: Query<Entity, With<StateMarker>>) {
-    println!("Cleaning-up Title");
-
-    for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
 pub struct TitlePlugin;
 
 impl Plugin for TitlePlugin {
@@ -125,6 +117,8 @@ impl Plugin for TitlePlugin {
                     .with_system(update_title)
                     .with_system(title_color),
             )
-            .add_system_set(SystemSet::on_exit(AppState::Title).with_system(cleanup_title));
+            .add_system_set(
+                SystemSet::on_exit(AppState::Title).with_system(cleanup_system::<Cleanup>),
+            );
     }
 }
