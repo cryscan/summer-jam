@@ -9,11 +9,17 @@ pub const ENEMY_SPRITE: &str = "sprites/enemy.png";
 pub const BALL_SPRITE: &str = "sprites/ball.png";
 pub const HINT_SPRITE: &str = "sprites/hint.png";
 
-pub const BOUNCE_AUDIO: &str = "audios/bounce.flac";
 pub const HIT_AUDIO: &str = "audios/hit.flac";
 pub const MISS_AUDIO: &str = "audios/miss.flac";
 pub const EXPLOSION_AUDIO: &str = "audios/explosion.flac";
 pub const LOSE_AUDIO: &str = "audios/lose.flac";
+
+pub const IMPACT_AUDIOS: [&str; 4] = [
+    "audios/impacts/impact-d.wav",
+    "audios/impacts/impact-e.wav",
+    "audios/impacts/impact-f.wav",
+    "audios/impacts/impact-g.wav",
+];
 
 pub const PREDICT_SIZE: usize = 100;
 pub const PREDICT_TIME_STEP: f64 = 0.01;
