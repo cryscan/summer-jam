@@ -32,6 +32,11 @@ pub const PHYSICS_TIME_STEP: f64 = 1.0 / 120.0;
 pub const PLAYER_WIDTH: f32 = 96.0;
 pub const ENEMY_WIDTH: f32 = 96.0;
 
+pub const PLAYER_MAX_SPEED: f32 = 2000.0;
+pub const ENEMY_MIN_SPEED: f32 = 500.0;
+pub const ENEMY_MAX_SPEED: f32 = 2000.0;
+pub const ENEMY_NORMAL_SPEED: f32 = 800.0;
+
 pub const MAX_DAMAGE: f32 = 2000.0;
 
 pub const MIN_BOUNCE_AUDIO_SPEED: f32 = 500.0;
