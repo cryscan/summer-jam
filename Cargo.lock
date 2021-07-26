@@ -794,6 +794,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
+name = "bounce-up"
+version = "1.0.0"
+dependencies = [
+ "bevy",
+ "bevy_kira_audio",
+ "bevy_webgl2",
+ "derive-new",
+ "getrandom",
+ "itertools",
+ "rand",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2986,20 +3000,6 @@ name = "strsim"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6446ced80d6c486436db5c078dde11a9f73d42b57fb273121e160b84f63d894c"
-
-[[package]]
-name = "summer-jam"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_kira_audio",
- "bevy_webgl2",
- "derive-new",
- "getrandom",
- "itertools",
- "rand",
- "wasm-bindgen",
-]
 
 [[package]]
 name = "svg_fmt"
