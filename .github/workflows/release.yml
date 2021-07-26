@@ -11,7 +11,7 @@ env:
   GITHUB_REF: '${{ github.ref }}'
   WINDOWS_TARGET: x86_64-pc-windows-msvc
   MACOS_TARGET: x86_64-apple-darwin
-  LINUX_TARGET: x86_64-unknown-linux-musl
+  LINUX_TARGET: x86_64-unknown-linux-gnu
 
   # Space separated paths to include in the archive.
   RELEASE_ADDS: README.md LICENSE assets
@@ -48,11 +48,11 @@ jobs:
         run: |
           echo "using version tag ${GITHUB_REF:10}"
           echo ::set-output name=version::"${GITHUB_REF:10}"
-      - name: Install musl-tools (Linux)
+      - name: Install tools (Linux)
         if: matrix.build == 'linux'
         run: |
           sudo apt-get update -y
-          sudo apt-get install musl-tools -y
+          sudo apt install libasound2-dev
       - name: Install p7zip (MacOS)
         if: matrix.build == 'macos'
         run: brew install p7zip
@@ -142,9 +142,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./linux/wasm-pack-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
+          asset_path: ./linux/bounce-up-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
           asset_content_type: application/gzip
-          asset_name: wasm-pack-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
+          asset_name: bounce-up-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
 
       - name: Release Windows tarball
         uses: actions/upload-release-asset@v1
@@ -152,9 +152,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./windows/wasm-pack-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
+          asset_path: ./windows/bounce-up-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
           asset_content_type: application/gzip
-          asset_name: wasm-pack-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
+          asset_name: bounce-up-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
 
       - name: Release MacOS tarball
         uses: actions/upload-release-asset@v1
@@ -162,6 +162,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./macos/wasm-pack-${{ steps.get_version.outputs.VERSION }}-${{ env.MACOS_TARGET }}.tar.gz
+          asset_path: ./macos/bounce-up-${{ steps.get_version.outputs.VERSION }}-${{ env.MACOS_TARGET }}.tar.gz
           asset_content_type: application/gzip
-          asset_name: wasm-pack-${{ steps.get_version.outputs.VERSION }}-${{ env.MACOS_TARGET }}.tar.gz
+          asset_name: bounce-up-${{ steps.get_version.outputs.VERSION }}-${{ env.MACOS_TARGET }}.tar.gz
