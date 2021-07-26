@@ -1,3 +1,3 @@
 fn main() {
-    summer_jam::run();
+    bounce_up::run();
 }
