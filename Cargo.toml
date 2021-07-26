@@ -1,6 +1,6 @@
 [package]
-name = "summer-jam"
-version = "0.1.0"
+name = "bounce-up"
+version = "1.0.0"
 edition = "2018"
 resolver = "2"
 
