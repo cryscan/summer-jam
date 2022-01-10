@@ -1,9 +1,10 @@
 use crate::{config::*, utils::cleanup_system, AppState};
 use bevy::prelude::*;
 
+#[derive(Component)]
 struct Cleanup;
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Component)]
 struct ColorText {
     bright: Color,
     dark: Color,
@@ -14,7 +15,6 @@ struct ColorTimer(Timer);
 fn make_title(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     println!("Entering Title");
 
@@ -26,7 +26,7 @@ fn make_title(
                 justify_content: JustifyContent::Center,
                 ..Default::default()
             },
-            material: materials.add(Color::NONE.into()),
+            color: Color::NONE.into(),
             ..Default::default()
         })
         .insert(Cleanup)
@@ -109,7 +109,7 @@ fn title_color(
 pub struct TitlePlugin;
 
 impl Plugin for TitlePlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
             .add_system_set(SystemSet::on_enter(AppState::Title).with_system(make_title))
             .add_system_set(

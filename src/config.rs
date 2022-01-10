@@ -29,8 +29,9 @@ pub const AI_TIME_STEP: f64 = 0.1;
 pub const PHYSICS_REST_SPEED: f32 = 100.0;
 pub const PHYSICS_TIME_STEP: f64 = 1.0 / 120.0;
 
-pub const PLAYER_WIDTH: f32 = 96.0;
-pub const ENEMY_WIDTH: f32 = 96.0;
+pub const PADDLE_WIDTH: f32 = 96.0;
+pub const PADDLE_HEIGHT: f32 = 16.0;
+pub const BALL_SIZE: f32 = 16.0;
 
 pub const PLAYER_MAX_SPEED: f32 = 2000.0;
 pub const ENEMY_MIN_SPEED: f32 = 500.0;

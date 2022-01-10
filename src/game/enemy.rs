@@ -1,11 +1,7 @@
-use crate::{
-    config::{ARENA_HEIGHT, ENEMY_WIDTH},
-    game::prelude::*,
-    utils::Damp,
-};
+use crate::{config::ARENA_HEIGHT, game::prelude::*, utils::Damp};
 use bevy::prelude::*;
 
-#[derive(new)]
+#[derive(new, Component)]
 pub struct Enemy {
     min_speed: f32,
     max_speed: f32,
@@ -17,7 +13,7 @@ pub struct Enemy {
     hit_height_threshold: f32,
 }
 
-#[derive(new)]
+#[derive(new, Component)]
 pub struct Controller {
     #[new(default)]
     velocity: Vec2,
@@ -41,11 +37,12 @@ pub fn enemy_movement(
 
 pub fn enemy_controller(
     time: Res<Time>,
-    mut controller_query: Query<(&Transform, &Enemy, &mut Controller), Without<Ball>>,
+    mut controller_query: Query<(&Transform, &RigidBody, &Enemy, &mut Controller), Without<Ball>>,
     ball_query: Query<(&Transform, &Motion, &Trajectory), With<Ball>>,
 ) {
-    for (transform, enemy, mut controller) in controller_query.iter_mut() {
+    for (transform, rigid_body, enemy, mut controller) in controller_query.iter_mut() {
         controller.velocity = Vec2::ZERO;
+        let width = rigid_body.size.x;
 
         for (ball_transform, motion, trajectory) in ball_query.iter() {
             let updated_velocity;
@@ -53,7 +50,7 @@ pub fn enemy_controller(
             let direction = (ball_transform.translation - transform.translation).truncate();
             let position = transform.translation.truncate();
 
-            if direction.x.abs() < ENEMY_WIDTH / 2.0
+            if direction.x.abs() < width / 2.0
                 && direction.y > -enemy.hit_range
                 && direction.y < -0.0
                 && motion.velocity.y > enemy.hit_speed_threshold
@@ -93,7 +90,7 @@ pub fn enemy_controller(
                     let mut speed =
                         (distance / time + 1.0).clamp(enemy.min_speed, enemy.normal_speed);
 
-                    let stop_distance = 1.5 * ENEMY_WIDTH;
+                    let stop_distance = 1.5 * width;
                     if distance < stop_distance {
                         speed *= distance / stop_distance;
                     }
@@ -122,8 +119,8 @@ pub fn enemy_controller(
                         .clamp(0.125 * ARENA_HEIGHT, 0.375 * ARENA_HEIGHT);
 
                     let direction = candidate - position;
-                    let speed = if direction.length() < ENEMY_WIDTH {
-                        enemy.normal_speed * direction.length() / ENEMY_WIDTH
+                    let speed = if direction.length() < width {
+                        enemy.normal_speed * direction.length() / width
                     } else {
                         enemy.normal_speed
                     };
