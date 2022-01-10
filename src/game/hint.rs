@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+#[derive(Component)]
 pub struct Hint(pub Entity);
 
 pub fn hint_system(

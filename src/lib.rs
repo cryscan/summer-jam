@@ -19,7 +19,7 @@ pub enum AppState {
 
 #[wasm_bindgen]
 pub fn run() {
-    let mut app = App::build();
+    let mut app = App::new();
 
     app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .insert_resource(WindowDescriptor {
