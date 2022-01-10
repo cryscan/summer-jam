@@ -41,4 +41,4 @@ pub const ENEMY_NORMAL_SPEED: f32 = 800.0;
 pub const MAX_DAMAGE: f32 = 2000.0;
 
 pub const MIN_BOUNCE_AUDIO_SPEED: f32 = 500.0;
-pub const MAX_BOUNCE_AUDIO_SPEED: f32 = 2000.0;
+pub const MAX_BOUNCE_AUDIO_SPEED: f32 = 2500.0;
