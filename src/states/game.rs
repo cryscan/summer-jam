@@ -152,7 +152,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             Vec2::new(ARENA_WIDTH, 16.0),
             0.0,
             0.9,
-            1.0,
+            0.0,
         ));
 
     // bottom boundary
