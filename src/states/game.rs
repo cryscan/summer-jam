@@ -8,7 +8,6 @@ use crate::{
 use bevy::{core::FixedTimestep, prelude::*};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
 use itertools::Itertools;
-use rand::prelude::SliceRandom;
 use std::error::Error;
 
 enum GameOverEvent {
@@ -535,17 +534,15 @@ fn bounce_audio(
 
             let speed = event.velocity.length();
             if speed > MIN_BOUNCE_AUDIO_SPEED {
-                let volume = 0.2
-                    * speed
-                        .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)
-                        .clamp(0.0, 1.0);
+                let normalized_speed = speed
+                    .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)
+                    .clamp(0.0, 1.0);
+
+                let volume = 0.2 * normalized_speed + 0.2;
                 audio.set_volume_in_channel(volume, channel);
 
-                let audio_source = audios
-                    .impact_audios
-                    .choose(&mut rand::thread_rng())
-                    .unwrap()
-                    .clone();
+                let pitch = ((normalized_speed * 4.0) as usize).min(3);
+                let audio_source = audios.impact_audios[pitch].clone();
                 audio.play_in_channel(audio_source, channel);
 
                 timer.0.reset();
