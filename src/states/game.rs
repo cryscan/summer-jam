@@ -21,6 +21,9 @@ struct PlayerMissEvent;
 struct DebounceTimer(Timer);
 
 #[derive(Component)]
+struct BounceAudio;
+
+#[derive(Component)]
 struct Cleanup;
 
 struct Materials {
@@ -339,6 +342,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         ))
         .insert(Motion::default())
         .insert(Hint(hint))
+        .insert(BounceAudio)
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
@@ -384,6 +388,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             1.0,
         ))
         .insert(Motion::default())
+        .insert(BounceAudio)
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
@@ -429,7 +434,8 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
                 start_time: 0.0,
                 points: vec![Point::default(); PREDICT_SIZE],
             })
-            .insert(Hint(hint));
+            .insert(Hint(hint))
+            .insert(BounceAudio);
     }
 }
 
@@ -521,7 +527,7 @@ fn bounce_audio(
     mut timer: ResMut<DebounceTimer>,
     mut events: EventReader<CollisionEvent>,
     mut index: Local<u32>,
-    query: Query<&Ball>,
+    query: Query<(), With<BounceAudio>>,
 ) {
     let can_play_audio = timer.0.tick(time.delta()).finished();
 
@@ -529,8 +535,10 @@ fn bounce_audio(
         let ref channel = AudioChannel::new(format!("impact-{}", *index).into());
         *index = (*index + 1) % MAX_IMPACT_AUDIO_CHANNELS;
 
-        let mut closure = |entity: Entity| -> Result<(), Box<dyn Error>> {
-            let _ = query.get(entity)?;
+        let mut closure = |first: Entity, second: Entity| {
+            if query.get(first).and_then(|_| query.get(second)).is_err() {
+                return;
+            }
 
             let speed = event.velocity.length();
             if speed > MIN_BOUNCE_AUDIO_SPEED {
@@ -538,7 +546,7 @@ fn bounce_audio(
                     .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)
                     .clamp(0.0, 1.0);
 
-                let volume = 0.2 * normalized_speed + 0.1;
+                let volume = 0.2 * normalized_speed + 0.05;
                 audio.set_volume_in_channel(volume, channel);
 
                 let pitch = ((normalized_speed * 4.0) as usize).min(3);
@@ -547,12 +555,10 @@ fn bounce_audio(
 
                 timer.0.reset();
             }
-
-            Ok(())
         };
 
         if can_play_audio {
-            closure(event.first).unwrap_or_else(|_| closure(event.second).unwrap_or_default());
+            closure(event.first, event.second);
         }
     }
 }
