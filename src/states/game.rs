@@ -337,7 +337,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
             3.0,
-            0.9,
+            2.0,
             1.0,
         ))
         .insert(Motion::default())
@@ -384,7 +384,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
             3.0,
-            0.9,
+            1.0,
             1.0,
         ))
         .insert(Motion::default())
@@ -427,7 +427,7 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
                 Layer::Ball,
                 Vec2::new(BALL_SIZE, BALL_SIZE),
                 1.0,
-                0.9,
+                1.0,
                 0.5,
             ))
             .insert(Trajectory {
