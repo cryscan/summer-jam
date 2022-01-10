@@ -12,7 +12,6 @@ fn make_ui(
     time: Res<Time>,
     score: Res<Score>,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     println!("Entering Win");
 
@@ -24,7 +23,7 @@ fn make_ui(
                 justify_content: JustifyContent::Center,
                 ..Default::default()
             },
-            material: materials.add(Color::NONE.into()),
+            color: Color::NONE.into(),
             ..Default::default()
         })
         .with_children(|parent| {
@@ -156,7 +155,7 @@ fn make_ui(
 pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_system_set(SystemSet::on_enter(AppState::Win).with_system(make_ui));
     }
 }

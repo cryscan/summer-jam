@@ -1,7 +1,7 @@
 use crate::{config::*, game::prelude::*};
 use bevy::{math::f32, prelude::*};
 
-#[derive(Clone, new)]
+#[derive(Clone, new, Component)]
 pub struct Ball {
     gravity: f32,
     timer: Timer,
@@ -32,6 +32,7 @@ pub struct Point {
     pub time: f64,
 }
 
+#[derive(Component)]
 pub struct Trajectory {
     pub start_time: f64,
     pub points: Vec<Point>,
@@ -39,11 +40,11 @@ pub struct Trajectory {
 
 pub fn ball_predict(
     time: Res<Time>,
-    mut query: Query<(&Ball, &Sprite, &RigidBody, &Motion, &mut Trajectory)>,
+    mut query: Query<(&Ball, &RigidBody, &Motion, &mut Trajectory)>,
 ) {
-    for (ball, sprite, rigid_body, motion, mut trajectory) in query.iter_mut() {
+    for (ball, rigid_body, motion, mut trajectory) in query.iter_mut() {
         let start_time = time.seconds_since_startup();
-        let boundary = (Vec2::new(ARENA_WIDTH, ARENA_HEIGHT) + sprite.size) / 2.0;
+        let boundary = (Vec2::new(ARENA_WIDTH, ARENA_HEIGHT) + rigid_body.size) / 2.0;
 
         let mut position = motion.translation.truncate();
         let mut velocity = motion.velocity;

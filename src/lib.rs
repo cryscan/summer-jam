@@ -19,7 +19,7 @@ pub enum AppState {
 
 #[wasm_bindgen]
 pub fn run() {
-    let mut app = App::build();
+    let mut app = App::new();
 
     app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .insert_resource(WindowDescriptor {
@@ -36,9 +36,6 @@ pub fn run() {
         .add_system(lock_release_cursor)
         .add_plugin(game::prelude::PhysicsPlugin)
         .add_plugins(states::GamePlugins);
-
-    #[cfg(target_arch = "wasm32")]
-    app.add_plugin(bevy_webgl2::WebGL2Plugin);
 
     app.run();
 }

@@ -7,7 +7,7 @@ pub trait Damp {
 
 impl Damp for f32 {
     fn damp(self, target: Self, speed: f32, delta_seconds: f32) -> Self {
-        (1.0 - (-speed * delta_seconds).exp()).lerp(self, target)
+        Interpolation::lerp(1.0 - (-speed * delta_seconds).exp(), self, target)
     }
 }
 

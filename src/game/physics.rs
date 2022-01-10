@@ -57,15 +57,17 @@ impl Layer {
     }
 }
 
+#[derive(Component)]
 pub struct RigidBody {
     pub layer: Layer,
+    pub size: Vec2,
     pub inverted_mass: f32,
     pub bounciness: f32,
     pub friction: f32,
 }
 
 impl RigidBody {
-    pub fn new(layer: Layer, mass: f32, bounciness: f32, friction: f32) -> Self {
+    pub fn new(layer: Layer, size: Vec2, mass: f32, bounciness: f32, friction: f32) -> Self {
         let inverted_mass = if mass < f32::EPSILON {
             0.0
         } else {
@@ -74,6 +76,7 @@ impl RigidBody {
 
         Self {
             layer,
+            size,
             inverted_mass,
             bounciness,
             friction,
@@ -85,7 +88,7 @@ impl RigidBody {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Component)]
 pub struct Motion {
     pub velocity: Vec2,
     pub translation: Vec3,
@@ -112,71 +115,54 @@ pub fn movement(_time: Res<Time>, mut query: Query<(&mut Motion, &mut Transform)
         motion.translation = transform.translation;
 
         let velocity = motion.velocity * PHYSICS_TIME_STEP as f32;
-        transform.translation += (velocity, 0.0).into();
+        transform.translation += velocity.extend(0.0);
     }
 }
 
-pub fn collision_detection(
+pub fn collision(
+    mut query: Query<(Entity, &RigidBody, &mut Transform, Option<&mut Motion>)>,
     mut events: EventWriter<CollisionEvent>,
-    query: Query<(Entity, &Sprite, &Transform, &RigidBody, Option<&Motion>)>,
 ) {
-    for (i, first) in query.iter().enumerate() {
-        for second in query
-            .iter()
-            .skip(i + 1)
-            .filter(|second| first.3.layer.test(second.3.layer, Layer::collision_bits))
-        {
-            if let Some(hit) = collide_continuous(
-                first
-                    .4
-                    .map_or(first.2.translation, |motion| motion.translation),
-                first.2.translation,
-                first.1.size,
-                second
-                    .4
-                    .map_or(second.2.translation, |motion| motion.translation),
-                second.2.translation,
-                second.1.size,
-            ) {
-                let velocity = {
-                    let first = first.4.map_or(Vec2::ZERO, |motion| motion.velocity);
-                    let second = second.4.map_or(Vec2::ZERO, |motion| motion.velocity);
-                    second - first
-                };
-
-                let bounciness = if first.3.layer.test(second.3.layer, Layer::bounciness_bits) {
-                    (first.3.bounciness * second.3.bounciness).sqrt()
-                } else {
-                    0.0
-                };
-
-                let friction = if first.3.layer.test(second.3.layer, Layer::friction_bits) {
-                    (first.3.friction * second.3.friction).sqrt()
-                } else {
-                    0.0
-                };
-
-                events.send(CollisionEvent {
-                    first: first.0,
-                    second: second.0,
-                    impulse: (first.3.inverted_mass + second.3.inverted_mass).recip(),
-                    velocity,
-                    bounciness,
-                    friction,
-                    hit,
-                })
-            }
+    let mut iter = query.iter_combinations_mut();
+    while let Some([(e1, rb1, t1, m1), (e2, rb2, t2, m2)]) = iter.fetch_next() {
+        if !rb1.layer.test(rb2.layer, Layer::collision_bits) {
+            continue;
         }
-    }
-}
 
-pub fn collision_resolution(
-    mut events: EventReader<CollisionEvent>,
-    mut query: Query<(&RigidBody, &mut Motion)>,
-) {
-    for event in events.iter() {
-        let mut closure = |entity: Entity, velocity: Vec2, normal: Vec2| {
-            if let Ok((rigid_body, mut motion)) = query.get_mut(entity) {
+        let (p1, v1) = match &m1 {
+            Some(motion) => (motion.translation, motion.velocity),
+            None => (t1.translation, Vec2::ZERO),
+        };
+
+        let (p2, v2) = match &m2 {
+            Some(motion) => (motion.translation, motion.velocity),
+            None => (t2.translation, Vec2::ZERO),
+        };
+        
+        if let Some(hit) =
+            collide_continuous(p1, t1.translation, rb1.size, p2, t2.translation, rb2.size)
+        {
+            let velocity = v2 - v1;
+
+            let bounciness = if rb1.layer.test(rb2.layer, Layer::bounciness_bits) {
+                (rb1.bounciness * rb2.bounciness).sqrt()
+            } else {
+                0.0
+            };
+
+            let friction = if rb1.layer.test(rb2.layer, Layer::friction_bits) {
+                (rb1.friction * rb2.friction).sqrt()
+            } else {
+                0.0
+            };
+
+            let impulse = (rb1.inverted_mass + rb2.inverted_mass).recip();
+
+            let resolve = |rigid_body: &RigidBody,
+                           mut motion: Mut<Motion>,
+                           mut transform: Mut<Transform>,
+                           velocity: Vec2,
+                           normal: Vec2| {
                 let normal_speed = velocity.dot(normal);
 
                 // do not process if objects are moving apart
@@ -190,65 +176,64 @@ pub fn collision_resolution(
                 let bounciness = if normal_speed < PHYSICS_REST_SPEED {
                     0.0
                 } else {
-                    event.bounciness
+                    bounciness
                 };
 
-                let normal_impulse = (1.0 + bounciness) * event.impulse * normal_speed;
+                let normal_impulse = (1.0 + bounciness) * impulse * normal_speed;
                 let tangential_impulse =
-                    (event.impulse * tangential_speed).min(event.friction * normal_impulse);
+                    (impulse * tangential_speed).min(friction * normal_impulse);
 
                 let normal_delta = normal_impulse * rigid_body.inverted_mass * normal;
                 let tangential_delta = tangential_impulse * rigid_body.inverted_mass * tangential;
 
                 motion.velocity += normal_delta + tangential_delta;
-            }
-        };
 
-        closure(event.first, event.velocity, event.hit.normal);
-        closure(event.second, -event.velocity, -event.hit.normal);
-    }
-}
-
-pub fn translation_correction(
-    mut events: EventReader<CollisionEvent>,
-    mut query: Query<(&RigidBody, &Motion, &mut Transform)>,
-) {
-    for event in events.iter() {
-        let mut closure = |entity: Entity, normal: Vec2| {
-            if let Ok((rigid_body, motion, mut transform)) = query.get_mut(entity) {
-                let depth = event.hit.depth.abs();
+                // translation correction
+                let depth = hit.depth.abs();
+                let near_time = hit.near_time;
                 let delta = (motion.translation - transform.translation).truncate();
 
                 if depth > 0.0 {
                     // correct penetration
-                    let correction = depth * event.impulse * rigid_body.inverted_mass * normal;
+                    let correction = depth * impulse * rigid_body.inverted_mass * normal;
                     let normal_delta = (delta + correction).dot(normal) * normal;
                     transform.translation += normal_delta.extend(0.0);
                 }
-                if (event.hit.near_time + 1.0).abs() < 0.01 {
+                if (near_time + 1.0).abs() < 0.01 {
                     // this is a hack that deals with numerical issue in collision detection
                     let normal_delta = delta.dot(normal) * normal;
                     transform.translation += normal_delta.extend(0.0);
                 }
-                if event.hit.near_time > 0.0 {
-                    transform.translation = motion
-                        .translation
-                        .lerp(transform.translation, event.hit.near_time);
+                if near_time > 0.0 {
+                    transform.translation =
+                        motion.translation.lerp(transform.translation, near_time);
                 }
-            }
-        };
+            };
 
-        closure(event.first, event.hit.normal);
-        closure(event.second, -event.hit.normal);
+            if let Some(motion) = m1 {
+                resolve(rb1, motion, t1, velocity, hit.normal);
+            }
+            if let Some(motion) = m2 {
+                resolve(rb2, motion, t2, -velocity, -hit.normal);
+            }
+
+            events.send(CollisionEvent {
+                first: e1,
+                second: e2,
+                velocity,
+                impulse,
+                bounciness,
+                friction,
+                hit,
+            });
+        }
     }
 }
 
 #[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicsSystem {
     Movement,
-    CollisionDetection,
-    CollisionResolution,
-    TranslationCorrection,
+    Collision,
 }
 
 impl SystemLabel for PhysicsSystem {
@@ -269,25 +254,15 @@ impl StageLabel for PhysicsStage {
 pub struct PhysicsPlugin;
 
 impl Plugin for PhysicsPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         let systems = SystemSet::new()
             .with_run_criteria(FixedTimestep::step(PHYSICS_TIME_STEP))
-            .with_system(init_motion.before(PhysicsSystem::CollisionDetection))
+            .with_system(init_motion.before(PhysicsSystem::Collision))
             .with_system(movement.label(PhysicsSystem::Movement))
             .with_system(
-                collision_detection
-                    .label(PhysicsSystem::CollisionDetection)
+                collision
+                    .label(PhysicsSystem::Collision)
                     .after(PhysicsSystem::Movement),
-            )
-            .with_system(
-                collision_resolution
-                    .label(PhysicsSystem::CollisionResolution)
-                    .after(PhysicsSystem::CollisionDetection),
-            )
-            .with_system(
-                translation_correction
-                    .label(PhysicsSystem::TranslationCorrection)
-                    .after(PhysicsSystem::CollisionResolution),
             );
 
         app.add_event::<CollisionEvent>()
