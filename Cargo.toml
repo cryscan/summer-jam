@@ -11,7 +11,12 @@ rand = "0.8"
 itertools = "0.10"
 derive-new = "0.5"
 wasm-bindgen = "0.2"
-bevy = "0.6"
+bevy = { version = "0.6", default-features = false, features = [
+    "bevy_winit",
+    "render",
+    "png",
+    "x11",
+] }
 bevy_kira_audio = { version = "0.8", features = ["wav", "flac"] }
 
 [patch.crates-io]

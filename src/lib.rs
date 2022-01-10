@@ -37,9 +37,6 @@ pub fn run() {
         .add_plugin(game::prelude::PhysicsPlugin)
         .add_plugins(states::GamePlugins);
 
-    #[cfg(target_arch = "wasm32")]
-    app.add_plugin(bevy_webgl2::WebGL2Plugin);
-
     app.run();
 }
 
