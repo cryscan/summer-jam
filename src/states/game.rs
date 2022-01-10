@@ -21,25 +21,26 @@ struct PlayerMissEvent;
 
 struct DebounceTimer(Timer);
 
+#[derive(Component)]
 struct Cleanup;
 
 struct Materials {
     // dynamic entities
-    player_material: Handle<ColorMaterial>,
-    enemy_material: Handle<ColorMaterial>,
-    paddle_material: Handle<ColorMaterial>,
-    ball_material: Handle<ColorMaterial>,
-    hint_material: Handle<ColorMaterial>,
+    player: Handle<Image>,
+    enemy: Handle<Image>,
+    paddle: Color,
+    ball: Handle<Image>,
+    hint: Handle<Image>,
 
     // static entities
-    boundary_material: Handle<ColorMaterial>,
-    base_material: Handle<ColorMaterial>,
-    separate_material: Handle<ColorMaterial>,
+    boundary: Color,
+    base: Color,
+    separate: Color,
 
     // ui
-    node_material: Handle<ColorMaterial>,
-    health_bar_material: Handle<ColorMaterial>,
-    health_bar_tracker_material: Handle<ColorMaterial>,
+    node: Color,
+    health_bar: Color,
+    health_bar_tracker: Color,
 }
 
 struct Audios {
@@ -50,26 +51,21 @@ struct Audios {
     impact_audios: Vec<Handle<AudioSource>>,
 }
 
-fn setup_game(
-    mut commands: Commands,
-    time: Res<Time>,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetServer>) {
     commands.insert_resource(Materials {
-        player_material: materials.add(asset_server.load(PLAYER_SPRITE).into()),
-        enemy_material: materials.add(asset_server.load(ENEMY_SPRITE).into()),
-        paddle_material: materials.add(Color::rgba_u8(155, 173, 183, 50).into()),
-        ball_material: materials.add(asset_server.load(BALL_SPRITE).into()),
-        hint_material: materials.add(asset_server.load(HINT_SPRITE).into()),
+        player: asset_server.load(PLAYER_SPRITE),
+        enemy: asset_server.load(ENEMY_SPRITE),
+        paddle: Color::rgba_u8(155, 173, 183, 50),
+        ball: asset_server.load(BALL_SPRITE),
+        hint: asset_server.load(HINT_SPRITE),
 
-        boundary_material: materials.add(Color::WHITE.into()),
-        base_material: materials.add(Color::rgb_u8(155, 173, 183).into()),
-        separate_material: materials.add(Color::rgba(0.5, 0.5, 0.5, 0.1).into()),
+        boundary: Color::WHITE,
+        base: Color::rgb_u8(155, 173, 183),
+        separate: Color::rgba(0.5, 0.5, 0.5, 0.1),
 
-        node_material: materials.add(Color::NONE.into()),
-        health_bar_material: materials.add(Color::rgb_u8(155, 173, 183).into()),
-        health_bar_tracker_material: materials.add(Color::rgb_u8(217, 87, 99).into()),
+        node: Color::NONE,
+        health_bar: Color::rgb_u8(155, 173, 183),
+        health_bar_tracker: Color::rgb_u8(217, 87, 99),
     });
 
     commands.insert_resource(Audios {
@@ -119,59 +115,104 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
     // middle Separate
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.separate_material.clone(),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 16.0)),
+            sprite: Sprite {
+                color: materials.separate,
+                custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(RigidBody::new(Layer::Separate, 0.0, 0.9, 0.5));
+        .insert(RigidBody::new(
+            Layer::Separate,
+            Vec2::new(ARENA_WIDTH, 16.0),
+            0.0,
+            0.9,
+            0.5,
+        ));
 
     // top boundary
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.base_material.clone(),
             transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0 + 8.0, 0.0),
-            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 16.0)),
+            sprite: Sprite {
+                color: materials.base,
+                custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Cleanup)
         .insert(EnemyBase::new(10000.0, 10000.0))
-        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
+        .insert(RigidBody::new(
+            Layer::Boundary,
+            Vec2::new(ARENA_WIDTH, 16.0),
+            0.0,
+            0.9,
+            1.0,
+        ));
 
     // bottom boundary
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.base_material.clone(),
             transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0 - 8.0, 0.0),
-            sprite: Sprite::new(Vec2::new(ARENA_WIDTH, 16.0)),
+            sprite: Sprite {
+                color: materials.boundary,
+                custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Cleanup)
         .insert(PlayerBase::new(3))
-        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.5));
+        .insert(RigidBody::new(
+            Layer::Boundary,
+            Vec2::new(ARENA_WIDTH, 16.0),
+            0.0,
+            0.9,
+            0.5,
+        ));
 
     // left boundary
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.boundary_material.clone(),
             transform: Transform::from_xyz(-ARENA_WIDTH / 2.0 - 8.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(16.0, ARENA_HEIGHT + 32.0)),
+            sprite: Sprite {
+                color: materials.boundary,
+                custom_size: Some(Vec2::new(16.0, ARENA_HEIGHT + 32.0)),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.0));
+        .insert(RigidBody::new(
+            Layer::Boundary,
+            Vec2::new(16.0, ARENA_HEIGHT + 32.0),
+            0.0,
+            0.9,
+            0.0,
+        ));
 
     // right boundary
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.boundary_material.clone(),
             transform: Transform::from_xyz(ARENA_WIDTH / 2.0 + 8.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(16.0, ARENA_HEIGHT + 32.0)),
+            sprite: Sprite {
+                color: materials.boundary,
+                custom_size: Some(Vec2::new(16.0, ARENA_HEIGHT + 32.0)),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(RigidBody::new(Layer::Boundary, 0.0, 0.9, 0.0));
+        .insert(RigidBody::new(
+            Layer::Boundary,
+            Vec2::new(16.0, ARENA_HEIGHT + 32.0),
+            0.0,
+            0.9,
+            0.0,
+        ));
 }
 
 fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<AssetServer>) {
@@ -186,7 +227,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                 },
                 ..Default::default()
             },
-            material: materials.node_material.clone(),
+            color: materials.node.into(),
             ..Default::default()
         })
         .insert(Cleanup)
@@ -197,7 +238,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                         size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    material: materials.health_bar_material.clone(),
+                    color: materials.health_bar.into(),
                     ..Default::default()
                 })
                 .insert(HealthBar);
@@ -207,7 +248,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                         size: Size::new(Val::Percent(0.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    material: materials.health_bar_tracker_material.clone(),
+                    color: materials.health_bar_tracker.into(),
                     ..Default::default()
                 })
                 .insert(HealthBarTracker::new(1.0, 10.0));
@@ -225,7 +266,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                 },
                 ..Default::default()
             },
-            material: materials.node_material.clone(),
+            color: materials.node.into(),
             ..Default::default()
         })
         .insert(Cleanup)
@@ -235,7 +276,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                     size: Size::new(Val::Px(16.0), Val::Px(16.0)),
                     ..Default::default()
                 },
-                material: materials.ball_material.clone(),
+                image: materials.ball.clone().into(),
                 ..Default::default()
             });
 
@@ -269,12 +310,10 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
 }
 
 fn make_player(mut commands: Commands, materials: Res<Materials>) {
-    const WIDTH: f32 = PLAYER_WIDTH;
-
     let hint = commands
         .spawn_bundle(SpriteBundle {
-            material: materials.hint_material.clone(),
             transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
+            texture: materials.hint.clone(),
             ..Default::default()
         })
         .insert(Cleanup)
@@ -282,39 +321,49 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
 
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.paddle_material.clone(),
             transform: Transform::from_xyz(0.0, -160.0, 0.0),
-            sprite: Sprite::new(Vec2::new(WIDTH, 16.0)),
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT)),
+                color: materials.paddle,
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Cleanup)
         .insert(Player::new(PLAYER_MAX_SPEED, 0.5, 20.0))
-        .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
+        .insert(RigidBody::new(
+            Layer::Player,
+            Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
+            3.0,
+            0.9,
+            1.0,
+        ))
         .insert(Motion::default())
         .insert(Hint(hint))
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
-                material: materials.player_material.clone(),
-                transform: Transform::from_xyz(-WIDTH / 2.0 + 8.0, 0.0, 0.1),
+                transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
+                texture: materials.player.clone(),
                 ..Default::default()
             });
 
             parent.spawn_bundle(SpriteBundle {
-                material: materials.player_material.clone(),
-                transform: Transform::from_xyz(WIDTH / 2.0 - 8.0, 0.0, 0.1),
+                transform: Transform::from_xyz(PADDLE_WIDTH / 2.0 - 8.0, 0.0, 0.1),
+                texture: materials.player.clone(),
                 ..Default::default()
             });
         });
 }
 
 fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
-    const WIDTH: f32 = ENEMY_WIDTH;
-
     commands
         .spawn_bundle(SpriteBundle {
-            material: materials.paddle_material.clone(),
             transform: Transform::from_xyz(0.0, 160.0, 0.0),
-            sprite: Sprite::new(Vec2::new(WIDTH, 16.0)),
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT)),
+                color: materials.paddle,
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Cleanup)
@@ -323,23 +372,29 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             ENEMY_MAX_SPEED,
             ENEMY_NORMAL_SPEED,
             20.0,
-            WIDTH,
+            PADDLE_WIDTH,
             -100.0,
             0.125 * ARENA_HEIGHT,
         ))
         .insert(Controller::new(Timer::from_seconds(0.2, false)))
-        .insert(RigidBody::new(Layer::Player, 3.0, 0.9, 1.0))
+        .insert(RigidBody::new(
+            Layer::Player,
+            Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
+            3.0,
+            0.9,
+            1.0,
+        ))
         .insert(Motion::default())
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
-                material: materials.enemy_material.clone(),
-                transform: Transform::from_xyz(-WIDTH / 2.0 + 8.0, 0.0, 0.1),
+                transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
+                texture: materials.enemy.clone(),
                 ..Default::default()
             });
 
             parent.spawn_bundle(SpriteBundle {
-                material: materials.enemy_material.clone(),
-                transform: Transform::from_xyz(WIDTH / 2.0 - 8.0, 0.0, 0.1),
+                transform: Transform::from_xyz(PADDLE_WIDTH / 2.0 - 8.0, 0.0, 0.1),
+                texture: materials.enemy.clone(),
                 ..Default::default()
             });
         });
@@ -349,8 +404,8 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
     if query.iter().count() == 0 {
         let hint = commands
             .spawn_bundle(SpriteBundle {
-                material: materials.hint_material.clone(),
                 transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
+                texture: materials.hint.clone(),
                 ..Default::default()
             })
             .insert(Cleanup)
@@ -358,13 +413,19 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
 
         commands
             .spawn_bundle(SpriteBundle {
-                material: materials.ball_material.clone(),
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                texture: materials.ball.clone(),
                 ..Default::default()
             })
             .insert(Cleanup)
             .insert(Ball::new(-1000.0, Timer::from_seconds(1.0, false)))
-            .insert(RigidBody::new(Layer::Ball, 1.0, 0.9, 0.5))
+            .insert(RigidBody::new(
+                Layer::Ball,
+                Vec2::new(BALL_SIZE, BALL_SIZE),
+                1.0,
+                0.9,
+                0.5,
+            ))
             .insert(Trajectory {
                 start_time: 0.0,
                 points: vec![Point::default(); PREDICT_SIZE],
@@ -409,30 +470,34 @@ fn player_miss(
     mut collision_events: EventReader<CollisionEvent>,
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    mut query: QuerySet<(Query<Option<&Hint>, With<Ball>>, Query<&mut PlayerBase>)>,
+    ball_query: Query<Option<&Hint>, With<Ball>>,
+    mut base_query: Query<(Entity, &mut PlayerBase), Without<Ball>>,
 ) {
-    let mut closure = |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
-        let _ = query.q0().get(ball_entity)?;
-        let mut base = query.q1_mut().get_mut(base_entity)?;
+    let (entity, mut base) = base_query.single_mut();
 
-        if base.balls == 0 {
-            game_over_events.send(GameOverEvent::Lose);
-        } else {
-            base.balls -= 1;
-            player_miss_events.send(PlayerMissEvent);
+    let mut closure = |ball_entity: Entity, base_entity: Entity| {
+        if base_entity != entity {
+            return;
         }
 
-        if let Some(hint) = query.q0().get(ball_entity)? {
-            commands.entity(hint.0).despawn();
-        }
-        commands.entity(ball_entity).despawn();
+        if let Ok(hint) = ball_query.get(ball_entity) {
+            if base.balls == 0 {
+                game_over_events.send(GameOverEvent::Lose);
+            } else {
+                base.balls -= 1;
+                player_miss_events.send(PlayerMissEvent);
+            }
 
-        Ok(())
+            if let Some(hint) = hint {
+                commands.entity(hint.0).despawn();
+            }
+            commands.entity(ball_entity).despawn();
+        }
     };
 
     for event in collision_events.iter() {
-        closure(event.first, event.second)
-            .unwrap_or_else(|_| closure(event.second, event.first).unwrap_or_default())
+        closure(event.first, event.second);
+        closure(event.second, event.first);
     }
 }
 
@@ -514,14 +579,14 @@ fn score_audio(
         match event {
             GameOverEvent::Win => audio.play(audios.explosion_audio.clone()),
             GameOverEvent::Lose => audio.play(audios.lose_audio.clone()),
-        }
+        };
     }
 }
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_event::<GameOverEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
@@ -538,13 +603,7 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
-                    .with_system(make_ball),
-            )
-            .add_system_set(
-                SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
-            )
-            .add_system_set(
-                SystemSet::new()
+                    .with_system(make_ball)
                     .with_system(player_movement)
                     .with_system(enemy_movement)
                     .with_system(player_hit)
@@ -559,6 +618,9 @@ impl Plugin for GamePlugin {
                     .with_system(hint_system)
                     .with_system(bounce_audio)
                     .with_system(score_audio),
+            )
+            .add_system_set(
+                SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
             )
             .add_system_set(
                 SystemSet::new()
