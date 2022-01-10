@@ -12,10 +12,7 @@ struct ColorText {
 
 struct ColorTimer(Timer);
 
-fn make_title(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
+fn make_title(mut commands: Commands, asset_server: Res<AssetServer>) {
     println!("Entering Title");
 
     commands

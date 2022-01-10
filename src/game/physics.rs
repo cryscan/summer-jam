@@ -123,8 +123,8 @@ pub fn collision(
     mut query: Query<(Entity, &RigidBody, &mut Transform, Option<&mut Motion>)>,
     mut events: EventWriter<CollisionEvent>,
 ) {
-    let mut iter = query.iter_combinations_mut();
-    while let Some([(e1, rb1, t1, m1), (e2, rb2, t2, m2)]) = iter.fetch_next() {
+    let mut combinations = query.iter_combinations_mut();
+    while let Some([(e1, rb1, t1, m1), (e2, rb2, t2, m2)]) = combinations.fetch_next() {
         if !rb1.layer.test(rb2.layer, Layer::collision_bits) {
             continue;
         }
@@ -138,22 +138,20 @@ pub fn collision(
             Some(motion) => (motion.translation, motion.velocity),
             None => (t2.translation, Vec2::ZERO),
         };
-        
+
         if let Some(hit) =
             collide_continuous(p1, t1.translation, rb1.size, p2, t2.translation, rb2.size)
         {
             let velocity = v2 - v1;
 
-            let bounciness = if rb1.layer.test(rb2.layer, Layer::bounciness_bits) {
-                (rb1.bounciness * rb2.bounciness).sqrt()
-            } else {
-                0.0
+            let bounciness = match rb1.layer.test(rb2.layer, Layer::bounciness_bits) {
+                true => (rb1.bounciness * rb2.bounciness).sqrt(),
+                false => 0.0,
             };
 
-            let friction = if rb1.layer.test(rb2.layer, Layer::friction_bits) {
-                (rb1.friction * rb2.friction).sqrt()
-            } else {
-                0.0
+            let friction = match rb1.layer.test(rb2.layer, Layer::friction_bits) {
+                true => (rb1.friction * rb2.friction).sqrt(),
+                false => 0.0,
             };
 
             let impulse = (rb1.inverted_mass + rb2.inverted_mass).recip();
@@ -173,10 +171,9 @@ pub fn collision(
                 let tangential = (velocity - normal_speed * normal).normalize_or_zero();
                 let tangential_speed = velocity.dot(tangential);
 
-                let bounciness = if normal_speed < PHYSICS_REST_SPEED {
-                    0.0
-                } else {
-                    bounciness
+                let bounciness = match normal_speed < PHYSICS_REST_SPEED {
+                    true => 0.0,
+                    false => bounciness,
                 };
 
                 let normal_impulse = (1.0 + bounciness) * impulse * normal_speed;
@@ -210,12 +207,8 @@ pub fn collision(
                 }
             };
 
-            if let Some(motion) = m1 {
-                resolve(rb1, motion, t1, velocity, hit.normal);
-            }
-            if let Some(motion) = m2 {
-                resolve(rb2, motion, t2, -velocity, -hit.normal);
-            }
+            m1.map(|motion| resolve(rb1, motion, t1, velocity, hit.normal));
+            m2.map(|motion| resolve(rb2, motion, t2, -velocity, -hit.normal));
 
             events.send(CollisionEvent {
                 first: e1,
