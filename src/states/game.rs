@@ -538,7 +538,7 @@ fn bounce_audio(
                     .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)
                     .clamp(0.0, 1.0);
 
-                let volume = 0.2 * normalized_speed + 0.2;
+                let volume = 0.2 * normalized_speed + 0.1;
                 audio.set_volume_in_channel(volume, channel);
 
                 let pitch = ((normalized_speed * 4.0) as usize).min(3);
