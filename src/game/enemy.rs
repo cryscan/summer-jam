@@ -16,8 +16,7 @@ pub struct Enemy {
 #[derive(new, Component)]
 pub struct Controller {
     #[new(default)]
-    velocity: Vec2,
-    _hit_timer: Timer,
+    pub velocity: Vec2,
 }
 
 pub fn enemy_movement(
@@ -37,10 +36,10 @@ pub fn enemy_movement(
 
 pub fn enemy_controller(
     time: Res<Time>,
-    mut controller_query: Query<(&Transform, &RigidBody, &Enemy, &mut Controller), Without<Ball>>,
+    mut query: Query<(&Transform, &RigidBody, &Enemy, &mut Controller), Without<Ball>>,
     ball_query: Query<(&Transform, &Motion, &Trajectory), With<Ball>>,
 ) {
-    for (transform, rigid_body, enemy, mut controller) in controller_query.iter_mut() {
+    for (transform, rigid_body, enemy, mut controller) in query.iter_mut() {
         controller.velocity = Vec2::ZERO;
         let width = rigid_body.size.x;
 

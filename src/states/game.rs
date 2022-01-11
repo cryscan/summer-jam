@@ -332,7 +332,14 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(Player::new(PLAYER_MAX_SPEED, 0.5, 20.0))
+        .insert(Player::new(
+            PLAYER_MAX_SPEED,
+            0.5,
+            20.0,
+            PLAYER_ASSIST_SPEED,
+            PLAYER_ASSIST_SPEED_THRESHOLD,
+        ))
+        .insert(Controller::new())
         .insert(RigidBody::new(
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
@@ -376,10 +383,10 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             ENEMY_NORMAL_SPEED,
             20.0,
             PADDLE_WIDTH,
-            -100.0,
+            ENEMY_HIT_SPEED_THRESHOLD,
             0.125 * ARENA_HEIGHT,
         ))
-        .insert(Controller::new(Timer::from_seconds(0.2, false)))
+        .insert(Controller::new())
         .insert(RigidBody::new(
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
@@ -608,6 +615,7 @@ impl Plugin for GamePlugin {
                     .with_system(update_game)
                     .with_system(make_ball)
                     .with_system(player_movement)
+                    .with_system(player_assist)
                     .with_system(enemy_movement)
                     .with_system(player_hit)
                     .with_system(player_miss)
