@@ -39,7 +39,7 @@ pub const PLAYER_ASSIST_SPEED_THRESHOLD: f32 = -1000.0;
 
 pub const ENEMY_MIN_SPEED: f32 = 500.0;
 pub const ENEMY_MAX_SPEED: f32 = 2000.0;
-pub const ENEMY_NORMAL_SPEED: f32 = 800.0;
+pub const ENEMY_NORMAL_SPEED: f32 = 1000.0;
 pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -100.0;
 
 pub const MAX_DAMAGE: f32 = 2000.0;
