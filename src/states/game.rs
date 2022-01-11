@@ -192,7 +192,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             Layer::Boundary,
             Vec2::new(16.0, ARENA_HEIGHT + 32.0),
             0.0,
-            0.9,
+            1.0,
             0.0,
         ));
 
@@ -212,7 +212,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             Layer::Boundary,
             Vec2::new(16.0, ARENA_HEIGHT + 32.0),
             0.0,
-            0.9,
+            1.0,
             0.0,
         ));
 }
@@ -343,7 +343,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         .insert(RigidBody::new(
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
-            3.0,
+            4.0,
             2.0,
             1.0,
         ))
@@ -390,7 +390,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         .insert(RigidBody::new(
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
-            3.0,
+            4.0,
             1.0,
             1.0,
         ))
@@ -626,9 +626,7 @@ impl Plugin for GamePlugin {
                     .with_system(ball_setup)
                     .with_system(ball_predict_debug)
                     .with_system(score_system)
-                    .with_system(hint_system)
-                    .with_system(bounce_audio)
-                    .with_system(score_audio),
+                    .with_system(hint_system),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
@@ -638,6 +636,11 @@ impl Plugin for GamePlugin {
                     .with_run_criteria(FixedTimestep::step(AI_TIME_STEP))
                     .with_system(ball_predict)
                     .with_system(enemy_controller),
+            )
+            .add_system_set(
+                SystemSet::new()
+                    .with_system(bounce_audio)
+                    .with_system(score_audio),
             );
     }
 }
