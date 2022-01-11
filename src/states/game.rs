@@ -343,7 +343,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         .insert(RigidBody::new(
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
-            4.0,
+            3.0,
             2.0,
             1.0,
         ))
@@ -390,7 +390,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         .insert(RigidBody::new(
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
-            4.0,
+            3.0,
             1.0,
             1.0,
         ))
