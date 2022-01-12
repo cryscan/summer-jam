@@ -344,7 +344,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
             3.0,
-            1.0,
+            2.0,
             1.0,
         ))
         .insert(Motion::default())
