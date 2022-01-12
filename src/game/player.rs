@@ -45,7 +45,9 @@ pub fn player_assist(
         for (motion, trajectory) in ball_query.iter() {
             let position = transform.translation.truncate();
 
-            if motion.velocity.y < player.assist_speed_threshold {
+            if motion.velocity.y < player.assist_speed_threshold
+                && (motion.translation.x - transform.translation.x).abs() > width / 2.0
+            {
                 // very dangerous, try to assist the player
                 let delta_seconds = time.seconds_since_startup() - trajectory.start_time;
                 if let Some(candidate) = trajectory
