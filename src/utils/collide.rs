@@ -10,17 +10,15 @@ pub struct Hit {
     pub far_time: f32,
 }
 
-trait Normal {
-    fn to_normal(self) -> Vec2;
-}
+struct Normal(Vec2);
 
-impl Normal for Collision {
-    fn to_normal(self) -> Vec2 {
-        match self {
-            Collision::Left => -Vec2::X,
-            Collision::Right => Vec2::X,
-            Collision::Top => Vec2::Y,
-            Collision::Bottom => -Vec2::Y,
+impl From<Collision> for Normal {
+    fn from(collision: Collision) -> Self {
+        match collision {
+            Collision::Left => Self(-Vec2::X),
+            Collision::Right => Self(Vec2::X),
+            Collision::Top => Self(Vec2::Y),
+            Collision::Bottom => Self(-Vec2::Y),
         }
     }
 }
@@ -85,8 +83,9 @@ pub fn collide_continuous(
 ) -> Option<Hit> {
     // check if already overlapped
     if let Some((collision, depth)) = collide(a_prev_pos, a_size, b_prev_pos, b_size) {
+        let normal: Normal = collision.into();
         return Some(Hit {
-            normal: collision.to_normal(),
+            normal: normal.0,
             depth,
             near_time: 0.0,
             far_time: 1.0,
@@ -150,8 +149,9 @@ fn intersect_segment(
         }
     };
 
+    let normal: Normal = collision.into();
     Some(Hit {
-        normal: collision.to_normal(),
+        normal: normal.0,
         depth: 0.0,
         near_time,
         far_time,
