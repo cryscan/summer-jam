@@ -1,5 +1,6 @@
-use crate::{config::*, game::prelude::*};
-use bevy::{math::f32, prelude::*};
+use super::physics::{Motion, RigidBody};
+use crate::config::*;
+use bevy::prelude::*;
 
 #[derive(Clone, new, Component)]
 pub struct Ball {
