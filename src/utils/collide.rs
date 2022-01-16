@@ -1,6 +1,5 @@
+use bevy::prelude::*;
 use core::f32;
-
-use bevy::{prelude::*, sprite::collide_aabb::Collision};
 
 #[derive(Debug)]
 pub struct Hit {
@@ -10,21 +9,8 @@ pub struct Hit {
     pub far_time: f32,
 }
 
-struct Normal(Vec2);
-
-impl From<Collision> for Normal {
-    fn from(collision: Collision) -> Self {
-        match collision {
-            Collision::Left => Self(-Vec2::X),
-            Collision::Right => Self(Vec2::X),
-            Collision::Top => Self(Vec2::Y),
-            Collision::Bottom => Self(-Vec2::Y),
-        }
-    }
-}
-
 /// Axis-aligned bounding box collision with "side" detection
-pub fn collide(a_pos: Vec3, a_size: Vec2, b_pos: Vec3, b_size: Vec2) -> Option<(Collision, f32)> {
+pub fn collide(a_pos: Vec3, a_size: Vec2, b_pos: Vec3, b_size: Vec2) -> Option<(Vec2, f32)> {
     let a_min = a_pos.truncate() - a_size / 2.0;
     let a_max = a_pos.truncate() + a_size / 2.0;
 
@@ -36,9 +22,9 @@ pub fn collide(a_pos: Vec3, a_size: Vec2, b_pos: Vec3, b_size: Vec2) -> Option<(
         // check to see if we hit on the left or right side
         let (x_collision, x_depth) = if a_min.x < b_min.x && a_max.x > b_min.x && a_max.x < b_max.x
         {
-            (Some(Collision::Left), b_min.x - a_max.x)
+            (Some(-Vec2::X), b_min.x - a_max.x)
         } else if a_min.x > b_min.x && a_min.x < b_max.x && a_max.x > b_max.x {
-            (Some(Collision::Right), b_max.x - a_min.x)
+            (Some(Vec2::X), b_max.x - a_min.x)
         } else {
             (None, 0.0)
         };
@@ -46,9 +32,9 @@ pub fn collide(a_pos: Vec3, a_size: Vec2, b_pos: Vec3, b_size: Vec2) -> Option<(
         // check to see if we hit on the top or bottom side
         let (y_collision, y_depth) = if a_min.y < b_min.y && a_max.y > b_min.y && a_max.y < b_max.y
         {
-            (Some(Collision::Bottom), b_min.y - a_max.y)
+            (Some(-Vec2::Y), b_min.y - a_max.y)
         } else if a_min.y > b_min.y && a_min.y < b_max.y && a_max.y > b_max.y {
-            (Some(Collision::Top), b_max.y - a_min.y)
+            (Some(Vec2::Y), b_max.y - a_min.y)
         } else {
             (None, 0.0)
         };
@@ -82,10 +68,9 @@ pub fn collide_continuous(
     b_size: Vec2,
 ) -> Option<Hit> {
     // check if already overlapped
-    if let Some((collision, depth)) = collide(a_prev_pos, a_size, b_prev_pos, b_size) {
-        let normal: Normal = collision.into();
+    if let Some((normal, depth)) = collide(a_prev_pos, a_size, b_prev_pos, b_size) {
         return Some(Hit {
-            normal: normal.0,
+            normal,
             depth,
             near_time: 0.0,
             far_time: 1.0,
@@ -137,21 +122,20 @@ fn intersect_segment(
         return None;
     }
 
-    let collision = if near_time_x > near_time_y {
+    let normal = if near_time_x > near_time_y {
         match sign.x > 0.0 {
-            true => Collision::Left,
-            false => Collision::Right,
+            true => -Vec2::X,
+            false => Vec2::X,
         }
     } else {
         match sign.y > 0.0 {
-            true => Collision::Bottom,
-            false => Collision::Top,
+            true => -Vec2::Y,
+            false => Vec2::Y,
         }
     };
 
-    let normal: Normal = collision.into();
     Some(Hit {
-        normal: normal.0,
+        normal,
         depth: 0.0,
         near_time,
         far_time,
