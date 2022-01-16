@@ -1,4 +1,9 @@
-use crate::{config::ARENA_HEIGHT, game::prelude::*, utils::Damp};
+use super::{
+    ball::{Ball, Point, Trajectory},
+    enemy::Controller,
+    physics::{Motion, RigidBody},
+};
+use crate::{config::ARENA_HEIGHT, utils::Damp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::ops::Add;
 
@@ -72,7 +77,7 @@ pub fn player_assist(
                     let time = (candidate.time - delta_seconds) as f32;
                     let distance = direction.length();
 
-                    let mut speed = (distance / time + 1.0).clamp(0.0, player.assist_speed);
+                    let mut speed = (1.5 * (distance / time + 1.0)).clamp(0.0, player.assist_speed);
 
                     let stop_distance = 1.5 * width;
                     if distance < stop_distance {

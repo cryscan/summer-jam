@@ -7,7 +7,8 @@ use wasm_bindgen::prelude::*;
 
 mod config;
 mod game;
-mod states;
+mod score;
+mod title;
 mod utils;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -34,8 +35,9 @@ pub fn run() {
         .add_state(AppState::Title)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
-        .add_plugin(game::prelude::PhysicsPlugin)
-        .add_plugins(states::GamePlugins);
+        .add_plugin(title::TitlePlugin)
+        .add_plugin(game::GamePlugin)
+        .add_plugin(score::ScorePlugin);
 
     app.run();
 }

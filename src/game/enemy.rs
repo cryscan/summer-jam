@@ -1,4 +1,8 @@
-use crate::{config::ARENA_HEIGHT, game::prelude::*, utils::Damp};
+use super::{
+    ball::{Ball, Trajectory},
+    physics::{Motion, RigidBody},
+};
+use crate::{config::ARENA_HEIGHT, utils::Damp};
 use bevy::prelude::*;
 
 #[derive(new, Component)]
