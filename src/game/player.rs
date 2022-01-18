@@ -7,14 +7,14 @@ use crate::{config::ARENA_HEIGHT, utils::Damp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::ops::Add;
 
-#[derive(new, Component)]
+#[derive(Component)]
 pub struct Player {
-    max_speed: f32,
-    sensitivity: f32,
-    damp: f32,
+    pub max_speed: f32,
+    pub sensitivity: f32,
+    pub damp: f32,
 
-    assist_speed: f32,
-    assist_speed_threshold: f32,
+    pub assist_speed: f32,
+    pub assist_speed_threshold: f32,
 }
 
 pub fn player_movement(

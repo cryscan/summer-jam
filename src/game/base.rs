@@ -1,14 +1,14 @@
 use crate::utils::Damp;
 use bevy::prelude::*;
 
-#[derive(new, Component)]
+#[derive(Component)]
 pub struct PlayerBase {
     pub balls: i32,
 }
 
-#[derive(new, Component)]
+#[derive(Component)]
 pub struct EnemyBase {
-    full_hp: f32,
+    pub full_hp: f32,
     pub hp: f32,
 }
 

@@ -155,7 +155,10 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(EnemyBase::new(10000.0, 10000.0))
+        .insert(EnemyBase {
+            full_hp: 10000.0,
+            hp: 10000.0,
+        })
         .insert(RigidBody::new(
             Layer::Boundary,
             Vec2::new(ARENA_WIDTH, 16.0),
@@ -176,7 +179,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(PlayerBase::new(3))
+        .insert(PlayerBase { balls: 3 })
         .insert(RigidBody::new(
             Layer::Boundary,
             Vec2::new(ARENA_WIDTH, 16.0),
@@ -341,13 +344,13 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(Player::new(
-            PLAYER_MAX_SPEED,
-            0.5,
-            20.0,
-            PLAYER_ASSIST_SPEED,
-            PLAYER_ASSIST_SPEED_THRESHOLD,
-        ))
+        .insert(Player {
+            max_speed: PLAYER_MAX_SPEED,
+            sensitivity: 0.5,
+            damp: 20.0,
+            assist_speed: PLAYER_ASSIST_SPEED,
+            assist_speed_threshold: PLAYER_ASSIST_SPEED_THRESHOLD,
+        })
         .insert(Controller::new())
         .insert(RigidBody::new(
             Layer::Player,
@@ -386,15 +389,15 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(Enemy::new(
-            ENEMY_MIN_SPEED,
-            ENEMY_MAX_SPEED,
-            ENEMY_NORMAL_SPEED,
-            20.0,
-            PADDLE_WIDTH,
-            ENEMY_HIT_SPEED_THRESHOLD,
-            0.125 * ARENA_HEIGHT,
-        ))
+        .insert(Enemy {
+            min_speed: ENEMY_MIN_SPEED,
+            max_speed: ENEMY_MAX_SPEED,
+            normal_speed: ENEMY_NORMAL_SPEED,
+            damp: 20.0,
+            hit_range: PADDLE_WIDTH,
+            hit_speed_threshold: ENEMY_HIT_SPEED_THRESHOLD,
+            hit_height_threshold: 0.125 * ARENA_HEIGHT,
+        })
         .insert(Controller::new())
         .insert(RigidBody::new(
             Layer::Player,
