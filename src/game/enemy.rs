@@ -5,16 +5,16 @@ use super::{
 use crate::{config::ARENA_HEIGHT, utils::Damp};
 use bevy::prelude::*;
 
-#[derive(new, Component)]
+#[derive(Component)]
 pub struct Enemy {
-    min_speed: f32,
-    max_speed: f32,
-    normal_speed: f32,
-    damp: f32,
+    pub min_speed: f32,
+    pub max_speed: f32,
+    pub normal_speed: f32,
+    pub damp: f32,
 
-    hit_range: f32,
-    hit_speed_threshold: f32,
-    hit_height_threshold: f32,
+    pub hit_range: f32,
+    pub hit_speed_threshold: f32,
+    pub hit_height_threshold: f32,
 }
 
 #[derive(new, Component)]
