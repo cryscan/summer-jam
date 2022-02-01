@@ -2,10 +2,10 @@ use super::physics::{Motion, RigidBody};
 use crate::config::*;
 use bevy::prelude::*;
 
-#[derive(Clone, new, Component)]
+#[derive(Clone, Component)]
 pub struct Ball {
-    gravity: f32,
-    timer: Timer,
+    pub gravity: f32,
+    pub timer: Timer,
 }
 
 pub fn ball_setup(
