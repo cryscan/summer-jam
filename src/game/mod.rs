@@ -441,7 +441,10 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
                 ..Default::default()
             })
             .insert(Cleanup)
-            .insert(Ball::new(-1000.0, Timer::from_seconds(1.0, false)))
+            .insert(Ball {
+                gravity: -1000.0,
+                timer: Timer::from_seconds(1.0, false),
+            })
             .insert(RigidBody::new(
                 Layer::Ball,
                 Vec2::new(BALL_SIZE, BALL_SIZE),
