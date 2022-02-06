@@ -639,7 +639,6 @@ impl Plugin for GamePlugin {
                     .with_system(health_bar_tracker)
                     .with_system(ball_movement)
                     .with_system(ball_setup)
-                    .with_system(ball_predict_debug)
                     .with_system(score_system)
                     .with_system(hint_system),
             )
