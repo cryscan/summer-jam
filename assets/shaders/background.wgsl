@@ -29,15 +29,17 @@ struct VertexOutput {
     [[builtin(position)]] clip_position: vec4<f32>;
     [[location(1)]] uv: vec2<f32>;
 };
-struct Time {
+
+struct Movement {
     time: f32;
+    velocity: vec3<f32>;
 };
 
 [[group(0), binding(0)]]
 var<uniform> view: View;
 
 [[group(1), binding(0)]]
-var<uniform> base_time: Time;
+var<uniform> movement: Movement;
 
 [[group(2), binding(0)]]
 var<uniform> mesh: Mesh2d;
@@ -55,9 +57,9 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 [[stage(fragment)]]
 fn fragment(in: VertexOutput) -> [[location(0)]] vec4<f32> {
     let dir = vec3<f32>(in.uv * zoom, 1.0);
-    let time = base_time.time * speed + 0.25;
+    let time = movement.time * speed + 0.25;
     var from = vec3<f32>(1.0, 0.5, 0.5);
-    from = from + vec3<f32>(time * 2., time, -2.);
+    from = from + time * movement.velocity;
     
     // volumetric rendering
     var s = 0.1;

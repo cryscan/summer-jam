@@ -26,10 +26,11 @@ impl Plugin for BackgroundPlugin {
     }
 }
 
-#[derive(Component, Debug, Clone, TypeUuid)]
+#[derive(Component, Debug, Clone, TypeUuid, AsStd140)]
 #[uuid = "b4f62ce0-3227-4d22-a027-50eed7dbc5f5"]
 struct BackgroundMaterial {
     time: f32,
+    velocity: Vec3,
 }
 
 impl RenderAsset for BackgroundMaterial {
@@ -47,7 +48,7 @@ impl RenderAsset for BackgroundMaterial {
     ) -> Result<Self::PreparedAsset, PrepareAssetError<Self::ExtractedAsset>> {
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,
-            contents: extracted_asset.time.as_std140().as_bytes(),
+            contents: extracted_asset.as_std140().as_bytes(),
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
         let bind_group = render_device.create_bind_group(&BindGroupDescriptor {
@@ -88,7 +89,7 @@ impl Material2d for BackgroundMaterial {
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: false,
-                    min_binding_size: BufferSize::new(f32::std140_size_static() as u64),
+                    min_binding_size: BufferSize::new(Self::std140_size_static() as u64),
                 },
                 count: None,
             }],
@@ -114,7 +115,12 @@ fn setup(
             scale: Vec3::new(ARENA_WIDTH, ARENA_HEIGHT, 1.0),
             ..Default::default()
         },
-        material: materials.add(BackgroundMaterial { time: 0.0 }).into(),
+        material: materials
+            .add(BackgroundMaterial {
+                time: 0.0,
+                velocity: Vec3::new(2.0, 1.0, 0.0),
+            })
+            .into(),
         ..Default::default()
     });
 }
