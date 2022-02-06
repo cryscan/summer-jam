@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use bevy_kira_audio::AudioPlugin;
 use wasm_bindgen::prelude::*;
 
+mod background;
 mod config;
 mod game;
 mod score;
@@ -37,7 +38,8 @@ pub fn run() {
         .add_system(lock_release_cursor)
         .add_plugin(title::TitlePlugin)
         .add_plugin(game::GamePlugin)
-        .add_plugin(score::ScorePlugin);
+        .add_plugin(score::ScorePlugin)
+        .add_plugin(background::BackgroundPlugin);
 
     app.run();
 }

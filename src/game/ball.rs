@@ -86,5 +86,3 @@ pub fn ball_predict(
         }
     }
 }
-
-pub fn ball_predict_debug() {}
