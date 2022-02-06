@@ -1,8 +1,11 @@
 pub const ARENA_WIDTH: f32 = 480.0;
 pub const ARENA_HEIGHT: f32 = 640.0;
 
+pub const BACKGROUND_SHADER: &str = "shaders/background.wgsl";
+
 pub const FONT_FIRA_MONO: &str = "fonts/FiraMono-Medium.ttf";
-pub const FONT_FIRA_SANS: &str = "fonts/FiraSans-Bold.ttf";
+// pub const FONT_FIRA_SANS: &str = "fonts/FiraSans-Bold.ttf";
+pub const FONT_ARCADE: &str = "fonts/Arcade.ttf";
 
 pub const PLAYER_SPRITE: &str = "sprites/player.png";
 pub const ENEMY_SPRITE: &str = "sprites/enemy.png";

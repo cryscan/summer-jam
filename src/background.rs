@@ -1,3 +1,4 @@
+use crate::config::{ARENA_HEIGHT, ARENA_WIDTH, BACKGROUND_SHADER};
 use bevy::{
     ecs::system::lifetimeless::SRes,
     prelude::*,
@@ -14,8 +15,6 @@ use bevy::{
     },
     sprite::{Material2d, Material2dPipeline, Material2dPlugin, MaterialMesh2dBundle},
 };
-
-use crate::config::{ARENA_HEIGHT, ARENA_WIDTH};
 
 pub struct BackgroundPlugin;
 
@@ -69,11 +68,11 @@ impl RenderAsset for BackgroundMaterial {
 
 impl Material2d for BackgroundMaterial {
     fn vertex_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {
-        Some(asset_server.load("shaders/background.wgsl"))
+        Some(asset_server.load(BACKGROUND_SHADER))
     }
 
     fn fragment_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {
-        Some(asset_server.load("shaders/background.wgsl"))
+        Some(asset_server.load(BACKGROUND_SHADER))
     }
 
     fn bind_group(material: &<Self as RenderAsset>::PreparedAsset) -> &BindGroup {

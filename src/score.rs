@@ -18,7 +18,11 @@ fn make_ui(
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                size: Size::new(Val::Percent(100.0), Val::Percent(50.0)),
+                position: Rect {
+                    bottom: Val::Percent(20.0),
+                    ..Default::default()
+                },
                 flex_direction: FlexDirection::ColumnReverse,
                 justify_content: JustifyContent::Center,
                 ..Default::default()
@@ -30,6 +34,7 @@ fn make_ui(
             parent.spawn_bundle(TextBundle {
                 style: Style {
                     position: Rect {
+                        bottom: Val::Percent(20.0),
                         left: Val::Percent(10.0),
                         ..Default::default()
                     },
@@ -38,7 +43,7 @@ fn make_ui(
                 text: Text::with_section(
                     "You Win!",
                     TextStyle {
-                        font: asset_server.load(FONT_FIRA_SANS),
+                        font: asset_server.load(FONT_ARCADE),
                         font_size: 50.0,
                         color: Color::WHITE,
                     },
@@ -65,16 +70,16 @@ fn make_ui(
                         TextSection {
                             value: "Time: ".into(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_FIRA_MONO),
-                                font_size: 20.0,
+                                font: asset_server.load(FONT_ARCADE),
+                                font_size: 30.0,
                                 color: Color::WHITE,
                             },
                         },
                         TextSection {
                             value: format!("{:.2}", time_passed),
                             style: TextStyle {
-                                font: asset_server.load(FONT_FIRA_MONO),
-                                font_size: 20.0,
+                                font: asset_server.load(FONT_ARCADE),
+                                font_size: 30.0,
                                 color: Color::GOLD,
                             },
                         },
@@ -98,16 +103,16 @@ fn make_ui(
                         TextSection {
                             value: "Hits: ".into(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_FIRA_MONO),
-                                font_size: 20.0,
+                                font: asset_server.load(FONT_ARCADE),
+                                font_size: 30.0,
                                 color: Color::WHITE,
                             },
                         },
                         TextSection {
                             value: score.hits.to_string(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_FIRA_MONO),
-                                font_size: 20.0,
+                                font: asset_server.load(FONT_ARCADE),
+                                font_size: 30.0,
                                 color: Color::GOLD,
                             },
                         },
@@ -131,16 +136,16 @@ fn make_ui(
                         TextSection {
                             value: "Miss: ".into(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_FIRA_MONO),
-                                font_size: 20.0,
+                                font: asset_server.load(FONT_ARCADE),
+                                font_size: 30.0,
                                 color: Color::WHITE,
                             },
                         },
                         TextSection {
                             value: score.miss.to_string(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_FIRA_MONO),
-                                font_size: 20.0,
+                                font: asset_server.load(FONT_ARCADE),
+                                font_size: 30.0,
                                 color: Color::GOLD,
                             },
                         },
