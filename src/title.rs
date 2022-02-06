@@ -39,7 +39,7 @@ fn make_title(mut commands: Commands, asset_server: Res<AssetServer>) {
                 text: Text::with_section(
                     "Bounce Up!",
                     TextStyle {
-                        font: asset_server.load(FONT_FIRA_SANS),
+                        font: asset_server.load(FONT_ARCADE),
                         font_size: 50.0,
                         color: Color::WHITE,
                     },
@@ -63,8 +63,8 @@ fn make_title(mut commands: Commands, asset_server: Res<AssetServer>) {
                     text: Text::with_section(
                         "Click to Play",
                         TextStyle {
-                            font: asset_server.load(FONT_FIRA_MONO),
-                            font_size: 20.0,
+                            font: asset_server.load(FONT_ARCADE),
+                            font_size: 30.0,
                             color: Color::WHITE,
                         },
                         Default::default(),
