@@ -96,7 +96,7 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
 }
 
 fn enter_game(time: Res<Time>, mut score: ResMut<Score>) {
-    println!("Entering Game");
+    info!("Entering Game");
 
     // clear score state
     score.timestamp = time.seconds_since_startup();

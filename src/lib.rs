@@ -30,9 +30,17 @@ pub fn run() {
             height: config::ARENA_HEIGHT,
             resizable: false,
             ..Default::default()
-        })
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
+        });
+
+    #[cfg(feature = "dot")]
+    app.add_plugins_with(DefaultPlugins, |plugins| {
+        plugins.disable::<bevy::log::LogPlugin>()
+    });
+
+    #[cfg(not(feature = "dot"))]
+    app.add_plugins(DefaultPlugins);
+
+    app.add_plugin(AudioPlugin)
         .add_state(AppState::Title)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
@@ -40,6 +48,9 @@ pub fn run() {
         .add_plugin(game::GamePlugin)
         .add_plugin(score::ScorePlugin)
         .add_plugin(background::BackgroundPlugin);
+
+    #[cfg(feature = "dot")]
+    bevy_mod_debugdump::print_render_graph(&mut app);
 
     app.run();
 }
