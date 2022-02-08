@@ -1,4 +1,4 @@
-use crate::config::{ARENA_HEIGHT, ARENA_WIDTH, BACKGROUND_SHADER};
+use crate::config::{ARENA_HEIGHT, ARENA_WIDTH};
 use bevy::{
     ecs::system::lifetimeless::SRes,
     prelude::*,
@@ -16,10 +16,19 @@ use bevy::{
     sprite::{Material2d, Material2dPipeline, Material2dPlugin, MaterialMesh2dBundle},
 };
 
+const BACKGROUND_SHADER_HANDLE: HandleUntyped =
+    HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 1038182793939033549);
+
 pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
+        let mut shaders = app.world.get_resource_mut::<Assets<Shader>>().unwrap();
+        shaders.set_untracked(
+            BACKGROUND_SHADER_HANDLE,
+            Shader::from_wgsl(include_str!("shaders/background.wgsl")),
+        );
+
         app.add_plugin(Material2dPlugin::<BackgroundMaterial>::default())
             .add_startup_system(setup)
             .add_system(update);
@@ -69,11 +78,11 @@ impl RenderAsset for BackgroundMaterial {
 
 impl Material2d for BackgroundMaterial {
     fn vertex_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {
-        Some(asset_server.load(BACKGROUND_SHADER))
+        Some(asset_server.get_handle(BACKGROUND_SHADER_HANDLE))
     }
 
     fn fragment_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {
-        Some(asset_server.load(BACKGROUND_SHADER))
+        Some(asset_server.get_handle(BACKGROUND_SHADER_HANDLE))
     }
 
     fn bind_group(material: &<Self as RenderAsset>::PreparedAsset) -> &BindGroup {
