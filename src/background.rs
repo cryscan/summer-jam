@@ -26,7 +26,7 @@ impl Plugin for BackgroundPlugin {
         let mut shaders = app.world.get_resource_mut::<Assets<Shader>>().unwrap();
         shaders.set_untracked(
             BACKGROUND_SHADER_HANDLE,
-            Shader::from_wgsl(include_str!("shaders/background.wgsl")),
+            Shader::from_wgsl(include_str!("shaders/background.wgsl").replace("\r\n", "\n")),
         );
 
         app.add_plugin(Material2dPlugin::<BackgroundMaterial>::default())
