@@ -13,7 +13,7 @@ fn make_ui(
     score: Res<Score>,
     asset_server: Res<AssetServer>,
 ) {
-    println!("Entering Win");
+    info!("Entering Win");
 
     commands
         .spawn_bundle(NodeBundle {

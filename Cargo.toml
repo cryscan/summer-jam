@@ -6,6 +6,9 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+dot = []
+
 [dependencies]
 rand = "0.8"
 itertools = "0.10"
@@ -18,6 +21,7 @@ bevy = { version = "0.6", default-features = false, features = [
     "x11",
 ] }
 bevy_kira_audio = { version = "0.8", features = ["wav", "flac"] }
+bevy_mod_debugdump = "0.3.0"
 
 [patch.crates-io]
 winit = { git = "https://github.com/rust-windowing/winit", tag = "v0.26.1" }
