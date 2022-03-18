@@ -65,14 +65,14 @@ pub fn ball_predict(
             position += velocity * PREDICT_TIME_STEP as f32;
 
             if position.x.abs() > boundary.x {
-                velocity.x = -rigid_body.bounciness * velocity.x;
-                velocity.y = rigid_body.friction * velocity.y;
+                velocity.x *= -rigid_body.bounciness;
+                velocity.y *= rigid_body.friction;
                 position.x = position.x.clamp(-boundary.x + 0.01, boundary.x - 0.01);
             }
 
             if position.y > boundary.y {
-                velocity.y = -rigid_body.bounciness * velocity.y;
-                velocity.x = rigid_body.friction * velocity.x;
+                velocity.y *= -rigid_body.bounciness;
+                velocity.x *= rigid_body.friction;
                 position.y = position.y.clamp(-boundary.y + 0.01, boundary.y - 0.01);
             }
 

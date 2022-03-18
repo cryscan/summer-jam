@@ -554,7 +554,7 @@ fn bounce_audio(
     let can_play_audio = timer.0.tick(time.delta()).finished();
 
     for event in events.iter() {
-        let ref channel = AudioChannel::new(format!("impact-{}", *index).into());
+        let channel = &AudioChannel::new(format!("impact-{}", *index));
         *index = (*index + 1) % MAX_IMPACT_AUDIO_CHANNELS;
 
         let mut closure = |first: Entity, second: Entity| {
