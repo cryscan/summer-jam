@@ -207,8 +207,12 @@ pub fn collision(
                 }
             };
 
-            m1.map(|motion| resolve(rb1, motion, t1, velocity, hit.normal));
-            m2.map(|motion| resolve(rb2, motion, t2, -velocity, -hit.normal));
+            if let Some(motion) = m1 {
+                resolve(rb1, motion, t1, velocity, hit.normal)
+            }
+            if let Some(motion) = m2 {
+                resolve(rb2, motion, t2, -velocity, -hit.normal)
+            }
 
             events.send(CollisionEvent {
                 first: e1,
@@ -231,7 +235,7 @@ pub enum PhysicsSystem {
 
 impl SystemLabel for PhysicsSystem {
     fn dyn_clone(&self) -> Box<dyn SystemLabel> {
-        Box::new(self.clone())
+        Box::new(*self)
     }
 }
 
@@ -240,7 +244,7 @@ pub struct PhysicsStage;
 
 impl StageLabel for PhysicsStage {
     fn dyn_clone(&self) -> Box<dyn StageLabel> {
-        Box::new(self.clone())
+        Box::new(*self)
     }
 }
 

@@ -62,7 +62,7 @@ pub fn player_assist(
                     .filter(|point| point.position.y > -ARENA_HEIGHT / 2.0 + 16.0)
                     .filter(|point| point.velocity.y < 0.0)
                     .max_by(|a, b| {
-                        let cost = |ref point: &Point| {
+                        let cost = |point: &Point| {
                             // space-time cost
                             let time = (point.time - delta_seconds) as f32;
                             let distance = (point.position - position).length();
