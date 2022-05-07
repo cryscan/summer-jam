@@ -23,7 +23,7 @@ pub struct BackgroundPlugin;
 
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
-        let mut shaders = app.world.get_resource_mut::<Assets<Shader>>().unwrap();
+        let mut shaders = app.world.resource_mut::<Assets<Shader>>();
         shaders.set_untracked(
             BACKGROUND_SHADER_HANDLE,
             Shader::from_wgsl(include_str!("shaders/background.wgsl").replace("\r\n", "\n")),
@@ -124,11 +124,10 @@ fn setup(
             scale: Vec3::new(ARENA_WIDTH, ARENA_HEIGHT, 1.0),
             ..Default::default()
         },
-        material: materials
-            .add(BackgroundMaterial {
-                time: 0.0,
-                velocity: Vec3::new(2.0, 1.0, 0.0),
-            }),
+        material: materials.add(BackgroundMaterial {
+            time: 0.0,
+            velocity: Vec3::new(2.0, 1.0, 0.0),
+        }),
         ..Default::default()
     });
 }

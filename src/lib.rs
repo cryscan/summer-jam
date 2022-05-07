@@ -50,7 +50,7 @@ pub fn run() {
         .add_plugin(background::BackgroundPlugin);
 
     #[cfg(feature = "dot")]
-    bevy_mod_debugdump::print_render_graph(&mut app);
+    bevy_mod_debugdump::print_render_schedule(&mut app);
 
     app.run();
 }
