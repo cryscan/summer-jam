@@ -10,6 +10,7 @@ pub struct PhysicsLayers {
     pub bounciness: RenderLayers,
     pub friction: RenderLayers,
 }
+
 impl PhysicsLayers {
     pub const BALL: Self = Self {
         collision: RenderLayers::layer(1).with(2),
@@ -99,15 +100,12 @@ pub fn collision(
         &RigidBody,
         &mut Transform,
         Option<&mut Motion>,
-        Option<&PhysicsLayers>,
+        &PhysicsLayers,
     )>,
     mut events: EventWriter<CollisionEvent>,
 ) {
     let mut combinations = query.iter_combinations_mut();
     while let Some([(e1, rb1, t1, m1, pl1), (e2, rb2, t2, m2, pl2)]) = combinations.fetch_next() {
-        let pl1 = pl1.cloned().unwrap_or_default();
-        let pl2 = pl2.cloned().unwrap_or_default();
-
         if !pl1.collision.intersects(&pl2.collision) {
             continue;
         }
@@ -184,10 +182,12 @@ pub fn collision(
                             .dot(normal);
                         let depth = x.depth.abs();
 
-                        // correct penetration
+                        // compensate penetration based on masses
                         let correction = depth * impulse * rigid_body.inverted_mass;
-                        let normal_delta =
-                            delta + correction - normal_delta * (PHYSICS_TIME_STEP as f32);
+                        // compensate normal impulse to be applied in the next physics update
+                        let debounce =
+                            (1.0 - bounciness) * normal_delta * (PHYSICS_TIME_STEP as f32);
+                        let normal_delta = delta + correction - debounce;
                         transform.translation += normal_delta * normal.extend(0.0);
                     }
                     Hit::Intersection(x) => {
