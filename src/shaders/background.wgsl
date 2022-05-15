@@ -5,7 +5,7 @@
 #import bevy_sprite::mesh2d_struct
 
 let iterations = 17;
-let formuparam = 0.53;
+let formuparam = 0.3;
 
 let volsteps = 20;
 let stepsize = 0.1;
@@ -14,8 +14,8 @@ let zoom = 0.800;
 let tile = 0.850;
 let speed = 0.01;
 
-let brightness = 0.0015;
-let darkmatter = 0.600;
+let brightness = 0.0002;
+let darkmatter = 0.300;
 let distfading = 0.730;
 let saturation = 0.850;
 
@@ -88,5 +88,5 @@ fn fragment(in: VertexOutput) -> [[location(0)]] vec4<f32> {
         s = s + stepsize;
     }
     v = mix(vec3<f32>(length(v)), v, saturation); // color_adjust
-    return vec4<f32>(v * 0.0006, 1.0);
+    return vec4<f32>(v * 0.001, 1.0);
 }

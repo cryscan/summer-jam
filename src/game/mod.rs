@@ -64,13 +64,13 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
     commands.insert_resource(Materials {
         player: asset_server.load(PLAYER_SPRITE),
         enemy: asset_server.load(ENEMY_SPRITE),
-        paddle: Color::rgba_u8(155, 173, 183, 50),
+        paddle: Color::rgba_u8(155, 173, 183, 100),
         ball: asset_server.load(BALL_SPRITE),
         hint: asset_server.load(HINT_SPRITE),
 
         boundary: Color::WHITE,
         base: Color::rgb_u8(155, 173, 183),
-        separate: Color::rgba(0.5, 0.5, 0.5, 0.1),
+        separate: Color::rgba(0.5, 0.5, 0.5, 0.2),
 
         node: Color::NONE,
         health_bar: Color::rgb_u8(155, 173, 183),
