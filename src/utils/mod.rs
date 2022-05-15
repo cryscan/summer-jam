@@ -4,7 +4,7 @@ mod interpolation;
 
 use bevy::{ecs::component::Component, prelude::*};
 
-pub use collide::{collide_continuous, Hit};
+pub use collide::{collide, Collider, Hit, Intersection, Penetration};
 pub use damp::Damp;
 pub use interpolation::Interpolation;
 

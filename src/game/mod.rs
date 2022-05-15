@@ -135,13 +135,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(RigidBody::new(
-            Layer::Separate,
-            Vec2::new(ARENA_WIDTH, 16.0),
-            0.0,
-            0.9,
-            0.5,
-        ));
+        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 16.0), 0.0, 0.9, 0.5))
+        .insert(PhysicsLayers::SEPARATE);
 
     // top boundary
     commands
@@ -159,13 +154,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             full_hp: 10000.0,
             hp: 10000.0,
         })
-        .insert(RigidBody::new(
-            Layer::Boundary,
-            Vec2::new(ARENA_WIDTH, 16.0),
-            0.0,
-            0.9,
-            0.0,
-        ));
+        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 16.0), 0.0, 0.9, 0.0))
+        .insert(PhysicsLayers::BOUNDARY);
 
     // bottom boundary
     commands
@@ -180,13 +170,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(Cleanup)
         .insert(PlayerBase { balls: 3 })
-        .insert(RigidBody::new(
-            Layer::Boundary,
-            Vec2::new(ARENA_WIDTH, 16.0),
-            0.0,
-            0.9,
-            0.5,
-        ));
+        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 16.0), 0.0, 0.9, 0.5))
+        .insert(PhysicsLayers::BOUNDARY);
 
     // left boundary
     commands
@@ -201,12 +186,12 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(Cleanup)
         .insert(RigidBody::new(
-            Layer::Boundary,
             Vec2::new(16.0, ARENA_HEIGHT + 32.0),
             0.0,
             1.0,
             0.0,
-        ));
+        ))
+        .insert(PhysicsLayers::BOUNDARY);
 
     // right boundary
     commands
@@ -221,12 +206,12 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(Cleanup)
         .insert(RigidBody::new(
-            Layer::Boundary,
             Vec2::new(16.0, ARENA_HEIGHT + 32.0),
             0.0,
             1.0,
             0.0,
-        ));
+        ))
+        .insert(PhysicsLayers::BOUNDARY);
 }
 
 fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<AssetServer>) {
@@ -353,12 +338,12 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(Controller::new())
         .insert(RigidBody::new(
-            Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
             3.0,
             2.0,
             1.0,
         ))
+        .insert(PhysicsLayers::PLAYER)
         .insert(Motion::default())
         .insert(Hint(hint))
         .insert(BounceAudio)
@@ -400,12 +385,12 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(Controller::new())
         .insert(RigidBody::new(
-            Layer::Player,
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
             3.0,
             1.0,
             1.0,
         ))
+        .insert(PhysicsLayers::PLAYER)
         .insert(Motion::default())
         .insert(BounceAudio)
         .with_children(|parent| {
@@ -446,12 +431,12 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
                 timer: Timer::from_seconds(1.0, false),
             })
             .insert(RigidBody::new(
-                Layer::Ball,
                 Vec2::new(BALL_SIZE, BALL_SIZE),
                 1.0,
                 1.0,
                 0.5,
             ))
+            .insert(PhysicsLayers::BALL)
             .insert(Trajectory {
                 start_time: 0.0,
                 points: vec![Point::default(); PREDICT_SIZE],
@@ -487,8 +472,8 @@ fn player_hit(
                 Ok(())
             };
 
-        closure(event.first, event.second)
-            .unwrap_or_else(|_| closure(event.second, event.first).unwrap_or_default())
+        closure(event.entities[0], event.entities[1])
+            .unwrap_or_else(|_| closure(event.entities[1], event.entities[0]).unwrap_or_default())
     }
 }
 
@@ -523,8 +508,8 @@ fn player_miss(
     };
 
     for event in collision_events.iter() {
-        closure(event.first, event.second);
-        closure(event.second, event.first);
+        closure(event.entities[0], event.entities[1]);
+        closure(event.entities[1], event.entities[0]);
     }
 }
 
@@ -580,7 +565,7 @@ fn bounce_audio(
         };
 
         if can_play_audio {
-            closure(event.first, event.second);
+            closure(event.entities[0], event.entities[1]);
         }
     }
 }
