@@ -2,64 +2,39 @@ use crate::{
     config::{PHYSICS_REST_SPEED, PHYSICS_TIME_STEP},
     utils::*,
 };
-use bevy::{core::FixedTimestep, prelude::*};
+use bevy::{core::FixedTimestep, prelude::*, render::view::RenderLayers};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Layer {
-    Boundary = 0,
-    Separate = 1,
-    Ball = 2,
-    Player = 3,
+#[derive(Component, Clone, Default)]
+pub struct PhysicsLayers {
+    pub collision: RenderLayers,
+    pub bounciness: RenderLayers,
+    pub friction: RenderLayers,
 }
-
-impl Layer {
-    pub const NONE: u8 = u8::MIN;
-    pub const ALL: u8 = u8::MAX;
-
-    const BOUNDARY: u8 = Self::Boundary.bits();
-    const BALL: u8 = Self::Ball.bits();
-    const PLAYER: u8 = Self::Player.bits();
-
-    pub const fn bits(self) -> u8 {
-        1 << self as u8
-    }
-
-    pub const fn collision_bits(self) -> u8 {
-        match self {
-            Self::Boundary => Self::BALL | Self::PLAYER,
-            Self::Separate => Self::PLAYER,
-            Self::Ball => Self::BOUNDARY | Self::BALL | Self::PLAYER,
-            Self::Player => Self::ALL,
-        }
-    }
-
-    pub const fn bounciness_bits(self) -> u8 {
-        match self {
-            Self::Boundary => Self::BALL,
-            Self::Separate => Self::NONE,
-            Self::Ball => Self::ALL,
-            Self::Player => Self::BALL | Self::PLAYER,
-        }
-    }
-
-    pub const fn friction_bits(self) -> u8 {
-        match self {
-            Self::Boundary => Self::BALL,
-            Self::Separate => Self::NONE,
-            Self::Ball => Self::ALL,
-            Self::Player => Self::BALL | Self::PLAYER,
-        }
-    }
-
-    pub fn test(self, other: Self, method: fn(Self) -> u8) -> bool {
-        (method(self) & other.bits()) != Self::NONE
-    }
+impl PhysicsLayers {
+    pub const BALL: Self = Self {
+        collision: RenderLayers::layer(1).with(2),
+        bounciness: RenderLayers::layer(1).with(2),
+        friction: RenderLayers::layer(1).with(2),
+    };
+    pub const PLAYER: Self = Self {
+        collision: RenderLayers::layer(1).with(3).with(4),
+        bounciness: RenderLayers::layer(1),
+        friction: RenderLayers::layer(1),
+    };
+    pub const BOUNDARY: Self = Self {
+        collision: RenderLayers::layer(2).with(3),
+        bounciness: RenderLayers::layer(2),
+        friction: RenderLayers::layer(2),
+    };
+    pub const SEPARATE: Self = Self {
+        collision: RenderLayers::layer(4),
+        bounciness: RenderLayers::none(),
+        friction: RenderLayers::none(),
+    };
 }
 
 #[derive(Component)]
 pub struct RigidBody {
-    pub layer: Layer,
     pub size: Vec2,
     pub inverted_mass: f32,
     pub bounciness: f32,
@@ -67,7 +42,7 @@ pub struct RigidBody {
 }
 
 impl RigidBody {
-    pub fn new(layer: Layer, size: Vec2, mass: f32, bounciness: f32, friction: f32) -> Self {
+    pub fn new(size: Vec2, mass: f32, bounciness: f32, friction: f32) -> Self {
         let inverted_mass = if mass < f32::EPSILON {
             0.0
         } else {
@@ -75,7 +50,6 @@ impl RigidBody {
         };
 
         Self {
-            layer,
             size,
             inverted_mass,
             bounciness,
@@ -95,8 +69,7 @@ pub struct Motion {
 }
 
 pub struct CollisionEvent {
-    pub first: Entity,
-    pub second: Entity,
+    pub entities: [Entity; 2],
     pub velocity: Vec2,
     pub impulse: f32,
     pub bounciness: f32,
@@ -119,13 +92,23 @@ pub fn movement(_time: Res<Time>, mut query: Query<(&mut Motion, &mut Transform)
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn collision(
-    mut query: Query<(Entity, &RigidBody, &mut Transform, Option<&mut Motion>)>,
+    mut query: Query<(
+        Entity,
+        &RigidBody,
+        &mut Transform,
+        Option<&mut Motion>,
+        Option<&PhysicsLayers>,
+    )>,
     mut events: EventWriter<CollisionEvent>,
 ) {
     let mut combinations = query.iter_combinations_mut();
-    while let Some([(e1, rb1, t1, m1), (e2, rb2, t2, m2)]) = combinations.fetch_next() {
-        if !rb1.layer.test(rb2.layer, Layer::collision_bits) {
+    while let Some([(e1, rb1, t1, m1, pl1), (e2, rb2, t2, m2, pl2)]) = combinations.fetch_next() {
+        let pl1 = pl1.cloned().unwrap_or_default();
+        let pl2 = pl2.cloned().unwrap_or_default();
+
+        if !pl1.collision.intersects(&pl2.collision) {
             continue;
         }
 
@@ -133,28 +116,37 @@ pub fn collision(
             Some(motion) => (motion.translation, motion.velocity),
             None => (t1.translation, Vec2::ZERO),
         };
-
         let (p2, v2) = match &m2 {
             Some(motion) => (motion.translation, motion.velocity),
             None => (t2.translation, Vec2::ZERO),
         };
 
-        if let Some(hit) =
-            collide_continuous(p1, t1.translation, rb1.size, p2, t2.translation, rb2.size)
-        {
-            let velocity = v2 - v1;
-
-            let bounciness = match rb1.layer.test(rb2.layer, Layer::bounciness_bits) {
-                true => (rb1.bounciness * rb2.bounciness).sqrt(),
-                false => 0.0,
+        if let Some(hit) = collide(
+            Collider {
+                previous_position: p1.truncate(),
+                position: t1.translation.truncate(),
+                size: rb1.size,
+            },
+            Collider {
+                previous_position: p2.truncate(),
+                position: t2.translation.truncate(),
+                size: rb2.size,
+            },
+        ) {
+            let bounciness = if pl1.bounciness.intersects(&pl2.bounciness) {
+                (rb1.bounciness * rb2.bounciness).sqrt()
+            } else {
+                0.0
             };
-
-            let friction = match rb1.layer.test(rb2.layer, Layer::friction_bits) {
-                true => (rb1.friction * rb2.friction).sqrt(),
-                false => 0.0,
+            let friction = if pl1.friction.intersects(&pl2.friction) {
+                (rb1.friction * rb2.friction).sqrt()
+            } else {
+                0.0
             };
 
             let impulse = (rb1.inverted_mass + rb2.inverted_mass).recip();
+
+            let normal = hit.normal();
 
             let resolve = |rigid_body: &RigidBody,
                            mut motion: Mut<Motion>,
@@ -168,74 +160,61 @@ pub fn collision(
                     return;
                 }
 
-                let tangential = (velocity - normal_speed * normal).normalize_or_zero();
-                let tangential_speed = velocity.dot(tangential);
+                let tan = (velocity - normal_speed * normal).normalize_or_zero();
+                let tan_speed = velocity.dot(tan);
 
-                let bounciness = match normal_speed < PHYSICS_REST_SPEED {
-                    true => 0.0,
-                    false => bounciness,
+                let bounciness = if normal_speed < PHYSICS_REST_SPEED {
+                    0.0
+                } else {
+                    bounciness
                 };
 
                 let normal_impulse = (1.0 + bounciness) * impulse * normal_speed;
-                let tangential_impulse =
-                    (impulse * tangential_speed).min(friction * normal_impulse);
+                let tan_impulse = (impulse * tan_speed).min(friction * normal_impulse);
 
-                let normal_delta = normal_impulse * rigid_body.inverted_mass * normal;
-                let tangential_delta = tangential_impulse * rigid_body.inverted_mass * tangential;
-
-                motion.velocity += normal_delta + tangential_delta;
+                let normal_delta = normal_impulse * rigid_body.inverted_mass;
+                let tan_delta = tan_impulse * rigid_body.inverted_mass;
+                motion.velocity += normal_delta * normal + tan_delta * tan;
 
                 // translation correction
-                let depth = hit.depth.abs();
-                let near_time = hit.near_time;
-                let delta = (motion.translation - transform.translation).truncate();
+                match &hit {
+                    Hit::Penetration(x) => {
+                        let delta = (motion.translation - transform.translation)
+                            .truncate()
+                            .dot(normal);
+                        let depth = x.depth.abs();
 
-                if depth > 0.0 {
-                    // correct penetration
-                    let correction = depth * impulse * rigid_body.inverted_mass * normal;
-                    let normal_delta = (delta + correction).dot(normal) * normal;
-                    transform.translation += normal_delta.extend(0.0);
-                }
-                if (near_time + 1.0).abs() < 0.01 {
-                    // this is a hack that deals with numerical issue in collision detection
-                    let normal_delta = delta.dot(normal) * normal;
-                    transform.translation += normal_delta.extend(0.0);
-                }
-                if near_time > 0.0 {
-                    transform.translation =
-                        motion.translation.lerp(transform.translation, near_time);
-                }
+                        // correct penetration
+                        let correction = depth * impulse * rigid_body.inverted_mass;
+                        let normal_delta =
+                            delta + correction - normal_delta * (PHYSICS_TIME_STEP as f32);
+                        transform.translation += normal_delta * normal.extend(0.0);
+                    }
+                    Hit::Intersection(x) => {
+                        if x.near_time > 0.0 {
+                            transform.translation =
+                                motion.translation.lerp(transform.translation, x.near_time);
+                        }
+                    }
+                };
             };
 
             if let Some(motion) = m1 {
-                resolve(rb1, motion, t1, velocity, hit.normal)
+                resolve(rb1, motion, t1, v2 - v1, normal)
             }
             if let Some(motion) = m2 {
-                resolve(rb2, motion, t2, -velocity, -hit.normal)
+                resolve(rb2, motion, t2, v1 - v2, -normal)
             }
 
             events.send(CollisionEvent {
-                first: e1,
-                second: e2,
-                velocity,
+                entities: [e1, e2],
+                velocity: v2 - v1,
                 impulse,
                 bounciness,
                 friction,
                 hit,
             });
         }
-    }
-}
-
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicsSystem {
-    Movement,
-    Collision,
-}
-
-impl SystemLabel for PhysicsSystem {
-    fn dyn_clone(&self) -> Box<dyn SystemLabel> {
-        Box::new(*self)
     }
 }
 
@@ -254,16 +233,11 @@ impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         let systems = SystemSet::new()
             .with_run_criteria(FixedTimestep::step(PHYSICS_TIME_STEP))
-            .with_system(init_motion.before(PhysicsSystem::Collision))
-            .with_system(movement.label(PhysicsSystem::Movement))
-            .with_system(
-                collision
-                    .label(PhysicsSystem::Collision)
-                    .after(PhysicsSystem::Movement),
-            );
+            .with_system(init_motion)
+            .with_system(movement)
+            .with_system(collision.after(init_motion).after(movement));
 
         app.add_event::<CollisionEvent>()
-            .add_stage_after(CoreStage::Update, PhysicsStage, SystemStage::parallel())
-            .add_system_set_to_stage(PhysicsStage, systems);
+            .add_system_set_to_stage(CoreStage::PostUpdate, systems);
     }
 }

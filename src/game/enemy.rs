@@ -48,24 +48,22 @@ pub fn enemy_controller(
         let width = rigid_body.size.x;
 
         for (ball_transform, motion, trajectory) in ball_query.iter() {
-            let updated_velocity;
-
             let direction = (ball_transform.translation - transform.translation).truncate();
             let position = transform.translation.truncate();
 
-            if direction.x.abs() < width / 2.0
+            let updated_velocity = if direction.x.abs() < width / 2.0
                 && direction.y > -enemy.hit_range
                 && direction.y < -0.0
                 && motion.velocity.y > enemy.hit_speed_threshold
                 && position.y > enemy.hit_height_threshold
             {
                 // very close to the ball, reacts in maximum speed
-                updated_velocity = enemy.max_speed * direction.normalize();
+                enemy.max_speed * direction.normalize()
             } else {
                 // find the most suitable trajectory point
                 let delta_seconds = time.seconds_since_startup() - trajectory.start_time;
 
-                updated_velocity = if let Some(candidate) = trajectory
+                if let Some(candidate) = trajectory
                     .points
                     .iter()
                     .filter(|point| point.position.y > 0.0)
@@ -85,7 +83,8 @@ pub fn enemy_controller(
                         cost(a.position)
                             .partial_cmp(&cost(b.position))
                             .unwrap_or(std::cmp::Ordering::Equal)
-                    }) {
+                    })
+                {
                     let direction = candidate.position - position;
                     let time = (candidate.time - delta_seconds) as f32;
                     let distance = direction.length();
@@ -130,7 +129,7 @@ pub fn enemy_controller(
 
                     speed * direction.normalize()
                 }
-            }
+            };
 
             controller.velocity += updated_velocity;
         }

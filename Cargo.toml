@@ -1,6 +1,6 @@
 [package]
 name = "bounce-up"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 
 [lib]
@@ -20,5 +20,6 @@ bevy = { version = "0.7", default-features = false, features = [
     "png",
     "x11",
 ] }
+bevy_hanabi = "0.2"
 bevy_kira_audio = { version = "0.9", features = ["wav", "flac"] }
 bevy_mod_debugdump = "0.4.0"
