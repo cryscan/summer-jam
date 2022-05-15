@@ -104,7 +104,7 @@ fn intersect(shape: Collider, origin: Vec2, delta: Vec2, padding: Vec2) -> Optio
     let sign = delta.signum();
     let scale = delta.recip();
 
-    if scale.is_nan() {
+    if !scale.is_finite() {
         return None;
     }
 
@@ -149,7 +149,7 @@ pub fn collide(a: Collider, b: Collider) -> Option<Hit> {
     // return None;
     // }
 
-    if let Some(x) = intersect(b, a.position, delta, a.size / 2.0) {
+    if let Some(x) = intersect(b, a.previous_position, delta, a.size / 2.0) {
         return Some(Hit::Intersection(x));
     }
 
