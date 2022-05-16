@@ -4,6 +4,21 @@ use crate::{
 };
 use bevy::{core::FixedTimestep, prelude::*, render::view::RenderLayers};
 
+pub struct PhysicsPlugin;
+
+impl Plugin for PhysicsPlugin {
+    fn build(&self, app: &mut App) {
+        let systems = SystemSet::new()
+            .with_run_criteria(FixedTimestep::step(PHYSICS_TIME_STEP))
+            .with_system(init_motion)
+            .with_system(movement)
+            .with_system(collision.after(init_motion).after(movement));
+
+        app.add_event::<CollisionEvent>()
+            .add_system_set_to_stage(CoreStage::PostUpdate, systems);
+    }
+}
+
 #[derive(Component, Clone, Default)]
 pub struct PhysicsLayers {
     pub collision: RenderLayers,
@@ -215,29 +230,5 @@ pub fn collision(
                 hit,
             });
         }
-    }
-}
-
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
-pub struct PhysicsStage;
-
-impl StageLabel for PhysicsStage {
-    fn dyn_clone(&self) -> Box<dyn StageLabel> {
-        Box::new(*self)
-    }
-}
-
-pub struct PhysicsPlugin;
-
-impl Plugin for PhysicsPlugin {
-    fn build(&self, app: &mut App) {
-        let systems = SystemSet::new()
-            .with_run_criteria(FixedTimestep::step(PHYSICS_TIME_STEP))
-            .with_system(init_motion)
-            .with_system(movement)
-            .with_system(collision.after(init_motion).after(movement));
-
-        app.add_event::<CollisionEvent>()
-            .add_system_set_to_stage(CoreStage::PostUpdate, systems);
     }
 }

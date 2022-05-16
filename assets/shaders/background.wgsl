@@ -14,7 +14,7 @@ let zoom = 0.800;
 let tile = 0.850;
 let speed = 0.01;
 
-let brightness = 0.0002;
+let brightness = 0.001;
 let darkmatter = 0.300;
 let distfading = 0.730;
 let saturation = 0.850;
@@ -88,5 +88,5 @@ fn fragment(in: VertexOutput) -> [[location(0)]] vec4<f32> {
         s = s + stepsize;
     }
     v = mix(vec3<f32>(length(v)), v, saturation); // color_adjust
-    return vec4<f32>(v * 0.001, 1.0);
+    return vec4<f32>(v * 0.0002, 1.0);
 }

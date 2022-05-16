@@ -1,6 +1,23 @@
 use crate::{config::*, utils::cleanup_system, AppState};
 use bevy::prelude::*;
 
+pub struct TitlePlugin;
+
+impl Plugin for TitlePlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
+            .add_system_set(SystemSet::on_enter(AppState::Title).with_system(make_title))
+            .add_system_set(
+                SystemSet::on_update(AppState::Title)
+                    .with_system(update_title)
+                    .with_system(title_color),
+            )
+            .add_system_set(
+                SystemSet::on_exit(AppState::Title).with_system(cleanup_system::<Cleanup>),
+            );
+    }
+}
+
 #[derive(Component)]
 struct Cleanup;
 
@@ -100,22 +117,5 @@ fn title_color(
         }
 
         *color_flag = !*color_flag;
-    }
-}
-
-pub struct TitlePlugin;
-
-impl Plugin for TitlePlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
-            .add_system_set(SystemSet::on_enter(AppState::Title).with_system(make_title))
-            .add_system_set(
-                SystemSet::on_update(AppState::Title)
-                    .with_system(update_title)
-                    .with_system(title_color),
-            )
-            .add_system_set(
-                SystemSet::on_exit(AppState::Title).with_system(cleanup_system::<Cleanup>),
-            );
     }
 }

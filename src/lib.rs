@@ -8,12 +8,14 @@ use wasm_bindgen::prelude::*;
 mod background;
 mod config;
 mod game;
+mod loading;
 mod score;
 mod title;
 mod utils;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
+    Loading,
     Title,
     Game,
     Win,
@@ -41,9 +43,10 @@ pub fn run() {
     app.add_plugins(DefaultPlugins);
 
     app.add_plugin(AudioPlugin)
-        .add_state(AppState::Title)
+        .add_state(AppState::Loading)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
+        .add_plugin(loading::LoadingPlugin)
         .add_plugin(title::TitlePlugin)
         .add_plugin(game::GamePlugin)
         .add_plugin(score::ScorePlugin)
