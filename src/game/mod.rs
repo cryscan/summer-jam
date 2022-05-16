@@ -17,6 +17,58 @@ mod hint;
 mod physics;
 mod player;
 
+pub struct GamePlugin;
+
+impl Plugin for GamePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_event::<GameOverEvent>()
+            .add_event::<PlayerHitEvent>()
+            .add_event::<PlayerMissEvent>()
+            .insert_resource(DebounceTimer(Timer::from_seconds(0.1, false)))
+            .add_startup_system(setup_game)
+            .add_system_set(
+                SystemSet::on_enter(AppState::Game)
+                    .with_system(enter_game)
+                    .with_system(make_static_entities)
+                    .with_system(make_ui)
+                    .with_system(make_player)
+                    .with_system(make_enemy),
+            )
+            .add_system_set(
+                SystemSet::on_update(AppState::Game)
+                    .with_system(update_game)
+                    .with_system(make_ball)
+                    .with_system(player_movement)
+                    .with_system(player_assist)
+                    .with_system(enemy_movement)
+                    .with_system(player_hit)
+                    .with_system(player_miss)
+                    .with_system(ball_counter)
+                    .with_system(health_bar)
+                    .with_system(health_bar_tracker)
+                    .with_system(ball_movement)
+                    .with_system(ball_setup)
+                    .with_system(score_system)
+                    .with_system(hint_system),
+            )
+            .add_system_set(
+                SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
+            )
+            .add_system_set(
+                SystemSet::new()
+                    .with_run_criteria(FixedTimestep::step(AI_TIME_STEP))
+                    .with_system(ball_predict)
+                    .with_system(enemy_controller),
+            )
+            .add_system_set(
+                SystemSet::new()
+                    .with_system(bounce_audio)
+                    .with_system(score_audio),
+            )
+            .add_plugin(PhysicsPlugin);
+    }
+}
+
 enum GameOverEvent {
     Win,
     Lose,
@@ -590,57 +642,5 @@ fn score_audio(
             GameOverEvent::Win => audio.play(audios.explosion_audio.clone()),
             GameOverEvent::Lose => audio.play(audios.lose_audio.clone()),
         };
-    }
-}
-
-pub struct GamePlugin;
-
-impl Plugin for GamePlugin {
-    fn build(&self, app: &mut App) {
-        app.add_event::<GameOverEvent>()
-            .add_event::<PlayerHitEvent>()
-            .add_event::<PlayerMissEvent>()
-            .insert_resource(DebounceTimer(Timer::from_seconds(0.1, false)))
-            .add_startup_system(setup_game)
-            .add_system_set(
-                SystemSet::on_enter(AppState::Game)
-                    .with_system(enter_game)
-                    .with_system(make_static_entities)
-                    .with_system(make_ui)
-                    .with_system(make_player)
-                    .with_system(make_enemy),
-            )
-            .add_system_set(
-                SystemSet::on_update(AppState::Game)
-                    .with_system(update_game)
-                    .with_system(make_ball)
-                    .with_system(player_movement)
-                    .with_system(player_assist)
-                    .with_system(enemy_movement)
-                    .with_system(player_hit)
-                    .with_system(player_miss)
-                    .with_system(ball_counter)
-                    .with_system(health_bar)
-                    .with_system(health_bar_tracker)
-                    .with_system(ball_movement)
-                    .with_system(ball_setup)
-                    .with_system(score_system)
-                    .with_system(hint_system),
-            )
-            .add_system_set(
-                SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
-            )
-            .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(FixedTimestep::step(AI_TIME_STEP))
-                    .with_system(ball_predict)
-                    .with_system(enemy_controller),
-            )
-            .add_system_set(
-                SystemSet::new()
-                    .with_system(bounce_audio)
-                    .with_system(score_audio),
-            )
-            .add_plugin(PhysicsPlugin);
     }
 }
