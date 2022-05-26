@@ -5,4 +5,7 @@ Live version is available [here](https://cryscan.itch.io/bounce-up).
 
 Thanks [@Bobox214](https://github.com/Bobox214) for the [star background](https://github.com/Bobox214/Kataster)!
 
-<div style="text-align:center"><img src="assets/cover.gif" /></div>
+## Build for Web
+```shell
+$ wasm-pack build --release --target web
+```
