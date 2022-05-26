@@ -33,7 +33,7 @@ pub fn run() {
             resizable: false,
             ..Default::default()
         })
-        .insert_resource(utils::TimeScale(1.0));
+        .init_resource::<utils::TimeScale>();
 
     #[cfg(feature = "dot")]
     app.add_plugins_with(DefaultPlugins, |plugins| {

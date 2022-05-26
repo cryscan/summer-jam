@@ -15,3 +15,15 @@ pub fn cleanup_system<T: Component>(mut commands: Commands, query: Query<Entity,
 }
 
 pub struct TimeScale(pub f32);
+
+impl Default for TimeScale {
+    fn default() -> Self {
+        Self(1.0)
+    }
+}
+
+impl TimeScale {
+    pub fn reset(&mut self) {
+        self.0 = 1.0;
+    }
+}

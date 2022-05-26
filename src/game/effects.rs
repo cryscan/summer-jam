@@ -1,3 +1,4 @@
+use crate::utils::*;
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
     prelude::*,
@@ -18,10 +19,16 @@ use bevy::{
 
 #[derive(Component, Debug, Clone, TypeUuid, Deref, DerefMut)]
 #[uuid = "8afb68fd-de70-4be5-be04-72f5dd29d1e2"]
-pub struct SubtractColorMaterial(ColorMaterial);
+pub struct ColorReversionMaterial(ColorMaterial);
 
-impl RenderAsset for SubtractColorMaterial {
-    type ExtractedAsset = SubtractColorMaterial;
+impl From<Handle<Image>> for ColorReversionMaterial {
+    fn from(image: Handle<Image>) -> Self {
+        Self(image.into())
+    }
+}
+
+impl RenderAsset for ColorReversionMaterial {
+    type ExtractedAsset = ColorReversionMaterial;
     type PreparedAsset = GpuColorMaterial;
     type Param = (
         SRes<RenderDevice>,
@@ -91,7 +98,7 @@ impl RenderAsset for SubtractColorMaterial {
     }
 }
 
-impl Material2d for SubtractColorMaterial {
+impl Material2d for ColorReversionMaterial {
     fn bind_group(material: &<Self as RenderAsset>::PreparedAsset) -> &BindGroup {
         &material.bind_group
     }
@@ -111,9 +118,9 @@ impl Material2d for SubtractColorMaterial {
         if let Some(fragment) = &mut descriptor.fragment {
             fragment.targets[0].blend = Some(BlendState {
                 color: BlendComponent {
-                    src_factor: BlendFactor::SrcAlpha,
+                    src_factor: BlendFactor::OneMinusDst,
                     dst_factor: BlendFactor::OneMinusSrcAlpha,
-                    operation: BlendOperation::Subtract,
+                    operation: BlendOperation::Add,
                 },
                 alpha: BlendComponent::OVER,
             });
@@ -123,7 +130,24 @@ impl Material2d for SubtractColorMaterial {
     }
 }
 
-#[derive(Component)]
-pub struct DeathRing;
+#[derive(Component, Clone)]
+pub struct DeathEffect {
+    pub timer: Timer,
+    pub speed: f32,
+}
 
-pub fn death_ring_system() {}
+pub fn death_ring_system(
+    mut commands: Commands,
+    time: Res<Time>,
+    time_scale: Res<TimeScale>,
+    mut query: Query<(Entity, &mut Transform, &mut DeathEffect)>,
+) {
+    for (entity, mut transform, mut effect) in query.iter_mut() {
+        if effect.timer.tick(time.delta()).just_finished() {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        transform.scale += effect.speed * (1.0 + time.delta_seconds()).powf(2.0) * time_scale.0;
+    }
+}
