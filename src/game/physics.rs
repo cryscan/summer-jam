@@ -103,13 +103,14 @@ pub fn movement(time_scale: Res<TimeScale>, mut query: Query<(&mut Motion, &mut 
     for (mut motion, mut transform) in query.iter_mut() {
         motion.translation = transform.translation;
 
-        let velocity = motion.velocity * PHYSICS_TIME_STEP as f32 * time_scale.0;
-        transform.translation += velocity.extend(0.0);
+        let delta_time = PHYSICS_TIME_STEP as f32 * time_scale.0;
+        transform.translation += motion.velocity.extend(0.0) * delta_time;
     }
 }
 
 #[allow(clippy::type_complexity)]
 pub fn collision(
+    time_scale: Res<TimeScale>,
     mut query: Query<(
         Entity,
         &RigidBody,
@@ -119,6 +120,7 @@ pub fn collision(
     )>,
     mut events: EventWriter<CollisionEvent>,
 ) {
+    let delta_time = PHYSICS_TIME_STEP as f32 * time_scale.0;
     let mut combinations = query.iter_combinations_mut();
     while let Some([(e1, rb1, t1, m1, pl1), (e2, rb2, t2, m2, pl2)]) = combinations.fetch_next() {
         if !pl1.collision.intersects(&pl2.collision) {
@@ -200,8 +202,7 @@ pub fn collision(
                         // compensate penetration based on masses
                         let correction = depth * impulse * rigid_body.inverted_mass;
                         // compensate normal impulse to be applied in the next physics update
-                        let debounce =
-                            (1.0 - bounciness) * normal_delta * (PHYSICS_TIME_STEP as f32);
+                        let debounce = (1.0 - bounciness) * normal_delta * delta_time;
                         let normal_delta = delta + correction - debounce;
                         transform.translation += normal_delta * normal.extend(0.0);
                     }
