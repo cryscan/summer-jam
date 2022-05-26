@@ -13,3 +13,5 @@ pub fn cleanup_system<T: Component>(mut commands: Commands, query: Query<Entity,
         commands.entity(entity).despawn_recursive();
     }
 }
+
+pub struct TimeScale(pub f32);

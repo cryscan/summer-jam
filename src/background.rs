@@ -1,6 +1,9 @@
-use crate::config::{ARENA_HEIGHT, ARENA_WIDTH, BACKGROUND_SHADER};
+use crate::{
+    config::{ARENA_HEIGHT, ARENA_WIDTH, BACKGROUND_SHADER},
+    utils::TimeScale,
+};
 use bevy::{
-    ecs::system::lifetimeless::SRes,
+    ecs::system::{lifetimeless::SRes, SystemParamItem},
     prelude::*,
     reflect::TypeUuid,
     render::{
@@ -44,7 +47,7 @@ impl RenderAsset for BackgroundMaterial {
 
     fn prepare_asset(
         extracted_asset: Self::ExtractedAsset,
-        (render_device, pipeline): &mut bevy::ecs::system::SystemParamItem<Self::Param>,
+        (render_device, pipeline): &mut SystemParamItem<Self::Param>,
     ) -> Result<Self::PreparedAsset, PrepareAssetError<Self::ExtractedAsset>> {
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,
@@ -123,8 +126,12 @@ fn setup(
     });
 }
 
-fn update(time: Res<Time>, mut materials: ResMut<Assets<BackgroundMaterial>>) {
+fn update(
+    time: Res<Time>,
+    time_scale: Res<TimeScale>,
+    mut materials: ResMut<Assets<BackgroundMaterial>>,
+) {
     for (_, mut material) in materials.iter_mut() {
-        material.time += time.delta_seconds();
+        material.time += time.delta_seconds() * time_scale.0;
     }
 }

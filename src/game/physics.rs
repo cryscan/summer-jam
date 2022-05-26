@@ -99,11 +99,11 @@ pub fn init_motion(mut query: Query<(&Transform, &mut Motion), Added<Motion>>) {
     }
 }
 
-pub fn movement(_time: Res<Time>, mut query: Query<(&mut Motion, &mut Transform)>) {
+pub fn movement(time_scale: Res<TimeScale>, mut query: Query<(&mut Motion, &mut Transform)>) {
     for (mut motion, mut transform) in query.iter_mut() {
         motion.translation = transform.translation;
 
-        let velocity = motion.velocity * PHYSICS_TIME_STEP as f32;
+        let velocity = motion.velocity * PHYSICS_TIME_STEP as f32 * time_scale.0;
         transform.translation += velocity.extend(0.0);
     }
 }
