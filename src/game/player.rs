@@ -46,6 +46,7 @@ pub fn player_movement(
 
 pub fn player_assist(
     time: Res<Time>,
+    mut time_scale: ResMut<TimeScale>,
     mut query: Query<(&Transform, &RigidBody, &Player, &mut Controller), Without<Ball>>,
     ball_query: Query<(&Motion, &Trajectory), With<Ball>>,
 ) {
@@ -92,5 +93,14 @@ pub fn player_assist(
                 controller.velocity = speed * direction.normalize();
             }
         }
+
+        let mut target_time_scale: f32 = 1.0;
+        if motion.velocity.y < player.assist_speed_threshold {
+            let delta = motion.translation.y - transform.translation.y - ARENA_HEIGHT / 8.0;
+            target_time_scale = target_time_scale.min(delta / ARENA_HEIGHT * 2.0).max(0.2);
+        }
+        time_scale.0 = time_scale
+            .0
+            .damp(target_time_scale, 100.0, time.delta_seconds());
     }
 }

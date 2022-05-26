@@ -2,13 +2,16 @@ use self::{ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::
 use crate::{
     config::*,
     score::Score,
-    utils::{cleanup_system, Interpolation},
+    utils::{cleanup_system, Damp, Interpolation, TimeScale},
     AppState,
 };
-use bevy::{core::FixedTimestep, prelude::*, sprite::Material2dPlugin};
+use bevy::{
+    core::FixedTimestep,
+    prelude::*,
+    sprite::{Material2dPlugin, MaterialMesh2dBundle},
+};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
 use itertools::Itertools;
-use std::error::Error;
 
 mod ball;
 mod base;
@@ -22,11 +25,17 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(Material2dPlugin::<SubtractColorMaterial>::default())
+        app.add_plugin(Material2dPlugin::<ColorReversionMaterial>::default())
             .add_event::<GameOverEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
             .insert_resource(DebounceTimer(Timer::from_seconds(0.1, false)))
+            .insert_resource(BallRemakeTimer(Timer::from_seconds(1.0, false)))
+            .insert_resource(GameOver {
+                slow_motion_timer: Timer::from_seconds(1.0, false),
+                state_change_timer: Timer::from_seconds(2.0, false),
+                event: None,
+            })
             .add_startup_system(setup_game)
             .add_system_set(
                 SystemSet::on_enter(AppState::Game)
@@ -50,9 +59,11 @@ impl Plugin for GamePlugin {
                     .with_system(health_bar_tracker)
                     .with_system(ball_movement)
                     .with_system(ball_setup)
-                    .with_system(score_system)
                     .with_system(hint_system)
-                    .with_system(death_ring_system),
+                    .with_system(score_system)
+                    .with_system(score_effect_system)
+                    .with_system(death_ring_system)
+                    .with_system(game_over_system),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
@@ -72,15 +83,32 @@ impl Plugin for GamePlugin {
     }
 }
 
+#[derive(Clone, Copy)]
 enum GameOverEvent {
     Win,
     Lose,
 }
 
-struct PlayerHitEvent(f32);
-struct PlayerMissEvent;
+struct PlayerHitEvent {
+    hp: f32,
+    location: Vec2,
+}
 
+struct PlayerMissEvent {
+    location: Vec2,
+}
+
+#[derive(Deref, DerefMut)]
 struct DebounceTimer(Timer);
+
+#[derive(Deref, DerefMut)]
+struct BallRemakeTimer(Timer);
+
+struct GameOver {
+    slow_motion_timer: Timer,
+    state_change_timer: Timer,
+    event: Option<GameOverEvent>,
+}
 
 #[derive(Component)]
 struct BounceAudio;
@@ -95,6 +123,7 @@ struct Materials {
     paddle: Color,
     ball: Handle<Image>,
     hint: Handle<Image>,
+    death: Handle<Image>,
 
     // static entities
     boundary: Color,
@@ -122,6 +151,7 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
         paddle: Color::rgba_u8(155, 173, 183, 100),
         ball: asset_server.load(BALL_SPRITE),
         hint: asset_server.load(HINT_SPRITE),
+        death: asset_server.load(DEATH_SPRITE),
 
         boundary: Color::WHITE,
         base: Color::rgb_u8(155, 173, 183),
@@ -150,30 +180,33 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
     });
 }
 
-fn enter_game(time: Res<Time>, mut score: ResMut<Score>) {
+fn enter_game(
+    time: Res<Time>,
+    mut time_scale: ResMut<TimeScale>,
+    mut score: ResMut<Score>,
+    mut ball_timer: ResMut<BallRemakeTimer>,
+    mut game_over: ResMut<GameOver>,
+) {
     info!("Entering Game");
 
     // clear score state
     score.timestamp = time.seconds_since_startup();
     score.hits = 0;
     score.miss = 0;
+
+    time_scale.reset();
+
+    ball_timer.reset();
+
+    game_over.slow_motion_timer.reset();
+    game_over.state_change_timer.reset();
+    game_over.event = None;
 }
 
-fn update_game(
-    mut app_state: ResMut<State<AppState>>,
-    mut input: ResMut<Input<KeyCode>>,
-    mut events: EventReader<GameOverEvent>,
-) {
+fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
     if input.just_pressed(KeyCode::Escape) {
         input.reset(KeyCode::Escape);
         app_state.set(AppState::Title).unwrap();
-    }
-
-    for event in events.iter() {
-        match event {
-            GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
-            GameOverEvent::Lose => app_state.set(AppState::Title).unwrap(),
-        }
     }
 }
 
@@ -433,7 +466,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             min_speed: ENEMY_MIN_SPEED,
             max_speed: ENEMY_MAX_SPEED,
             normal_speed: ENEMY_NORMAL_SPEED,
-            damp: 20.0,
+            damp: ENEMY_DAMP,
             hit_range: PADDLE_WIDTH,
             hit_speed_threshold: ENEMY_HIT_SPEED_THRESHOLD,
             hit_height_threshold: 0.125 * ARENA_HEIGHT,
@@ -463,8 +496,14 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         });
 }
 
-fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ball>) {
-    if query.iter().count() == 0 {
+fn make_ball(
+    mut commands: Commands,
+    materials: Res<Materials>,
+    time: Res<Time>,
+    mut timer: ResMut<BallRemakeTimer>,
+    query: Query<&Ball>,
+) {
+    if query.iter().count() == 0 && timer.0.tick(time.delta()).just_finished() {
         let hint = commands
             .spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
@@ -502,33 +541,42 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>, query: Query<&Ba
 }
 
 fn player_hit(
+    mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     mut player_hit_events: EventWriter<PlayerHitEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    ball_query: Query<(&RigidBody, &Motion), With<Ball>>,
+    ball_query: Query<(&RigidBody, &Motion, Option<&Hint>), With<Ball>>,
     mut base_query: Query<&mut EnemyBase>,
 ) {
+    let mut closure = |ball_entity: Entity, base_entity: Entity| -> Option<()> {
+        let (rigid_body, motion, hint) = ball_query.get(ball_entity).ok()?;
+        let mass = rigid_body.mass();
+        let speed = motion.velocity.length();
+
+        let mut base = base_query.get_mut(base_entity).ok()?;
+        let damage = base.hp.min(speed * mass).min(MAX_DAMAGE);
+
+        player_hit_events.send(PlayerHitEvent {
+            hp: base.hp,
+            location: motion.translation.truncate(),
+        });
+
+        if base.hp <= 0.0 {
+            if let Some(hint) = hint {
+                commands.entity(hint.0).despawn();
+            }
+            commands.entity(ball_entity).despawn();
+            game_over_events.send(GameOverEvent::Win);
+        } else {
+            base.hp -= damage;
+        }
+
+        Some(())
+    };
+
     for event in collision_events.iter() {
-        let mut closure =
-            |ball_entity: Entity, base_entity: Entity| -> Result<(), Box<dyn Error>> {
-                let (rigid_body, motion) = ball_query.get(ball_entity)?;
-                let mass = rigid_body.mass();
-                let speed = motion.velocity.length();
-
-                let mut base = base_query.get_mut(base_entity)?;
-                if base.hp <= 0.0 {
-                    game_over_events.send(GameOverEvent::Win);
-                } else {
-                    let damage = base.hp.min(speed * mass).min(MAX_DAMAGE);
-                    base.hp -= damage;
-                    player_hit_events.send(PlayerHitEvent(damage));
-                }
-
-                Ok(())
-            };
-
-        closure(event.entities[0], event.entities[1])
-            .unwrap_or_else(|_| closure(event.entities[1], event.entities[0]).unwrap_or_default())
+        closure(event.entities[0], event.entities[1]);
+        closure(event.entities[1], event.entities[0]);
     }
 }
 
@@ -537,34 +585,115 @@ fn player_miss(
     mut collision_events: EventReader<CollisionEvent>,
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    ball_query: Query<Option<&Hint>, With<Ball>>,
+    mut ball_timer: ResMut<BallRemakeTimer>,
+    ball_query: Query<(Option<&Hint>, &Motion), With<Ball>>,
     mut base_query: Query<(Entity, &mut PlayerBase), Without<Ball>>,
 ) {
     let (entity, mut base) = base_query.single_mut();
 
-    let mut closure = |ball_entity: Entity, base_entity: Entity| {
+    let mut closure = |ball_entity: Entity, base_entity: Entity| -> Option<()> {
         if base_entity != entity {
-            return;
+            return None;
         }
 
-        if let Ok(hint) = ball_query.get(ball_entity) {
-            if base.balls == 0 {
-                game_over_events.send(GameOverEvent::Lose);
-            } else {
-                base.balls -= 1;
-                player_miss_events.send(PlayerMissEvent);
-            }
-
-            if let Some(hint) = hint {
-                commands.entity(hint.0).despawn();
-            }
-            commands.entity(ball_entity).despawn();
+        let (hint, motion) = ball_query.get(ball_entity).ok()?;
+        if base.balls == 0 {
+            game_over_events.send(GameOverEvent::Lose);
+        } else {
+            base.balls -= 1;
+            ball_timer.reset();
         }
+        player_miss_events.send(PlayerMissEvent {
+            location: motion.translation.truncate(),
+        });
+
+        if let Some(hint) = hint {
+            commands.entity(hint.0).despawn();
+        }
+        commands.entity(ball_entity).despawn();
+
+        Some(())
     };
 
     for event in collision_events.iter() {
         closure(event.entities[0], event.entities[1]);
         closure(event.entities[1], event.entities[0]);
+    }
+}
+
+fn game_over_system(
+    time: Res<Time>,
+    mut time_scale: ResMut<TimeScale>,
+    mut app_state: ResMut<State<AppState>>,
+    mut game_over_events: EventReader<GameOverEvent>,
+    mut game_over: ResMut<GameOver>,
+) {
+    if let Some(event) = game_over.event {
+        let mut target_time_scale = 0.2;
+        if game_over.slow_motion_timer.tick(time.delta()).finished() {
+            target_time_scale = 1.0;
+        }
+        time_scale.0 = time_scale
+            .0
+            .damp(target_time_scale, 100.0, time.delta_seconds());
+
+        // it's time to switch back
+        if game_over
+            .state_change_timer
+            .tick(time.delta())
+            .just_finished()
+        {
+            time_scale.reset();
+            match event {
+                GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
+                GameOverEvent::Lose => app_state.set(AppState::Title).unwrap(),
+            }
+        }
+    } else {
+        for event in game_over_events.iter() {
+            game_over.event = Some(*event);
+            time_scale.0 = 0.2;
+        }
+    }
+}
+
+fn score_effect_system(
+    mut commands: Commands,
+    materials: Res<Materials>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut color_materials: ResMut<Assets<ColorReversionMaterial>>,
+    mut player_miss_events: EventReader<PlayerMissEvent>,
+    mut player_hit_events: EventReader<PlayerHitEvent>,
+) {
+    let mut make_effect = |location: Vec2| {
+        commands
+            .spawn_bundle(MaterialMesh2dBundle {
+                mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
+                material: color_materials.add(materials.death.clone().into()),
+                transform: Transform::from_translation(location.extend(0.01)),
+                ..Default::default()
+            })
+            .insert(DeathEffect {
+                timer: Timer::from_seconds(2.0, false),
+                speed: DEATH_EFFECT_SPEED,
+            })
+            .insert(Cleanup);
+    };
+
+    for event in player_miss_events.iter() {
+        make_effect(event.location + Vec2::new(-100.0, 0.0));
+        make_effect(event.location + Vec2::new(100.0, 0.0));
+        make_effect(event.location + Vec2::new(0.0, -100.0));
+        make_effect(event.location + Vec2::new(0.0, 100.0));
+    }
+
+    for event in player_hit_events.iter() {
+        if event.hp <= 0.0 {
+            make_effect(event.location + Vec2::new(-100.0, 0.0));
+            make_effect(event.location + Vec2::new(100.0, 0.0));
+            make_effect(event.location + Vec2::new(0.0, -100.0));
+            make_effect(event.location + Vec2::new(0.0, 100.0));
+        }
     }
 }
 
@@ -591,7 +720,7 @@ fn bounce_audio(
     mut index: Local<u32>,
     query: Query<(), With<BounceAudio>>,
 ) {
-    let can_play_audio = timer.0.tick(time.delta()).finished();
+    let can_play_audio = timer.tick(time.delta()).finished();
 
     for event in events.iter() {
         let channel = &AudioChannel::new(format!("impact-{}", *index));
@@ -615,7 +744,7 @@ fn bounce_audio(
                 let audio_source = audios.impact_audios[pitch].clone();
                 audio.play_in_channel(audio_source, channel);
 
-                timer.0.reset();
+                timer.reset();
             }
         };
 

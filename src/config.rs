@@ -11,6 +11,7 @@ pub const PLAYER_SPRITE: &str = "sprites/player.png";
 pub const ENEMY_SPRITE: &str = "sprites/enemy.png";
 pub const BALL_SPRITE: &str = "sprites/ball.png";
 pub const HINT_SPRITE: &str = "sprites/hint.png";
+pub const DEATH_SPRITE: &str = "sprites/death.png";
 
 pub const HIT_AUDIO: &str = "audios/hit.flac";
 pub const MISS_AUDIO: &str = "audios/miss.flac";
@@ -37,16 +38,19 @@ pub const PADDLE_HEIGHT: f32 = 16.0;
 pub const BALL_SIZE: f32 = 16.0;
 
 pub const PLAYER_MAX_SPEED: f32 = 2000.0;
-pub const PLAYER_ASSIST_SPEED: f32 = 2000.0;
+pub const PLAYER_ASSIST_SPEED: f32 = 200.0;
 pub const PLAYER_ASSIST_SPEED_THRESHOLD: f32 = -1000.0;
 
 pub const ENEMY_MIN_SPEED: f32 = 500.0;
-pub const ENEMY_MAX_SPEED: f32 = 2000.0;
-pub const ENEMY_NORMAL_SPEED: f32 = 1000.0;
-pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -100.0;
+pub const ENEMY_MAX_SPEED: f32 = 3000.0;
+pub const ENEMY_NORMAL_SPEED: f32 = 1500.0;
+pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -0.0;
+pub const ENEMY_DAMP: f32 = 20.0;
 
-pub const BALL_MAX_SPEED: f32 = 4000.0;
+pub const BALL_MAX_SPEED: f32 = 3000.0;
 pub const MAX_DAMAGE: f32 = 2000.0;
 
 pub const MIN_BOUNCE_AUDIO_SPEED: f32 = 500.0;
 pub const MAX_BOUNCE_AUDIO_SPEED: f32 = 2500.0;
+
+pub const DEATH_EFFECT_SPEED: f32 = 50.0;
