@@ -23,6 +23,11 @@ pub fn ball_setup(
 pub fn ball_movement(time: Res<Time>, mut query: Query<(&Ball, &mut Motion)>) {
     for (ball, mut motion) in query.iter_mut() {
         motion.velocity.y += ball.gravity * time.delta_seconds();
+
+        let speed = motion.velocity.length();
+        if speed > BALL_MAX_SPEED {
+            motion.velocity = motion.velocity.normalize() * BALL_MAX_SPEED;
+        }
     }
 }
 

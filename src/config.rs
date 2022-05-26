@@ -45,6 +45,7 @@ pub const ENEMY_MAX_SPEED: f32 = 2000.0;
 pub const ENEMY_NORMAL_SPEED: f32 = 1000.0;
 pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -100.0;
 
+pub const BALL_MAX_SPEED: f32 = 4000.0;
 pub const MAX_DAMAGE: f32 = 2000.0;
 
 pub const MIN_BOUNCE_AUDIO_SPEED: f32 = 500.0;
