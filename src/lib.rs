@@ -32,7 +32,8 @@ pub fn run() {
             height: config::ARENA_HEIGHT,
             resizable: false,
             ..Default::default()
-        });
+        })
+        .insert_resource(utils::TimeScale(1.0));
 
     #[cfg(feature = "dot")]
     app.add_plugins_with(DefaultPlugins, |plugins| {

@@ -1,4 +1,4 @@
-use crate::utils::Damp;
+use crate::utils::{Damp, TimeScale};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -45,6 +45,7 @@ pub fn health_bar(base_query: Query<&EnemyBase>, mut query: Query<&mut Style, Wi
 
 pub fn health_bar_tracker(
     time: Res<Time>,
+    time_scale: Res<TimeScale>,
     base_query: Query<&EnemyBase>,
     mut query: Query<(&mut Style, &mut HealthBarTracker)>,
 ) {
@@ -52,8 +53,11 @@ pub fn health_bar_tracker(
     for (mut health_bar, mut tracker) in query.iter_mut() {
         let percent_hp = base.hp / base.full_hp * 100.0;
         tracker.percent = percent_hp.max(
-            (tracker.percent + tracker.bias).damp(percent_hp, tracker.damp, time.delta_seconds())
-                - tracker.bias,
+            (tracker.percent + tracker.bias).damp(
+                percent_hp,
+                tracker.damp,
+                time.delta_seconds() * time_scale.0,
+            ) - tracker.bias,
         );
         health_bar.size.width = Val::Percent(tracker.percent - percent_hp);
     }

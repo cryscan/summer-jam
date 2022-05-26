@@ -1,17 +1,18 @@
-use self::{ball::*, base::*, enemy::*, hint::*, physics::*, player::*};
+use self::{ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::*};
 use crate::{
     config::*,
     score::Score,
     utils::{cleanup_system, Interpolation},
     AppState,
 };
-use bevy::{core::FixedTimestep, prelude::*};
+use bevy::{core::FixedTimestep, prelude::*, sprite::Material2dPlugin};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
 use itertools::Itertools;
 use std::error::Error;
 
 mod ball;
 mod base;
+mod effects;
 mod enemy;
 mod hint;
 mod physics;
@@ -21,7 +22,8 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<GameOverEvent>()
+        app.add_plugin(Material2dPlugin::<SubtractColorMaterial>::default())
+            .add_event::<GameOverEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
             .insert_resource(DebounceTimer(Timer::from_seconds(0.1, false)))
@@ -49,7 +51,8 @@ impl Plugin for GamePlugin {
                     .with_system(ball_movement)
                     .with_system(ball_setup)
                     .with_system(score_system)
-                    .with_system(hint_system),
+                    .with_system(hint_system)
+                    .with_system(death_ring_system),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),

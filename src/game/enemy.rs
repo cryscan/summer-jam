@@ -2,7 +2,10 @@ use super::{
     ball::{Ball, Trajectory},
     physics::{Motion, RigidBody},
 };
-use crate::{config::ARENA_HEIGHT, utils::Damp};
+use crate::{
+    config::ARENA_HEIGHT,
+    utils::{Damp, TimeScale},
+};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -25,6 +28,7 @@ pub struct Controller {
 
 pub fn enemy_movement(
     time: Res<Time>,
+    time_scale: Res<TimeScale>,
     mut query: Query<(&Enemy, Option<&Controller>, &mut Motion)>,
 ) {
     for (enemy, controller, mut motion) in query.iter_mut() {
@@ -33,7 +37,7 @@ pub fn enemy_movement(
             .unwrap_or_default();
         motion.velocity = motion
             .velocity
-            .damp(velocity, enemy.damp, time.delta_seconds())
+            .damp(velocity, enemy.damp, time.delta_seconds() * time_scale.0)
             .clamp_length_max(enemy.max_speed);
     }
 }
