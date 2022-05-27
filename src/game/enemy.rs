@@ -111,9 +111,10 @@ pub fn enemy_controller(
                         .map(|position| {
                             let mut contribution = position;
                             if position.y < 0.0 {
-                                contribution.y = -position.y
-                            } else {
-                                contribution.x = -position.x
+                                contribution.y = -position.y;
+                            }
+                            if motion.translation.y > transform.translation.y {
+                                contribution.x = -contribution.x;
                             }
                             contribution
                         })
