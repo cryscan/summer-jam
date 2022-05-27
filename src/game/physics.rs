@@ -222,8 +222,10 @@ pub fn collision(
                 resolve(rb2, motion, t2, v1 - v2, -normal)
             }
 
+            let mut entities = [e1, e2];
+            entities.sort();
             events.send(CollisionEvent {
-                entities: [e1, e2],
+                entities,
                 velocity: v2 - v1,
                 impulse,
                 bounciness,

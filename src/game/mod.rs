@@ -29,7 +29,11 @@ impl Plugin for GamePlugin {
             .add_event::<GameOverEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
-            .insert_resource(DebounceTimer(Timer::from_seconds(0.1, false)))
+            .insert_resource(DebounceTimer {
+                collision_same: Timer::from_seconds(0.5, false),
+                collision_cross: Timer::from_seconds(0.1, false),
+                hit: Timer::from_seconds(0.5, false),
+            })
             .insert_resource(BallRemakeTimer(Timer::from_seconds(1.0, false)))
             .insert_resource(GameOver {
                 slow_motion_timer: Timer::from_seconds(1.0, false),
@@ -95,11 +99,15 @@ struct PlayerHitEvent {
 }
 
 struct PlayerMissEvent {
+    balls: i32,
     location: Vec2,
 }
 
-#[derive(Deref, DerefMut)]
-struct DebounceTimer(Timer);
+struct DebounceTimer {
+    collision_same: Timer,
+    collision_cross: Timer,
+    hit: Timer,
+}
 
 #[derive(Deref, DerefMut)]
 struct BallRemakeTimer(Timer);
@@ -540,14 +548,19 @@ fn make_ball(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn player_hit(
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     mut player_hit_events: EventWriter<PlayerHitEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
+    time: Res<Time>,
+    mut timer: ResMut<DebounceTimer>,
     ball_query: Query<(&RigidBody, &Motion, Option<&Hint>), With<Ball>>,
     mut base_query: Query<&mut EnemyBase>,
 ) {
+    let can_hit = timer.hit.tick(time.delta()).finished();
+
     let mut closure = |ball_entity: Entity, base_entity: Entity| -> Option<()> {
         let (rigid_body, motion, hint) = ball_query.get(ball_entity).ok()?;
         let mass = rigid_body.mass();
@@ -560,7 +573,6 @@ fn player_hit(
             hp: base.hp,
             location: motion.translation.truncate(),
         });
-
         if base.hp <= 0.0 {
             if let Some(hint) = hint {
                 commands.entity(hint.0).despawn();
@@ -570,13 +582,16 @@ fn player_hit(
         } else {
             base.hp -= damage;
         }
+        timer.hit.reset();
 
         Some(())
     };
 
-    for event in collision_events.iter() {
-        closure(event.entities[0], event.entities[1]);
-        closure(event.entities[1], event.entities[0]);
+    if can_hit {
+        for event in collision_events.iter() {
+            closure(event.entities[0], event.entities[1]);
+            closure(event.entities[1], event.entities[0]);
+        }
     }
 }
 
@@ -597,15 +612,16 @@ fn player_miss(
         }
 
         let (hint, motion) = ball_query.get(ball_entity).ok()?;
+        player_miss_events.send(PlayerMissEvent {
+            balls: base.balls,
+            location: motion.translation.truncate(),
+        });
         if base.balls == 0 {
             game_over_events.send(GameOverEvent::Lose);
         } else {
             base.balls -= 1;
             ball_timer.reset();
         }
-        player_miss_events.send(PlayerMissEvent {
-            location: motion.translation.truncate(),
-        });
 
         if let Some(hint) = hint {
             commands.entity(hint.0).despawn();
@@ -665,7 +681,7 @@ fn score_effect_system(
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut player_hit_events: EventReader<PlayerHitEvent>,
 ) {
-    let mut make_effect = |location: Vec2| {
+    let mut make_effect = |location: Vec2, duration: f32| {
         commands
             .spawn_bundle(MaterialMesh2dBundle {
                 mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
@@ -674,25 +690,27 @@ fn score_effect_system(
                 ..Default::default()
             })
             .insert(DeathEffect {
-                timer: Timer::from_seconds(2.0, false),
+                timer: Timer::from_seconds(duration, false),
                 speed: DEATH_EFFECT_SPEED,
             })
             .insert(Cleanup);
     };
 
     for event in player_miss_events.iter() {
-        make_effect(event.location + Vec2::new(-100.0, 0.0));
-        make_effect(event.location + Vec2::new(100.0, 0.0));
-        make_effect(event.location + Vec2::new(0.0, -100.0));
-        make_effect(event.location + Vec2::new(0.0, 100.0));
+        let duration = if event.balls <= 0 { 2.0 } else { 1.0 };
+        make_effect(event.location + Vec2::new(-100.0, 0.0), duration);
+        make_effect(event.location + Vec2::new(100.0, 0.0), duration);
+        make_effect(event.location + Vec2::new(0.0, -100.0), duration);
+        make_effect(event.location + Vec2::new(0.0, 100.0), duration);
     }
 
     for event in player_hit_events.iter() {
         if event.hp <= 0.0 {
-            make_effect(event.location + Vec2::new(-100.0, 0.0));
-            make_effect(event.location + Vec2::new(100.0, 0.0));
-            make_effect(event.location + Vec2::new(0.0, -100.0));
-            make_effect(event.location + Vec2::new(0.0, 100.0));
+            let duration = 2.0;
+            make_effect(event.location + Vec2::new(-100.0, 0.0), duration);
+            make_effect(event.location + Vec2::new(100.0, 0.0), duration);
+            make_effect(event.location + Vec2::new(0.0, -100.0), duration);
+            make_effect(event.location + Vec2::new(0.0, 100.0), duration);
         }
     }
 }
@@ -711,6 +729,7 @@ fn score_system(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn bounce_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
@@ -718,19 +737,28 @@ fn bounce_audio(
     mut timer: ResMut<DebounceTimer>,
     mut events: EventReader<CollisionEvent>,
     mut index: Local<u32>,
-    query: Query<(), With<BounceAudio>>,
+    mut last_bounce_entities: Local<Option<[Entity; 2]>>,
+    query: Query<Entity, With<BounceAudio>>,
 ) {
-    let can_play_audio = timer.tick(time.delta()).finished();
+    let mut can_play_audio = timer.collision_same.tick(time.delta()).finished();
+    timer.collision_cross.tick(time.delta());
 
     for event in events.iter() {
+        let bounce_entities = query.get_many(event.entities).ok();
+        if bounce_entities.is_none() {
+            continue;
+        }
+
+        // bounce happens between a different pair
+        if bounce_entities != *last_bounce_entities {
+            can_play_audio = timer.collision_cross.finished();
+            *last_bounce_entities = bounce_entities;
+        }
+
         let channel = &AudioChannel::new(format!("impact-{}", *index));
         *index = (*index + 1) % MAX_IMPACT_AUDIO_CHANNELS;
 
-        let mut closure = |first: Entity, second: Entity| {
-            if query.get(first).and_then(|_| query.get(second)).is_err() {
-                return;
-            }
-
+        if can_play_audio {
             let speed = event.velocity.length();
             if speed > MIN_BOUNCE_AUDIO_SPEED {
                 let normalized_speed = speed
@@ -744,12 +772,9 @@ fn bounce_audio(
                 let audio_source = audios.impact_audios[pitch].clone();
                 audio.play_in_channel(audio_source, channel);
 
-                timer.reset();
+                timer.collision_same.reset();
+                timer.collision_cross.reset();
             }
-        };
-
-        if can_play_audio {
-            closure(event.entities[0], event.entities[1]);
         }
     }
 }
