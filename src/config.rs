@@ -45,6 +45,7 @@ pub const ENEMY_MIN_SPEED: f32 = 500.0;
 pub const ENEMY_MAX_SPEED: f32 = 3000.0;
 pub const ENEMY_NORMAL_SPEED: f32 = 1500.0;
 pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -0.0;
+pub const ENEMY_BRAKE_DISTANCE: f32 = 144.0;
 pub const ENEMY_DAMP: f32 = 20.0;
 
 pub const BALL_MAX_SPEED: f32 = 3000.0;

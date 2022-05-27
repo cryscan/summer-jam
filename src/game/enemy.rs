@@ -3,7 +3,7 @@ use super::{
     physics::{Motion, RigidBody},
 };
 use crate::{
-    config::ARENA_HEIGHT,
+    config::{ARENA_HEIGHT, ENEMY_BRAKE_DISTANCE},
     utils::{Damp, TimeScale},
 };
 use bevy::prelude::*;
@@ -89,6 +89,7 @@ pub fn enemy_controller(
                             .unwrap_or(std::cmp::Ordering::Equal)
                     })
                 {
+                    // find candidate, move to it at proper speed
                     let direction = candidate.position - position;
                     let time = (candidate.time - delta_seconds) as f32;
                     let distance = direction.length();
@@ -96,12 +97,12 @@ pub fn enemy_controller(
                     let mut speed =
                         (distance / time + 1.0).clamp(enemy.min_speed, enemy.normal_speed);
 
-                    let stop_distance = 1.5 * width;
-                    if distance < stop_distance {
-                        speed *= distance / stop_distance;
+                    if distance < ENEMY_BRAKE_DISTANCE {
+                        speed *= distance / ENEMY_BRAKE_DISTANCE;
                     }
                     speed * direction.normalize()
                 } else {
+                    // not found, choose the average trajectory points as the candidate.
                     let collection: Vec<_> = trajectory
                         .points
                         .iter()
@@ -125,8 +126,13 @@ pub fn enemy_controller(
                         .clamp(0.125 * ARENA_HEIGHT, 0.375 * ARENA_HEIGHT);
 
                     let direction = candidate - position;
-                    let speed = if direction.length() < width {
-                        enemy.normal_speed * direction.length() / width
+                    let distance = direction.length();
+                    let speed = if distance < ENEMY_BRAKE_DISTANCE {
+                        if motion.translation.y < 0.0 {
+                            0.0
+                        } else {
+                            enemy.normal_speed * distance / ENEMY_BRAKE_DISTANCE
+                        }
                     } else {
                         enemy.normal_speed
                     };
