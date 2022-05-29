@@ -38,15 +38,19 @@ pub const PADDLE_HEIGHT: f32 = 16.0;
 pub const BALL_SIZE: f32 = 16.0;
 
 pub const PLAYER_MAX_SPEED: f32 = 2000.0;
-pub const PLAYER_ASSIST_SPEED: f32 = 500.0;
+pub const PLAYER_SENSITIVITY: f32 = 0.5;
+pub const PLAYER_DAMP: f32 = 20.0;
+pub const PLAYER_ASSIST_SPEED: f32 = 1000.0;
 pub const PLAYER_ASSIST_SPEED_THRESHOLD: f32 = -1000.0;
 
 pub const ENEMY_MIN_SPEED: f32 = 500.0;
 pub const ENEMY_MAX_SPEED: f32 = 2000.0;
 pub const ENEMY_NORMAL_SPEED: f32 = 1250.0;
-pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -0.0;
 pub const ENEMY_BRAKE_DISTANCE: f32 = 96.0;
 pub const ENEMY_DAMP: f32 = 20.0;
+pub const ENEMY_HIT_RANGE_VERTICAL: f32 = 144.0;
+pub const ENEMY_HIT_RANGE_HORIZONTAL: f32 = 144.0;
+pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -0.0;
 
 pub const BALL_MAX_SPEED: f32 = 3000.0;
 pub const MAX_DAMAGE: f32 = 2000.0;
