@@ -427,8 +427,8 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         .insert(Cleanup)
         .insert(Player {
             max_speed: PLAYER_MAX_SPEED,
-            sensitivity: 0.5,
-            damp: 20.0,
+            sensitivity: PLAYER_SENSITIVITY,
+            damp: PLAYER_DAMP,
             assist_speed: PLAYER_ASSIST_SPEED,
             assist_speed_threshold: PLAYER_ASSIST_SPEED_THRESHOLD,
         })
@@ -475,7 +475,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             max_speed: ENEMY_MAX_SPEED,
             normal_speed: ENEMY_NORMAL_SPEED,
             damp: ENEMY_DAMP,
-            hit_range: PADDLE_WIDTH,
+            hit_range: Vec2::new(ENEMY_HIT_RANGE_HORIZONTAL, ENEMY_HIT_RANGE_VERTICAL),
             hit_speed_threshold: ENEMY_HIT_SPEED_THRESHOLD,
             hit_height_threshold: 0.125 * ARENA_HEIGHT,
         })

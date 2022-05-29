@@ -1,6 +1,6 @@
 use super::{
     ball::{Ball, Trajectory},
-    physics::{Motion, RigidBody},
+    physics::Motion,
 };
 use crate::{
     config::{ARENA_HEIGHT, ENEMY_BRAKE_DISTANCE},
@@ -15,7 +15,7 @@ pub struct Enemy {
     pub normal_speed: f32,
     pub damp: f32,
 
-    pub hit_range: f32,
+    pub hit_range: Vec2,
     pub hit_speed_threshold: f32,
     pub hit_height_threshold: f32,
 }
@@ -44,19 +44,18 @@ pub fn enemy_movement(
 
 pub fn enemy_controller(
     time: Res<Time>,
-    mut query: Query<(&Transform, &RigidBody, &Enemy, &mut Controller), Without<Ball>>,
+    mut query: Query<(&Transform, &Enemy, &mut Controller), Without<Ball>>,
     ball_query: Query<(&Transform, &Motion, &Trajectory), With<Ball>>,
 ) {
-    for (transform, rigid_body, enemy, mut controller) in query.iter_mut() {
+    for (transform, enemy, mut controller) in query.iter_mut() {
         controller.velocity = Vec2::ZERO;
-        let width = rigid_body.size.x;
 
         for (ball_transform, motion, trajectory) in ball_query.iter() {
             let direction = (ball_transform.translation - transform.translation).truncate();
             let position = transform.translation.truncate();
 
-            let updated_velocity = if direction.x.abs() < width / 2.0
-                && direction.y > -enemy.hit_range
+            let updated_velocity = if direction.x.abs() < enemy.hit_range.x
+                && direction.y > -enemy.hit_range.y
                 && direction.y < -0.0
                 && motion.velocity.y > enemy.hit_speed_threshold
                 && position.y > enemy.hit_height_threshold
@@ -71,7 +70,7 @@ pub fn enemy_controller(
                     .points
                     .iter()
                     .filter(|point| point.position.y > 0.0)
-                    .filter(|point| point.position.y < ARENA_HEIGHT / 2.0 - 16.0)
+                    .filter(|point| point.position.y < ARENA_HEIGHT * 0.375)
                     .filter(|point| point.velocity.y > 0.0)
                     .filter(|point| {
                         // filter reachable points
