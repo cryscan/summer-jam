@@ -5,16 +5,31 @@ use bevy::prelude::*;
 #[derive(Clone, Component)]
 pub struct Ball {
     pub gravity: f32,
-    pub timer: Timer,
+    pub set_timer: Timer,
+    pub active_timer: Timer,
 }
 
-pub fn ball_setup(
+impl Default for Ball {
+    fn default() -> Self {
+        Self {
+            gravity: -1000.0,
+            set_timer: Timer::from_seconds(1.0, false),
+            active_timer: Timer::from_seconds(2.0, false),
+        }
+    }
+}
+
+pub fn ball_activate(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut Ball), Without<Motion>>,
+    mut query: Query<(Entity, &mut Ball, &mut Transform)>,
 ) {
-    for (entity, mut ball) in query.iter_mut() {
-        if ball.timer.tick(time.delta()).just_finished() {
+    for (entity, mut ball, mut transform) in query.iter_mut() {
+        if ball.set_timer.tick(time.delta()).just_finished() {
+            transform.translation = Vec3::ZERO;
+        }
+
+        if ball.active_timer.tick(time.delta()).just_finished() {
             commands.entity(entity).insert(Motion::default());
         }
     }

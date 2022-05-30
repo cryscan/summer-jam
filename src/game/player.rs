@@ -1,7 +1,7 @@
 use super::{
     ball::{Ball, Point, Trajectory},
     enemy::Controller,
-    physics::{Motion, RigidBody},
+    physics::Motion,
 };
 use crate::{
     config::ARENA_HEIGHT,
@@ -16,6 +16,7 @@ pub struct Player {
     pub sensitivity: f32,
     pub damp: f32,
 
+    pub assist_range: f32,
     pub assist_speed: f32,
     pub assist_speed_threshold: f32,
 }
@@ -47,18 +48,18 @@ pub fn player_movement(
 pub fn player_assist(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
-    mut query: Query<(&Transform, &RigidBody, &Player, &mut Controller), Without<Ball>>,
+    mut query: Query<(&Transform, &Player, &mut Controller), Without<Ball>>,
     ball_query: Query<(&Motion, &Trajectory), With<Ball>>,
 ) {
-    let (transform, rigid_body, player, mut controller) = query.single_mut();
+    let (transform, player, mut controller) = query.single_mut();
     controller.velocity = Vec2::ZERO;
-    let width = rigid_body.size.x;
 
     for (motion, trajectory) in ball_query.iter() {
         let position = transform.translation.truncate();
+        let delta = motion.translation - transform.translation;
 
         if motion.velocity.y < player.assist_speed_threshold
-            && (motion.translation.x - transform.translation.x).abs() > width / 2.0
+            && delta.x.abs() > player.assist_range * 0.5
         {
             // very dangerous, try to assist the player
             let delta_seconds = time.seconds_since_startup() - trajectory.start_time;
@@ -86,7 +87,7 @@ pub fn player_assist(
 
                 let mut speed = (1.5 * (distance / time + 1.0)).clamp(0.0, player.assist_speed);
 
-                let stop_distance = 1.5 * width;
+                let stop_distance = 1.5 * player.assist_range;
                 if distance < stop_distance {
                     speed *= distance / stop_distance;
                 }
@@ -95,9 +96,10 @@ pub fn player_assist(
         }
 
         let mut target_time_scale: f32 = 1.0;
-        if motion.velocity.y < player.assist_speed_threshold {
-            let delta = motion.translation.y - transform.translation.y - ARENA_HEIGHT / 8.0;
-            target_time_scale = target_time_scale.min(delta / ARENA_HEIGHT * 2.0).max(0.2);
+        if motion.velocity.y < player.assist_speed_threshold && delta.y > 0.0 {
+            target_time_scale = target_time_scale
+                .min(delta.y / ARENA_HEIGHT * 2.0 - 0.25)
+                .max(0.2);
         }
         time_scale.0 = time_scale
             .0

@@ -25,8 +25,9 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(Material2dPlugin::<ColorReversionMaterial>::default())
+        app.add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
             .add_event::<GameOverEvent>()
+            .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
             .insert_resource(DebounceTimer {
@@ -34,7 +35,6 @@ impl Plugin for GamePlugin {
                 collision_cross: Timer::from_seconds(0.1, false),
                 hit: Timer::from_seconds(0.5, false),
             })
-            .insert_resource(BallRemakeTimer(Timer::from_seconds(1.0, false)))
             .insert_resource(GameOver {
                 slow_motion_timer: Timer::from_seconds(1.0, false),
                 state_change_timer: Timer::from_seconds(2.0, false),
@@ -62,11 +62,11 @@ impl Plugin for GamePlugin {
                     .with_system(health_bar)
                     .with_system(health_bar_tracker)
                     .with_system(ball_movement)
-                    .with_system(ball_setup)
+                    .with_system(ball_activate)
                     .with_system(hint_system)
                     .with_system(score_system)
-                    .with_system(score_effect_system)
-                    .with_system(death_ring_system)
+                    .with_system(make_score_effects)
+                    .with_system(death_effect_system)
                     .with_system(game_over_system),
             )
             .add_system_set(
@@ -93,6 +93,8 @@ enum GameOverEvent {
     Lose,
 }
 
+struct MakeBallEvent;
+
 struct PlayerHitEvent {
     hp: f32,
     location: Vec2,
@@ -108,9 +110,6 @@ struct DebounceTimer {
     collision_cross: Timer,
     hit: Timer,
 }
-
-#[derive(Deref, DerefMut)]
-struct BallRemakeTimer(Timer);
 
 struct GameOver {
     slow_motion_timer: Timer,
@@ -192,8 +191,8 @@ fn enter_game(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut score: ResMut<Score>,
-    mut ball_timer: ResMut<BallRemakeTimer>,
     mut game_over: ResMut<GameOver>,
+    mut make_ball_events: EventWriter<MakeBallEvent>,
 ) {
     info!("Entering Game");
 
@@ -204,11 +203,11 @@ fn enter_game(
 
     time_scale.reset();
 
-    ball_timer.reset();
-
     game_over.slow_motion_timer.reset();
     game_over.state_change_timer.reset();
     game_over.event = None;
+
+    make_ball_events.send(MakeBallEvent);
 }
 
 fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
@@ -429,6 +428,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             max_speed: PLAYER_MAX_SPEED,
             sensitivity: PLAYER_SENSITIVITY,
             damp: PLAYER_DAMP,
+            assist_range: PLAYER_ASSIST_RANGE,
             assist_speed: PLAYER_ASSIST_SPEED,
             assist_speed_threshold: PLAYER_ASSIST_SPEED_THRESHOLD,
         })
@@ -507,11 +507,9 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
 fn make_ball(
     mut commands: Commands,
     materials: Res<Materials>,
-    time: Res<Time>,
-    mut timer: ResMut<BallRemakeTimer>,
-    query: Query<&Ball>,
+    mut events: EventReader<MakeBallEvent>,
 ) {
-    if query.iter().count() == 0 && timer.0.tick(time.delta()).just_finished() {
+    for _ in events.iter() {
         let hint = commands
             .spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
@@ -523,15 +521,12 @@ fn make_ball(
 
         commands
             .spawn_bundle(SpriteBundle {
-                transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                transform: Transform::from_xyz(0.0, 0.0, -1.0),
                 texture: materials.ball.clone(),
                 ..Default::default()
             })
             .insert(Cleanup)
-            .insert(Ball {
-                gravity: -1000.0,
-                timer: Timer::from_seconds(1.0, false),
-            })
+            .insert(Ball::default())
             .insert(RigidBody::new(
                 Vec2::new(BALL_SIZE, BALL_SIZE),
                 1.0,
@@ -600,7 +595,7 @@ fn player_miss(
     mut collision_events: EventReader<CollisionEvent>,
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    mut ball_timer: ResMut<BallRemakeTimer>,
+    mut make_ball_events: EventWriter<MakeBallEvent>,
     ball_query: Query<(Option<&Hint>, &Motion), With<Ball>>,
     mut base_query: Query<(Entity, &mut PlayerBase), Without<Ball>>,
 ) {
@@ -620,7 +615,7 @@ fn player_miss(
             game_over_events.send(GameOverEvent::Lose);
         } else {
             base.balls -= 1;
-            ball_timer.reset();
+            make_ball_events.send(MakeBallEvent);
         }
 
         if let Some(hint) = hint {
@@ -673,11 +668,11 @@ fn game_over_system(
     }
 }
 
-fn score_effect_system(
+fn make_score_effects(
     mut commands: Commands,
     materials: Res<Materials>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut color_materials: ResMut<Assets<ColorReversionMaterial>>,
+    mut color_materials: ResMut<Assets<DeathEffectMaterial>>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut player_hit_events: EventReader<PlayerHitEvent>,
 ) {
