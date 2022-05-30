@@ -687,6 +687,7 @@ fn make_score_effects(
             .insert(DeathEffect {
                 timer: Timer::from_seconds(duration, false),
                 speed: DEATH_EFFECT_SPEED,
+                acceleration: DEATH_EFFECT_ACCELERATION,
             })
             .insert(Cleanup);
     };

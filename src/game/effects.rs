@@ -136,6 +136,7 @@ impl Material2d for DeathEffectMaterial {
 pub struct DeathEffect {
     pub timer: Timer,
     pub speed: f32,
+    pub acceleration: f32,
 }
 
 pub fn death_effect_system(
@@ -154,6 +155,7 @@ pub fn death_effect_system(
             continue;
         }
 
-        transform.scale += (effect.speed * time.delta_seconds()).powf(2.0) * time_scale.0;
+        effect.speed += effect.acceleration * time.delta_seconds() * time_scale.0;
+        transform.scale += effect.speed * time.delta_seconds() * time_scale.0;
     }
 }
