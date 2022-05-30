@@ -40,6 +40,7 @@ pub const BALL_SIZE: f32 = 16.0;
 pub const PLAYER_MAX_SPEED: f32 = 2000.0;
 pub const PLAYER_SENSITIVITY: f32 = 0.5;
 pub const PLAYER_DAMP: f32 = 20.0;
+pub const PLAYER_ASSIST_RANGE: f32 = 96.0;
 pub const PLAYER_ASSIST_SPEED: f32 = 1000.0;
 pub const PLAYER_ASSIST_SPEED_THRESHOLD: f32 = -1000.0;
 
@@ -58,4 +59,4 @@ pub const MAX_DAMAGE: f32 = 2000.0;
 pub const MIN_BOUNCE_AUDIO_SPEED: f32 = 500.0;
 pub const MAX_BOUNCE_AUDIO_SPEED: f32 = 2500.0;
 
-pub const DEATH_EFFECT_SPEED: f32 = 50.0;
+pub const DEATH_EFFECT_SPEED: f32 = 800.0;

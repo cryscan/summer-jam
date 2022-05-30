@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::utils::*;
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
@@ -19,16 +21,16 @@ use bevy::{
 
 #[derive(Component, Debug, Clone, TypeUuid, Deref, DerefMut)]
 #[uuid = "8afb68fd-de70-4be5-be04-72f5dd29d1e2"]
-pub struct ColorReversionMaterial(ColorMaterial);
+pub struct DeathEffectMaterial(ColorMaterial);
 
-impl From<Handle<Image>> for ColorReversionMaterial {
+impl From<Handle<Image>> for DeathEffectMaterial {
     fn from(image: Handle<Image>) -> Self {
         Self(image.into())
     }
 }
 
-impl RenderAsset for ColorReversionMaterial {
-    type ExtractedAsset = ColorReversionMaterial;
+impl RenderAsset for DeathEffectMaterial {
+    type ExtractedAsset = DeathEffectMaterial;
     type PreparedAsset = GpuColorMaterial;
     type Param = (
         SRes<RenderDevice>,
@@ -98,7 +100,7 @@ impl RenderAsset for ColorReversionMaterial {
     }
 }
 
-impl Material2d for ColorReversionMaterial {
+impl Material2d for DeathEffectMaterial {
     fn bind_group(material: &<Self as RenderAsset>::PreparedAsset) -> &BindGroup {
         &material.bind_group
     }
@@ -136,18 +138,22 @@ pub struct DeathEffect {
     pub speed: f32,
 }
 
-pub fn death_ring_system(
+pub fn death_effect_system(
     mut commands: Commands,
     time: Res<Time>,
     time_scale: Res<TimeScale>,
     mut query: Query<(Entity, &mut Transform, &mut DeathEffect)>,
 ) {
     for (entity, mut transform, mut effect) in query.iter_mut() {
-        if effect.timer.tick(time.delta()).just_finished() {
+        if effect
+            .timer
+            .tick(Duration::from_secs_f32(time.delta_seconds() * time_scale.0))
+            .just_finished()
+        {
             commands.entity(entity).despawn();
             continue;
         }
 
-        transform.scale += effect.speed * (1.0 + time.delta_seconds()).powf(2.0) * time_scale.0;
+        transform.scale += (effect.speed * time.delta_seconds()).powf(2.0) * time_scale.0;
     }
 }
