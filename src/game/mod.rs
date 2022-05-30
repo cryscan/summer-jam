@@ -30,10 +30,11 @@ impl Plugin for GamePlugin {
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
-            .insert_resource(DebounceTimer {
-                collision_same: Timer::from_seconds(0.5, false),
-                collision_cross: Timer::from_seconds(0.1, false),
+            .insert_resource(DebounceTimers {
+                single_bounce: Timer::from_seconds(0.5, false),
+                inter_bounce: Timer::from_seconds(0.1, false),
                 hit: Timer::from_seconds(0.5, false),
+                miss: Timer::from_seconds(0.5, false),
             })
             .insert_resource(GameOver {
                 slow_motion_timer: Timer::from_seconds(1.0, false),
@@ -105,10 +106,11 @@ struct PlayerMissEvent {
     location: Vec2,
 }
 
-struct DebounceTimer {
-    collision_same: Timer,
-    collision_cross: Timer,
+struct DebounceTimers {
+    single_bounce: Timer,
+    inter_bounce: Timer,
     hit: Timer,
+    miss: Timer,
 }
 
 struct GameOver {
@@ -546,11 +548,11 @@ fn make_ball(
 #[allow(clippy::too_many_arguments)]
 fn player_hit(
     mut commands: Commands,
+    time: Res<Time>,
+    mut timer: ResMut<DebounceTimers>,
     mut collision_events: EventReader<CollisionEvent>,
     mut player_hit_events: EventWriter<PlayerHitEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    time: Res<Time>,
-    mut timer: ResMut<DebounceTimer>,
     ball_query: Query<(&RigidBody, &Motion, Option<&Hint>), With<Ball>>,
     mut base_query: Query<&mut EnemyBase>,
 ) {
@@ -590,8 +592,11 @@ fn player_hit(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn player_miss(
     mut commands: Commands,
+    time: Res<Time>,
+    mut timer: ResMut<DebounceTimers>,
     mut collision_events: EventReader<CollisionEvent>,
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
@@ -599,6 +604,7 @@ fn player_miss(
     ball_query: Query<(Option<&Hint>, &Motion), With<Ball>>,
     mut base_query: Query<(Entity, &mut PlayerBase), Without<Ball>>,
 ) {
+    let can_miss = timer.miss.tick(time.delta()).finished();
     let (entity, mut base) = base_query.single_mut();
 
     let mut closure = |ball_entity: Entity, base_entity: Entity| -> Option<()> {
@@ -617,6 +623,7 @@ fn player_miss(
             base.balls -= 1;
             make_ball_events.send(MakeBallEvent);
         }
+        timer.miss.reset();
 
         if let Some(hint) = hint {
             commands.entity(hint.0).despawn();
@@ -626,9 +633,11 @@ fn player_miss(
         Some(())
     };
 
-    for event in collision_events.iter() {
-        closure(event.entities[0], event.entities[1]);
-        closure(event.entities[1], event.entities[0]);
+    if can_miss {
+        for event in collision_events.iter() {
+            closure(event.entities[0], event.entities[1]);
+            closure(event.entities[1], event.entities[0]);
+        }
     }
 }
 
@@ -730,14 +739,14 @@ fn bounce_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
     time: Res<Time>,
-    mut timer: ResMut<DebounceTimer>,
+    mut timer: ResMut<DebounceTimers>,
     mut events: EventReader<CollisionEvent>,
     mut index: Local<u32>,
-    mut last_bounce_entities: Local<Option<[Entity; 2]>>,
+    mut previous_bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<Entity, With<BounceAudio>>,
 ) {
-    let mut can_play_audio = timer.collision_same.tick(time.delta()).finished();
-    timer.collision_cross.tick(time.delta());
+    let mut can_play_audio = timer.single_bounce.tick(time.delta()).finished();
+    timer.inter_bounce.tick(time.delta());
 
     for event in events.iter() {
         let bounce_entities = query.get_many(event.entities).ok();
@@ -746,9 +755,9 @@ fn bounce_audio(
         }
 
         // bounce happens between a different pair
-        if bounce_entities != *last_bounce_entities {
-            can_play_audio = timer.collision_cross.finished();
-            *last_bounce_entities = bounce_entities;
+        if bounce_entities != *previous_bounce_entities {
+            can_play_audio = timer.inter_bounce.finished();
+            *previous_bounce_entities = bounce_entities;
         }
 
         let channel = &AudioChannel::new(format!("impact-{}", *index));
@@ -768,8 +777,8 @@ fn bounce_audio(
                 let audio_source = audios.impact_audios[pitch].clone();
                 audio.play_in_channel(audio_source, channel);
 
-                timer.collision_same.reset();
-                timer.collision_cross.reset();
+                timer.single_bounce.reset();
+                timer.inter_bounce.reset();
             }
         }
     }
