@@ -6,6 +6,7 @@ use bevy::{
     prelude::*,
     reflect::TypeUuid,
     render::{
+        camera::{ActiveCamera, Camera2d},
         render_asset::{PrepareAssetError, RenderAsset, RenderAssets},
         render_resource::{
             std140::{AsStd140, Std140},
@@ -157,5 +158,42 @@ pub fn death_effect_system(
 
         effect.speed += effect.acceleration * time.delta_seconds() * time_scale.0;
         transform.scale += effect.speed * time.delta_seconds() * time_scale.0;
+    }
+}
+
+pub struct CameraShakeEffect {
+    pub timer: Timer,
+}
+
+pub struct CameraShakeEvent {
+    pub amount: Vec2,
+}
+
+pub fn camera_shake_system(
+    mut events: EventReader<CameraShakeEvent>,
+    mut effect: ResMut<CameraShakeEffect>,
+    active: Res<ActiveCamera<Camera2d>>,
+    time: Res<Time>,
+    mut cameras: Query<&mut Transform, With<Camera>>,
+    mut camera_position: Local<Option<Vec3>>,
+) {
+    if let Some(camera) = active.get() {
+        if let Ok(mut transform) = cameras.get_mut(camera) {
+            if camera_position.is_none() {
+                *camera_position = Some(transform.translation);
+            }
+
+            if effect.timer.tick(time.delta()).just_finished() {
+                transform.translation = camera_position.unwrap_or_default();
+            }
+
+            for event in events.iter() {
+                if effect.timer.finished() {
+                    *camera_position = Some(transform.translation);
+                    transform.translation += event.amount.extend(0.0);
+                    effect.timer.reset();
+                }
+            }
+        }
     }
 }
