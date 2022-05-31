@@ -144,7 +144,6 @@ struct Materials {
 
     // static entities
     boundary: Color,
-    base: Color,
     separate: Color,
 
     // ui
@@ -171,7 +170,6 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
         death: asset_server.load(DEATH_SPRITE),
 
         boundary: Color::NONE,
-        base: Color::rgb_u8(155, 173, 183),
         separate: Color::rgba(0.5, 0.5, 0.5, 0.2),
 
         node: Color::NONE,
@@ -258,7 +256,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(0.0, ARENA_HEIGHT * 0.5 + 16.0, 0.0),
             sprite: Sprite {
-                color: materials.base,
+                color: materials.boundary,
                 custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
                 ..Default::default()
             },
@@ -681,19 +679,15 @@ fn bounce_effects(
                 continue;
             }
 
-            let mut should_shake = true;
-            if let Some(entities) = *previous_bounce_entities {
-                if entities == event.entities {
-                    should_shake = false
-                }
-            }
-            *previous_bounce_entities = Some(event.entities);
-
-            if should_shake {
-                let amount = event.velocity.normalize() * 4.0;
-                camera_shake_events.send(CameraShakeEvent { amount });
+            if previous_bounce_entities.map_or(true, |entities| entities != event.entities) {
+                let speed = event.velocity.length();
+                let scale = 4.0 * (speed / MIN_BOUNCE_AUDIO_SPEED).min(1.0);
+                let amplitude = event.velocity.normalize() * scale;
+                camera_shake_events.send(CameraShakeEvent { amplitude });
                 timer.bounce_effects.reset();
             }
+
+            *previous_bounce_entities = Some(event.entities);
         }
     }
 }
