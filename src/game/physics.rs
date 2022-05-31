@@ -207,10 +207,10 @@ pub fn collision(
                         transform.translation += normal_delta * normal.extend(0.0);
                     }
                     Hit::Intersection(x) => {
-                        // if x.near_time > 0.0 {
-                        transform.translation =
-                            motion.translation.lerp(transform.translation, x.near_time);
-                        // }
+                        if x.near_time > 0.0 {
+                            transform.translation =
+                                motion.translation.lerp(transform.translation, x.near_time);
+                        }
                     }
                 };
             };

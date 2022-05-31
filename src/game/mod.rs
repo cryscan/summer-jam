@@ -25,14 +25,15 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
-            .add_event::<GameOverEvent>()
+        app.add_event::<GameOverEvent>()
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
+            .add_event::<CameraShakeEvent>()
             .insert_resource(DebounceTimers {
-                single_bounce: Timer::from_seconds(0.5, false),
-                inter_bounce: Timer::from_seconds(0.1, false),
+                bounce_single: Timer::from_seconds(0.5, false),
+                bounce_multiple: Timer::from_seconds(0.1, false),
+                bounce_effects: Timer::from_seconds(0.1, false),
                 hit: Timer::from_seconds(0.5, false),
                 miss: Timer::from_seconds(0.5, false),
             })
@@ -40,6 +41,9 @@ impl Plugin for GamePlugin {
                 slow_motion_timer: Timer::from_seconds(1.0, false),
                 state_change_timer: Timer::from_seconds(2.0, false),
                 event: None,
+            })
+            .insert_resource(CameraShakeEffect {
+                timer: Timer::from_seconds(0.02, false),
             })
             .add_startup_system(setup_game)
             .add_system_set(
@@ -66,9 +70,11 @@ impl Plugin for GamePlugin {
                     .with_system(ball_activate)
                     .with_system(hint_system)
                     .with_system(score_system)
-                    .with_system(make_score_effects)
+                    .with_system(score_effects)
+                    .with_system(game_over_system)
                     .with_system(death_effect_system)
-                    .with_system(game_over_system),
+                    .with_system(camera_shake_system)
+                    .with_system(bounce_effects),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
@@ -84,6 +90,7 @@ impl Plugin for GamePlugin {
                     .with_system(bounce_audio)
                     .with_system(score_audio),
             )
+            .add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
             .add_plugin(PhysicsPlugin);
     }
 }
@@ -107,8 +114,9 @@ struct PlayerMissEvent {
 }
 
 struct DebounceTimers {
-    single_bounce: Timer,
-    inter_bounce: Timer,
+    bounce_single: Timer,
+    bounce_multiple: Timer,
+    bounce_effects: Timer,
     hit: Timer,
     miss: Timer,
 }
@@ -162,7 +170,7 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
         hint: asset_server.load(HINT_SPRITE),
         death: asset_server.load(DEATH_SPRITE),
 
-        boundary: Color::WHITE,
+        boundary: Color::NONE,
         base: Color::rgb_u8(155, 173, 183),
         separate: Color::rgba(0.5, 0.5, 0.5, 0.2),
 
@@ -223,7 +231,19 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
     // middle Separate
     commands
         .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            transform: Transform::from_xyz(0.0, 8.0, 0.0),
+            sprite: Sprite {
+                color: materials.boundary,
+                custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Cleanup)
+        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5))
+        .insert(PhysicsLayers::SEPARATE);
+    commands
+        .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: materials.separate,
                 custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
@@ -231,17 +251,15 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             },
             ..Default::default()
         })
-        .insert(Cleanup)
-        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 16.0), 0.0, 0.9, 0.5))
-        .insert(PhysicsLayers::SEPARATE);
+        .insert(Cleanup);
 
     // top boundary
     commands
         .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0 + 8.0, 0.0),
+            transform: Transform::from_xyz(0.0, ARENA_HEIGHT * 0.5 + 16.0, 0.0),
             sprite: Sprite {
                 color: materials.base,
-                custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
+                custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
                 ..Default::default()
             },
             ..Default::default()
@@ -251,39 +269,39 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             full_hp: 10000.0,
             hp: 10000.0,
         })
-        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 16.0), 0.0, 0.9, 0.0))
+        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.0))
         .insert(PhysicsLayers::BOUNDARY);
 
     // bottom boundary
     commands
         .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0 - 8.0, 0.0),
+            transform: Transform::from_xyz(0.0, -ARENA_HEIGHT * 0.5 - 16.0, 0.0),
             sprite: Sprite {
                 color: materials.boundary,
-                custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
+                custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
                 ..Default::default()
             },
             ..Default::default()
         })
         .insert(Cleanup)
         .insert(PlayerBase { balls: 3 })
-        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 16.0), 0.0, 0.9, 0.5))
+        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5))
         .insert(PhysicsLayers::BOUNDARY);
 
     // left boundary
     commands
         .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(-ARENA_WIDTH / 2.0 - 8.0, 0.0, 0.0),
+            transform: Transform::from_xyz(-ARENA_WIDTH * 0.5 - 16.0, 0.0, 0.0),
             sprite: Sprite {
                 color: materials.boundary,
-                custom_size: Some(Vec2::new(16.0, ARENA_HEIGHT + 32.0)),
+                custom_size: Some(Vec2::new(32.0, ARENA_HEIGHT + 64.0)),
                 ..Default::default()
             },
             ..Default::default()
         })
         .insert(Cleanup)
         .insert(RigidBody::new(
-            Vec2::new(16.0, ARENA_HEIGHT + 32.0),
+            Vec2::new(32.0, ARENA_HEIGHT + 64.0),
             0.0,
             1.0,
             0.0,
@@ -293,17 +311,17 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
     // right boundary
     commands
         .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(ARENA_WIDTH / 2.0 + 8.0, 0.0, 0.0),
+            transform: Transform::from_xyz(ARENA_WIDTH * 0.5 + 16.0, 0.0, 0.0),
             sprite: Sprite {
                 color: materials.boundary,
-                custom_size: Some(Vec2::new(16.0, ARENA_HEIGHT + 32.0)),
+                custom_size: Some(Vec2::new(32.0, ARENA_HEIGHT + 64.0)),
                 ..Default::default()
             },
             ..Default::default()
         })
         .insert(Cleanup)
         .insert(RigidBody::new(
-            Vec2::new(16.0, ARENA_HEIGHT + 32.0),
+            Vec2::new(32.0, ARENA_HEIGHT + 64.0),
             0.0,
             1.0,
             0.0,
@@ -641,6 +659,45 @@ fn player_miss(
     }
 }
 
+fn bounce_effects(
+    time: Res<Time>,
+    mut timer: ResMut<DebounceTimers>,
+    mut collision_events: EventReader<CollisionEvent>,
+    mut camera_shake_events: EventWriter<CameraShakeEvent>,
+    mut previous_bounce_entities: Local<Option<[Entity; 2]>>,
+    ball_query: Query<(), With<Ball>>,
+) {
+    if timer.bounce_effects.tick(time.delta()).finished() {
+        if collision_events.is_empty() {
+            *previous_bounce_entities = None;
+        }
+
+        for event in collision_events.iter() {
+            if ball_query
+                .get(event.entities[0])
+                .or_else(|_| ball_query.get(event.entities[1]))
+                .is_err()
+            {
+                continue;
+            }
+
+            let mut should_shake = true;
+            if let Some(entities) = *previous_bounce_entities {
+                if entities == event.entities {
+                    should_shake = false
+                }
+            }
+            *previous_bounce_entities = Some(event.entities);
+
+            if should_shake {
+                let amount = event.velocity.normalize() * 4.0;
+                camera_shake_events.send(CameraShakeEvent { amount });
+                timer.bounce_effects.reset();
+            }
+        }
+    }
+}
+
 fn game_over_system(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
@@ -677,7 +734,7 @@ fn game_over_system(
     }
 }
 
-fn make_score_effects(
+fn score_effects(
     mut commands: Commands,
     materials: Res<Materials>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -745,8 +802,8 @@ fn bounce_audio(
     mut previous_bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<Entity, With<BounceAudio>>,
 ) {
-    let mut can_play_audio = timer.single_bounce.tick(time.delta()).finished();
-    timer.inter_bounce.tick(time.delta());
+    let mut can_play_audio = timer.bounce_single.tick(time.delta()).finished();
+    timer.bounce_multiple.tick(time.delta());
 
     for event in events.iter() {
         let bounce_entities = query.get_many(event.entities).ok();
@@ -756,7 +813,7 @@ fn bounce_audio(
 
         // bounce happens between a different pair
         if bounce_entities != *previous_bounce_entities {
-            can_play_audio = timer.inter_bounce.finished();
+            can_play_audio = timer.bounce_multiple.finished();
             *previous_bounce_entities = bounce_entities;
         }
 
@@ -777,8 +834,8 @@ fn bounce_audio(
                 let audio_source = audios.impact_audios[pitch].clone();
                 audio.play_in_channel(audio_source, channel);
 
-                timer.single_bounce.reset();
-                timer.inter_bounce.reset();
+                timer.bounce_single.reset();
+                timer.bounce_multiple.reset();
             }
         }
     }

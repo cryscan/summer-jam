@@ -115,7 +115,7 @@ fn setup(
         mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
         transform: Transform {
             translation: Vec3::new(0.0, 0.0, -0.09),
-            scale: Vec3::new(ARENA_WIDTH, ARENA_HEIGHT, 1.0),
+            scale: Vec3::new(ARENA_WIDTH + 8.0, ARENA_HEIGHT + 8.0, 1.0),
             ..Default::default()
         },
         material: materials.add(BackgroundMaterial {
