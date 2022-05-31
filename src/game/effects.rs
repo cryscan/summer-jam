@@ -166,7 +166,7 @@ pub struct CameraShakeEffect {
 }
 
 pub struct CameraShakeEvent {
-    pub amount: Vec2,
+    pub amplitude: Vec2,
 }
 
 pub fn camera_shake_system(
@@ -190,7 +190,7 @@ pub fn camera_shake_system(
             for event in events.iter() {
                 if effect.timer.finished() {
                     *camera_position = Some(transform.translation);
-                    transform.translation += event.amount.extend(0.0);
+                    transform.translation += event.amplitude.extend(0.0);
                     effect.timer.reset();
                 }
             }
