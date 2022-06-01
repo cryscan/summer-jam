@@ -16,9 +16,21 @@ use bevy::{
     },
     sprite::{
         ColorMaterialFlags, ColorMaterialUniformData, GpuColorMaterial, Material2d,
-        Material2dPipeline,
+        Material2dPipeline, Material2dPlugin,
     },
 };
+
+pub struct EffectsPlugin;
+
+impl Plugin for EffectsPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(CameraShakeTimer(Timer::from_seconds(0.01, false)))
+            .add_event::<CameraShakeEvent>()
+            .add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
+            .add_system(death_effect_system)
+            .add_system(camera_shake_system);
+    }
+}
 
 #[derive(Component, Debug, Clone, TypeUuid, Deref, DerefMut)]
 #[uuid = "8afb68fd-de70-4be5-be04-72f5dd29d1e2"]
@@ -140,7 +152,7 @@ pub struct DeathEffect {
     pub acceleration: f32,
 }
 
-pub fn death_effect_system(
+fn death_effect_system(
     mut commands: Commands,
     time: Res<Time>,
     time_scale: Res<TimeScale>,
@@ -161,19 +173,18 @@ pub fn death_effect_system(
     }
 }
 
-pub struct CameraShakeEffect {
-    pub timer: Timer,
-}
+#[derive(Deref, DerefMut)]
+pub struct CameraShakeTimer(Timer);
 
 pub struct CameraShakeEvent {
     pub amplitude: Vec2,
 }
 
-pub fn camera_shake_system(
+fn camera_shake_system(
     mut events: EventReader<CameraShakeEvent>,
-    mut effect: ResMut<CameraShakeEffect>,
     active: Res<ActiveCamera<Camera2d>>,
     time: Res<Time>,
+    mut timer: ResMut<CameraShakeTimer>,
     mut cameras: Query<&mut Transform, With<Camera>>,
     mut camera_position: Local<Option<Vec3>>,
 ) {
@@ -183,15 +194,15 @@ pub fn camera_shake_system(
                 *camera_position = Some(transform.translation);
             }
 
-            if effect.timer.tick(time.delta()).just_finished() {
+            if timer.tick(time.delta()).just_finished() {
                 transform.translation = camera_position.unwrap_or_default();
             }
 
             for event in events.iter() {
-                if effect.timer.finished() {
+                if timer.finished() {
                     *camera_position = Some(transform.translation);
                     transform.translation += event.amplitude.extend(0.0);
-                    effect.timer.reset();
+                    timer.reset();
                 }
             }
         }

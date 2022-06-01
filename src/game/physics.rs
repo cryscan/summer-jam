@@ -93,13 +93,13 @@ pub struct CollisionEvent {
     pub hit: Hit,
 }
 
-pub fn init_motion(mut query: Query<(&Transform, &mut Motion), Added<Motion>>) {
+fn init_motion(mut query: Query<(&Transform, &mut Motion), Added<Motion>>) {
     for (transform, mut motion) in query.iter_mut() {
         motion.translation = transform.translation;
     }
 }
 
-pub fn movement(time_scale: Res<TimeScale>, mut query: Query<(&mut Motion, &mut Transform)>) {
+fn movement(time_scale: Res<TimeScale>, mut query: Query<(&mut Motion, &mut Transform)>) {
     for (mut motion, mut transform) in query.iter_mut() {
         motion.translation = transform.translation;
 
@@ -109,7 +109,7 @@ pub fn movement(time_scale: Res<TimeScale>, mut query: Query<(&mut Motion, &mut 
 }
 
 #[allow(clippy::type_complexity)]
-pub fn collision(
+fn collision(
     time_scale: Res<TimeScale>,
     mut query: Query<(
         Entity,

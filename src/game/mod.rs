@@ -5,11 +5,7 @@ use crate::{
     utils::{cleanup_system, Damp, Interpolation, TimeScale},
     AppState,
 };
-use bevy::{
-    core::FixedTimestep,
-    prelude::*,
-    sprite::{Material2dPlugin, MaterialMesh2dBundle},
-};
+use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
 use itertools::Itertools;
 
@@ -29,7 +25,6 @@ impl Plugin for GamePlugin {
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
-            .add_event::<CameraShakeEvent>()
             .insert_resource(DebounceTimers {
                 bounce_single: Timer::from_seconds(0.5, false),
                 bounce_multiple: Timer::from_seconds(0.1, false),
@@ -41,9 +36,6 @@ impl Plugin for GamePlugin {
                 slow_motion_timer: Timer::from_seconds(1.0, false),
                 state_change_timer: Timer::from_seconds(2.0, false),
                 event: None,
-            })
-            .insert_resource(CameraShakeEffect {
-                timer: Timer::from_seconds(0.02, false),
             })
             .add_startup_system(setup_game)
             .add_system_set(
@@ -72,8 +64,6 @@ impl Plugin for GamePlugin {
                     .with_system(score_system)
                     .with_system(score_effects)
                     .with_system(game_over_system)
-                    .with_system(death_effect_system)
-                    .with_system(camera_shake_system)
                     .with_system(bounce_effects),
             )
             .add_system_set(
@@ -90,8 +80,8 @@ impl Plugin for GamePlugin {
                     .with_system(bounce_audio)
                     .with_system(score_audio),
             )
-            .add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
-            .add_plugin(PhysicsPlugin);
+            .add_plugin(PhysicsPlugin)
+            .add_plugin(EffectsPlugin);
     }
 }
 
