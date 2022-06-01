@@ -6,10 +6,6 @@ use crate::{
     AppState,
 };
 use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
-use bevy_hanabi::{
-    AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, ParticleEffect,
-    PositionSphereModifier, ShapeDimension, SizeOverLifetimeModifier, Spawner,
-};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
 use itertools::Itertools;
 
@@ -519,7 +515,6 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
 fn make_ball(
     mut commands: Commands,
     materials: Res<Materials>,
-    mut effects: ResMut<Assets<EffectAsset>>,
     mut events: EventReader<MakeBallEvent>,
 ) {
     for _ in events.iter() {
@@ -531,38 +526,6 @@ fn make_ball(
             })
             .insert(Cleanup)
             .id();
-
-        let mut color_gradient = Gradient::new();
-        color_gradient.add_key(0.0, Vec4::new(0.8, 1.0, 1.0, 1.0));
-        color_gradient.add_key(0.2, Vec4::new(1.0, 0.0, 0.0, 0.0));
-
-        let mut size_gradient = Gradient::new();
-        size_gradient.add_key(0.0, Vec2::new(4.0, 4.0));
-        size_gradient.add_key(0.2, Vec2::ZERO);
-
-        let effect = effects.add(
-            EffectAsset {
-                name: "Ball Bounce".into(),
-                capacity: 32768,
-                spawner: Spawner::once(300.0.into(), false),
-                ..Default::default()
-            }
-            .init(PositionSphereModifier {
-                radius: 16.0,
-                speed: 500.0.into(),
-                dimension: ShapeDimension::Surface,
-                ..Default::default()
-            })
-            .update(AccelModifier {
-                accel: Vec3::new(0.0, -1000.0, 0.0),
-            })
-            .render(SizeOverLifetimeModifier {
-                gradient: size_gradient,
-            })
-            .render(ColorOverLifetimeModifier {
-                gradient: color_gradient,
-            }),
-        );
 
         commands
             .spawn_bundle(SpriteBundle {
@@ -584,8 +547,7 @@ fn make_ball(
                 points: vec![Point::default(); PREDICT_SIZE],
             })
             .insert(Hint(hint))
-            .insert(BounceAudio)
-            .insert_bundle((ParticleEffect::new(effect), ComputedVisibility::default()));
+            .insert(BounceAudio);
     }
 }
 
@@ -692,7 +654,7 @@ fn bounce_effects(
     mut collision_events: EventReader<CollisionEvent>,
     mut camera_shake_events: EventWriter<CameraShakeEvent>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
-    mut query: ParamSet<(Query<Entity, With<Ball>>, Query<&mut ParticleEffect>)>,
+    query: Query<Entity, With<Ball>>,
 ) {
     if timer.bounce_effects.tick(time.delta()).finished() {
         if collision_events.is_empty() {
@@ -700,20 +662,20 @@ fn bounce_effects(
         }
 
         for event in collision_events.iter() {
-            if let Ok(ball_entity) = query
-                .p0()
+            if query
                 .get(event.entities[0])
-                .or_else(|_| query.p0().get(event.entities[1]))
+                .or_else(|_| query.get(event.entities[1]))
+                .is_ok()
             {
                 if bounce_entities.map_or(true, |entities| entities != event.entities) {
                     let speed = event.velocity.length();
                     let scale = (speed / MAX_BOUNCE_EFFECTS_SPEED).min(1.0);
 
                     // emit particles
-                    if let Ok(mut effect) = query.p1().get_mut(ball_entity) {
-                        let count = 20.0 * scale;
-                        effect.set_spawner(Spawner::once(count.into(), true));
-                    }
+                    // if let Ok(mut effect) = query.p1().get_mut(ball_entity) {
+                    //     let count = 20.0 * scale;
+                    //     effect.set_spawner(Spawner::once(count.into(), true));
+                    // }
 
                     // screen shake
                     let amplitude = event.velocity.normalize() * scale * 8.0;
