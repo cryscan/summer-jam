@@ -53,6 +53,7 @@ pub const ENEMY_HIT_RANGE_VERTICAL: f32 = 144.0;
 pub const ENEMY_HIT_RANGE_HORIZONTAL: f32 = 144.0;
 pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -0.0;
 
+pub const BALL_GHOSTS_COUNT: usize = 16;
 pub const BALL_MAX_SPEED: f32 = 3000.0;
 pub const MAX_DAMAGE: f32 = 2000.0;
 

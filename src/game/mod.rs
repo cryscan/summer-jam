@@ -54,6 +54,7 @@ impl Plugin for GamePlugin {
                     .with_system(move_enemy)
                     .with_system(move_ball)
                     .with_system(activate_ball)
+                    .with_system(update_ball)
                     .with_system(player_assistance)
                     .with_system(player_hit)
                     .with_system(player_miss)
@@ -527,10 +528,16 @@ fn make_ball(
             .insert(Cleanup)
             .id();
 
+        let color = Color::rgba(1.0, 1.0, 1.0, 1.0 / BALL_GHOSTS_COUNT as f32);
+
         commands
             .spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(0.0, 0.0, -1.0),
                 texture: materials.ball.clone(),
+                sprite: Sprite {
+                    color,
+                    ..Default::default()
+                },
                 ..Default::default()
             })
             .insert(Cleanup)
@@ -547,7 +554,19 @@ fn make_ball(
                 points: vec![Point::default(); PREDICT_SIZE],
             })
             .insert(Hint(hint))
-            .insert(BounceAudio);
+            .insert(BounceAudio)
+            .with_children(|parent| {
+                for _ in 0..BALL_GHOSTS_COUNT {
+                    parent.spawn_bundle(SpriteBundle {
+                        texture: materials.ball.clone(),
+                        sprite: Sprite {
+                            color,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    });
+                }
+            });
     }
 }
 

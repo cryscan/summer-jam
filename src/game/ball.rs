@@ -1,3 +1,5 @@
+use std::f32::consts::FRAC_PI_2;
+
 use super::physics::{Motion, RigidBody};
 use crate::{config::*, utils::TimeScale};
 use bevy::prelude::*;
@@ -31,6 +33,25 @@ pub fn activate_ball(
 
         if ball.active_timer.tick(time.delta()).just_finished() {
             commands.entity(entity).insert(Motion::default());
+        }
+    }
+}
+
+pub fn update_ball(
+    ball_query: Query<(&Children, &Motion), With<Ball>>,
+    mut child_query: Query<&mut Transform, Without<Ball>>,
+) {
+    for (children, motion) in ball_query.iter() {
+        for (index, child) in children.iter().enumerate() {
+            let extent = 2.0 * BALL_SIZE;
+            let count = (BALL_GHOSTS_COUNT) as f32;
+            // make a good distribution
+            let offset: f32 = 2.0 * (index as f32 - count / 2.0 + 0.5) / count;
+            let offset = offset.acos() / FRAC_PI_2 - 1.0;
+
+            let mut transform = child_query.get_mut(*child).unwrap();
+            transform.translation =
+                (extent * offset * motion.velocity / BALL_MAX_SPEED as f32).extend(0.0);
         }
     }
 }
