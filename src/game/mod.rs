@@ -671,7 +671,7 @@ fn bounce_effects(
 
             if previous_bounce_entities.map_or(true, |entities| entities != event.entities) {
                 let speed = event.velocity.length();
-                let scale = 4.0 * (speed / MIN_BOUNCE_AUDIO_SPEED).min(1.0);
+                let scale = 8.0 * (speed / MAX_BOUNCE_EFFECTS_SPEED).min(1.0);
                 let amplitude = event.velocity.normalize() * scale;
                 camera_shake_events.send(CameraShakeEvent { amplitude });
                 timer.bounce_effects.reset();
