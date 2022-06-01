@@ -26,7 +26,7 @@ pub struct Controller {
     pub velocity: Vec2,
 }
 
-pub fn enemy_movement(
+pub fn move_enemy(
     time: Res<Time>,
     time_scale: Res<TimeScale>,
     mut query: Query<(&Enemy, Option<&Controller>, &mut Motion)>,
@@ -42,7 +42,7 @@ pub fn enemy_movement(
     }
 }
 
-pub fn enemy_controller(
+pub fn control_enemy(
     time: Res<Time>,
     mut query: Query<(&Transform, &Enemy, &mut Controller), Without<Ball>>,
     ball_query: Query<(&Transform, &Motion, &Trajectory), With<Ball>>,

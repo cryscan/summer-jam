@@ -21,7 +21,7 @@ pub struct Player {
     pub assist_speed_threshold: f32,
 }
 
-pub fn player_movement(
+pub fn move_player(
     time: Res<Time>,
     time_scale: Res<TimeScale>,
     mut mouse_motion_events: EventReader<MouseMotion>,
@@ -45,7 +45,7 @@ pub fn player_movement(
         .clamp_length_max(player.max_speed);
 }
 
-pub fn player_assist(
+pub fn player_assistance(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut query: Query<(&Transform, &Player, &mut Controller), Without<Ball>>,

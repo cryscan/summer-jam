@@ -50,21 +50,21 @@ impl Plugin for GamePlugin {
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
                     .with_system(make_ball)
-                    .with_system(player_movement)
-                    .with_system(player_assist)
-                    .with_system(enemy_movement)
+                    .with_system(move_player)
+                    .with_system(move_enemy)
+                    .with_system(move_ball)
+                    .with_system(activate_ball)
+                    .with_system(player_assistance)
                     .with_system(player_hit)
                     .with_system(player_miss)
-                    .with_system(ball_counter)
+                    .with_system(count_ball)
                     .with_system(health_bar)
                     .with_system(health_bar_tracker)
-                    .with_system(ball_movement)
-                    .with_system(ball_activate)
                     .with_system(hint_system)
                     .with_system(score_system)
                     .with_system(score_effects)
-                    .with_system(game_over_system)
-                    .with_system(bounce_effects),
+                    .with_system(bounce_effects)
+                    .with_system(game_over),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
@@ -72,8 +72,8 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(FixedTimestep::step(AI_TIME_STEP))
-                    .with_system(ball_predict)
-                    .with_system(enemy_controller),
+                    .with_system(predict_ball)
+                    .with_system(control_enemy),
             )
             .add_system_set(
                 SystemSet::new()
@@ -580,7 +580,7 @@ fn player_hit(
             if let Some(hint) = hint {
                 commands.entity(hint.0).despawn();
             }
-            commands.entity(ball_entity).despawn();
+            commands.entity(ball_entity).despawn_recursive();
             game_over_events.send(GameOverEvent::Win);
         } else {
             base.hp -= damage;
@@ -634,7 +634,7 @@ fn player_miss(
         if let Some(hint) = hint {
             commands.entity(hint.0).despawn();
         }
-        commands.entity(ball_entity).despawn();
+        commands.entity(ball_entity).despawn_recursive();
 
         Some(())
     };
@@ -689,7 +689,7 @@ fn bounce_effects(
     }
 }
 
-fn game_over_system(
+fn game_over(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut app_state: ResMut<State<AppState>>,

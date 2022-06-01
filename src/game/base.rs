@@ -15,7 +15,7 @@ pub struct EnemyBase {
 #[derive(Component)]
 pub struct BallCounter;
 
-pub fn ball_counter(
+pub fn count_ball(
     base_query: Query<&PlayerBase>,
     mut counter_query: Query<&mut Text, With<BallCounter>>,
 ) {

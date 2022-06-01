@@ -1,5 +1,5 @@
 use super::physics::{Motion, RigidBody};
-use crate::config::*;
+use crate::{config::*, utils::TimeScale};
 use bevy::prelude::*;
 
 #[derive(Clone, Component)]
@@ -19,7 +19,7 @@ impl Default for Ball {
     }
 }
 
-pub fn ball_activate(
+pub fn activate_ball(
     mut commands: Commands,
     time: Res<Time>,
     mut query: Query<(Entity, &mut Ball, &mut Transform)>,
@@ -35,9 +35,13 @@ pub fn ball_activate(
     }
 }
 
-pub fn ball_movement(time: Res<Time>, mut query: Query<(&Ball, &mut Motion)>) {
+pub fn move_ball(
+    time: Res<Time>,
+    time_scale: Res<TimeScale>,
+    mut query: Query<(&Ball, &mut Motion)>,
+) {
     for (ball, mut motion) in query.iter_mut() {
-        motion.velocity.y += ball.gravity * time.delta_seconds();
+        motion.velocity.y += ball.gravity * time.delta_seconds() * time_scale.0;
 
         let speed = motion.velocity.length();
         if speed > BALL_MAX_SPEED {
@@ -59,7 +63,7 @@ pub struct Trajectory {
     pub points: Vec<Point>,
 }
 
-pub fn ball_predict(
+pub fn predict_ball(
     time: Res<Time>,
     mut query: Query<(&Ball, &RigidBody, &Motion, &mut Trajectory)>,
 ) {
