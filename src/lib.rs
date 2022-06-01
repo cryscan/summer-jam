@@ -2,7 +2,6 @@
 extern crate derive_new;
 
 use bevy::prelude::*;
-use bevy_hanabi::HanabiPlugin;
 use bevy_kira_audio::AudioPlugin;
 use wasm_bindgen::prelude::*;
 
@@ -45,7 +44,7 @@ pub fn run() {
     app.add_plugins(DefaultPlugins);
 
     app.add_plugin(AudioPlugin)
-        .add_plugin(HanabiPlugin)
+        // .add_plugin(HanabiPlugin)
         .add_state(AppState::Loading)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
