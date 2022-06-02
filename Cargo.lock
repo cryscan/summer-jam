@@ -366,22 +366,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_hanabi"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98dff35996adf6990e1abf884e951ea5c2c86d2525be7124578e89350e2ae97e"
-dependencies = [
- "anyhow",
- "bevy",
- "bitflags",
- "bytemuck",
- "rand",
- "rand_pcg",
- "ron",
- "serde",
-]
-
-[[package]]
 name = "bevy_hierarchy"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -506,17 +490,6 @@ dependencies = [
  "bevy_window",
  "bitflags",
  "bytemuck",
-]
-
-[[package]]
-name = "bevy_polyline"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aff83a9ef2b8dee22c2c214e41c6b441ffebf9c6226b35f6e07cdeb4ab158eb5"
-dependencies = [
- "bevy",
- "bitflags",
- "naga",
 ]
 
 [[package]]
@@ -806,12 +779,10 @@ checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
 name = "bounce-up"
-version = "1.3.0"
+version = "1.3.1"
 dependencies = [
  "bevy",
- "bevy_hanabi",
  "bevy_kira_audio",
- "bevy_polyline",
  "derive-new",
  "itertools",
  "rand",
@@ -2280,15 +2251,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 dependencies = [
  "getrandom",
-]
-
-[[package]]
-name = "rand_pcg"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59cad018caf63deb318e5a4586d99a24424a364f40f1e5778c29aca23f4fc73e"
-dependencies = [
- "rand_core",
 ]
 
 [[package]]
