@@ -37,6 +37,8 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
     for audio in IMPACT_AUDIOS {
         loading.push(server.load_untyped(audio));
     }
+
+    loading.push(server.load_untyped(BACKGROUND_MUSIC));
 }
 
 fn check_assets_loaded(
