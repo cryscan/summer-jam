@@ -21,3 +21,4 @@
 *.ase binary
 *.flac binary
 *.wav binary
+*.ogg binary

@@ -26,6 +26,8 @@ pub const IMPACT_AUDIOS: [&str; 4] = [
 ];
 pub const MAX_IMPACT_AUDIO_CHANNELS: u32 = 10;
 
+pub const BACKGROUND_MUSIC: &str = "musics/transmission.ogg";
+
 pub const PREDICT_SIZE: usize = 100;
 pub const PREDICT_TIME_STEP: f64 = 0.01;
 pub const AI_TIME_STEP: f64 = 0.1;

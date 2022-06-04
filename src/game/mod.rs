@@ -143,7 +143,7 @@ struct Materials {
     health_bar_tracker: Color,
 }
 
-struct Audios {
+struct SoundEffects {
     hit_audio: Handle<AudioSource>,
     miss_audio: Handle<AudioSource>,
     explosion_audio: Handle<AudioSource>,
@@ -168,7 +168,7 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
         health_bar_tracker: Color::rgb_u8(217, 87, 99),
     });
 
-    commands.insert_resource(Audios {
+    commands.insert_resource(SoundEffects {
         hit_audio: asset_server.load(HIT_AUDIO),
         miss_audio: asset_server.load(MISS_AUDIO),
         explosion_audio: asset_server.load(EXPLOSION_AUDIO),
@@ -803,7 +803,7 @@ fn score_system(
 
 #[allow(clippy::too_many_arguments)]
 fn bounce_audio(
-    audios: Res<Audios>,
+    audios: Res<SoundEffects>,
     audio: Res<Audio>,
     time: Res<Time>,
     mut timer: ResMut<DebounceTimers>,
@@ -852,7 +852,7 @@ fn bounce_audio(
 }
 
 fn score_audio(
-    audios: Res<Audios>,
+    audios: Res<SoundEffects>,
     audio: Res<Audio>,
     mut player_hit_events: EventReader<PlayerHitEvent>,
     mut player_miss_events: EventReader<PlayerMissEvent>,

@@ -5,6 +5,8 @@ Live version is available [here](https://cryscan.itch.io/bounce-up).
 
 Thanks [@Bobox214](https://github.com/Bobox214) for the [star background](https://github.com/Bobox214/Kataster)!
 
+Background music credits to [One Man Symphony](onemansymphony.com).
+
 ## Build for Web
 Run the following command to compile:
 ```shell
