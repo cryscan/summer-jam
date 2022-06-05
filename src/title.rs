@@ -35,6 +35,7 @@ struct ColorText {
     dark: Color,
 }
 
+#[derive(Deref, DerefMut)]
 struct ColorTimer(Timer);
 
 fn enter_title(mut time_scale: ResMut<TimeScale>) {
@@ -120,7 +121,7 @@ fn title_color(
     mut color_flag: Local<bool>,
     mut query: Query<(&mut Text, &ColorText)>,
 ) {
-    if timer.0.tick(time.delta()).just_finished() {
+    if timer.tick(time.delta()).just_finished() {
         for (mut text, color) in query.iter_mut() {
             text.sections[0].style.color = match *color_flag {
                 true => color.bright,
