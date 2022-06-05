@@ -25,10 +25,10 @@ impl Plugin for GamePlugin {
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
-            .insert_resource(DebounceTimers {
-                bounce_single: Timer::from_seconds(0.5, false),
-                bounce_multiple: Timer::from_seconds(0.1, false),
-                bounce_effects: Timer::from_seconds(0.1, false),
+            .insert_resource(Debounce {
+                bounce_long: Timer::from_seconds(0.5, false),
+                bounce_short: Timer::from_seconds(0.1, false),
+                effects: Timer::from_seconds(0.1, false),
                 hit: Timer::from_seconds(0.5, false),
                 miss: Timer::from_seconds(0.5, false),
             })
@@ -104,10 +104,10 @@ struct PlayerMissEvent {
     location: Vec2,
 }
 
-struct DebounceTimers {
-    bounce_single: Timer,
-    bounce_multiple: Timer,
-    bounce_effects: Timer,
+struct Debounce {
+    bounce_long: Timer,
+    bounce_short: Timer,
+    effects: Timer,
     hit: Timer,
     miss: Timer,
 }
@@ -143,7 +143,7 @@ struct Materials {
     health_bar_tracker: Color,
 }
 
-struct SoundEffects {
+struct Audios {
     hit_audio: Handle<AudioSource>,
     miss_audio: Handle<AudioSource>,
     explosion_audio: Handle<AudioSource>,
@@ -168,7 +168,7 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
         health_bar_tracker: Color::rgb_u8(217, 87, 99),
     });
 
-    commands.insert_resource(SoundEffects {
+    commands.insert_resource(Audios {
         hit_audio: asset_server.load(HIT_AUDIO),
         miss_audio: asset_server.load(MISS_AUDIO),
         explosion_audio: asset_server.load(EXPLOSION_AUDIO),
@@ -574,7 +574,7 @@ fn make_ball(
 fn player_hit(
     mut commands: Commands,
     time: Res<Time>,
-    mut timer: ResMut<DebounceTimers>,
+    mut timer: ResMut<Debounce>,
     mut collision_events: EventReader<CollisionEvent>,
     mut player_hit_events: EventWriter<PlayerHitEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
@@ -621,7 +621,7 @@ fn player_hit(
 fn player_miss(
     mut commands: Commands,
     time: Res<Time>,
-    mut timer: ResMut<DebounceTimers>,
+    mut timer: ResMut<Debounce>,
     mut collision_events: EventReader<CollisionEvent>,
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
@@ -669,13 +669,13 @@ fn player_miss(
 #[allow(clippy::type_complexity)]
 fn bounce_effects(
     time: Res<Time>,
-    mut timer: ResMut<DebounceTimers>,
+    mut timer: ResMut<Debounce>,
     mut collision_events: EventReader<CollisionEvent>,
     mut camera_shake_events: EventWriter<CameraShakeEvent>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<Entity, With<Ball>>,
 ) {
-    if timer.bounce_effects.tick(time.delta()).finished() {
+    if timer.effects.tick(time.delta()).finished() {
         if collision_events.is_empty() {
             *bounce_entities = None;
         }
@@ -690,16 +690,10 @@ fn bounce_effects(
                     let speed = event.velocity.length();
                     let scale = (speed / MAX_BOUNCE_EFFECTS_SPEED).min(1.0);
 
-                    // emit particles
-                    // if let Ok(mut effect) = query.p1().get_mut(ball_entity) {
-                    //     let count = 20.0 * scale;
-                    //     effect.set_spawner(Spawner::once(count.into(), true));
-                    // }
-
                     // screen shake
                     let amplitude = event.velocity.normalize() * scale * 8.0;
                     camera_shake_events.send(CameraShakeEvent { amplitude });
-                    timer.bounce_effects.reset();
+                    timer.effects.reset();
                 }
 
                 *bounce_entities = Some(event.entities);
@@ -722,7 +716,7 @@ fn game_over(
         }
         time_scale.0 = time_scale
             .0
-            .damp(target_time_scale, 100.0, time.delta_seconds());
+            .damp(target_time_scale, TIME_SCALE_DAMP, time.delta_seconds());
 
         // it's time to switch back
         if game_over
@@ -753,36 +747,37 @@ fn score_effects(
     mut player_hit_events: EventReader<PlayerHitEvent>,
 ) {
     let mut make_effect = |location: Vec2, duration: f32| {
-        commands
-            .spawn_bundle(MaterialMesh2dBundle {
-                mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
-                material: color_materials.add(materials.death.clone().into()),
-                transform: Transform::from_translation(location.extend(0.01)),
-                ..Default::default()
-            })
-            .insert(DeathEffect {
-                timer: Timer::from_seconds(duration, false),
-                speed: DEATH_EFFECT_SPEED,
-                acceleration: DEATH_EFFECT_ACCELERATION,
-            })
-            .insert(Cleanup);
+        for offset in [
+            Vec2::new(-100.0, 0.0),
+            Vec2::new(100.0, 0.0),
+            Vec2::new(0.0, -100.0),
+            Vec2::new(0.0, 100.0),
+        ] {
+            commands
+                .spawn_bundle(MaterialMesh2dBundle {
+                    mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
+                    material: color_materials.add(materials.death.clone().into()),
+                    transform: Transform::from_translation((location + offset).extend(0.01)),
+                    ..Default::default()
+                })
+                .insert(DeathEffect {
+                    timer: Timer::from_seconds(duration, false),
+                    speed: DEATH_EFFECT_SPEED,
+                    acceleration: DEATH_EFFECT_ACCELERATION,
+                })
+                .insert(Cleanup);
+        }
     };
 
     for event in player_miss_events.iter() {
         let duration = if event.balls <= 0 { 2.0 } else { 1.0 };
-        make_effect(event.location + Vec2::new(-100.0, 0.0), duration);
-        make_effect(event.location + Vec2::new(100.0, 0.0), duration);
-        make_effect(event.location + Vec2::new(0.0, -100.0), duration);
-        make_effect(event.location + Vec2::new(0.0, 100.0), duration);
+        make_effect(event.location, duration);
     }
 
     for event in player_hit_events.iter() {
         if event.hp <= 0.0 {
             let duration = 2.0;
-            make_effect(event.location + Vec2::new(-100.0, 0.0), duration);
-            make_effect(event.location + Vec2::new(100.0, 0.0), duration);
-            make_effect(event.location + Vec2::new(0.0, -100.0), duration);
-            make_effect(event.location + Vec2::new(0.0, 100.0), duration);
+            make_effect(event.location, duration);
         }
     }
 }
@@ -803,17 +798,17 @@ fn score_system(
 
 #[allow(clippy::too_many_arguments)]
 fn bounce_audio(
-    audios: Res<SoundEffects>,
+    audios: Res<Audios>,
     audio: Res<Audio>,
     time: Res<Time>,
-    mut timer: ResMut<DebounceTimers>,
+    mut timer: ResMut<Debounce>,
     mut events: EventReader<CollisionEvent>,
     mut index: Local<u32>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<Entity, With<BounceAudio>>,
 ) {
-    let mut can_play_audio = timer.bounce_single.tick(time.delta()).finished();
-    timer.bounce_multiple.tick(time.delta());
+    let mut can_play_audio = timer.bounce_long.tick(time.delta()).finished();
+    timer.bounce_short.tick(time.delta());
 
     for event in events.iter() {
         let entities = query.get_many(event.entities).ok();
@@ -823,7 +818,7 @@ fn bounce_audio(
 
         // bounce happens between a different pair
         if entities != *bounce_entities {
-            can_play_audio = timer.bounce_multiple.finished();
+            can_play_audio = timer.bounce_short.finished();
             *bounce_entities = entities;
         }
 
@@ -844,15 +839,15 @@ fn bounce_audio(
                 let audio_source = audios.impact_audios[pitch].clone();
                 audio.play_in_channel(audio_source, channel);
 
-                timer.bounce_single.reset();
-                timer.bounce_multiple.reset();
+                timer.bounce_long.reset();
+                timer.bounce_short.reset();
             }
         }
     }
 }
 
 fn score_audio(
-    audios: Res<SoundEffects>,
+    audios: Res<Audios>,
     audio: Res<Audio>,
     mut player_hit_events: EventReader<PlayerHitEvent>,
     mut player_miss_events: EventReader<PlayerMissEvent>,

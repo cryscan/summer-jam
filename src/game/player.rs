@@ -4,7 +4,7 @@ use super::{
     physics::Motion,
 };
 use crate::{
-    config::ARENA_HEIGHT,
+    config::{ARENA_HEIGHT, TIME_SCALE_DAMP},
     utils::{Damp, TimeScale},
 };
 use bevy::{input::mouse::MouseMotion, prelude::*};
@@ -103,6 +103,6 @@ pub fn player_assistance(
         }
         time_scale.0 = time_scale
             .0
-            .damp(target_time_scale, 100.0, time.delta_seconds());
+            .damp(target_time_scale, TIME_SCALE_DAMP, time.delta_seconds());
     }
 }
