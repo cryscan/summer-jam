@@ -55,7 +55,7 @@ impl Plugin for GamePlugin {
                     .with_system(move_ball)
                     .with_system(activate_ball)
                     .with_system(update_ball)
-                    .with_system(player_assistance)
+                    .with_system(assist_player)
                     .with_system(player_hit)
                     .with_system(player_miss)
                     .with_system(count_ball)
@@ -96,11 +96,12 @@ struct MakeBallEvent;
 
 struct PlayerHitEvent {
     hp: f32,
+    damage: f32,
     location: Vec2,
 }
 
 struct PlayerMissEvent {
-    balls: i32,
+    ball_count: i32,
     location: Vec2,
 }
 
@@ -255,8 +256,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         })
         .insert(Cleanup)
         .insert(EnemyBase {
-            full_hp: 10000.0,
-            hp: 10000.0,
+            full_hp: ENEMY_BASE_FULL_HP,
+            hp: ENEMY_BASE_FULL_HP,
         })
         .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.0))
         .insert(PhysicsLayers::BOUNDARY);
@@ -417,6 +418,10 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
             texture: materials.hint.clone(),
+            sprite: Sprite {
+                color: Color::rgba(1.0, 1.0, 1.0, 0.5),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Cleanup)
@@ -437,9 +442,12 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             max_speed: PLAYER_MAX_SPEED,
             sensitivity: PLAYER_SENSITIVITY,
             damp: PLAYER_DAMP,
-            assist_range: PLAYER_ASSIST_RANGE,
-            assist_speed: PLAYER_ASSIST_SPEED,
-            assist_speed_threshold: PLAYER_ASSIST_SPEED_THRESHOLD,
+        })
+        .insert(PlayerAssist {
+            range: PLAYER_ASSIST_RANGE,
+            speed: PLAYER_ASSIST_SPEED,
+            vertical_speed_threshold: PLAYER_ASSIST_VERTICAL_SPEED_THRESHOLD,
+            speed_threshold: PLAYER_ASSIST_SPEED_THRESHOLD,
         })
         .insert(Controller::new())
         .insert(RigidBody::new(
@@ -523,19 +531,22 @@ fn make_ball(
             .spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
                 texture: materials.hint.clone(),
+                sprite: Sprite {
+                    color: Color::rgba(1.0, 1.0, 1.0, 0.5),
+                    ..Default::default()
+                },
                 ..Default::default()
             })
             .insert(Cleanup)
             .id();
 
-        let color = Color::rgba(1.0, 1.0, 1.0, 1.0 / BALL_GHOSTS_COUNT as f32);
-
+        let alpha = 1.0 / BALL_GHOSTS_COUNT as f32;
         commands
             .spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(0.0, 0.0, -1.0),
                 texture: materials.ball.clone(),
                 sprite: Sprite {
-                    color,
+                    color: Color::rgba(1.0, 1.0, 1.0, alpha),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -560,7 +571,7 @@ fn make_ball(
                     parent.spawn_bundle(SpriteBundle {
                         texture: materials.ball.clone(),
                         sprite: Sprite {
-                            color,
+                            color: Color::rgba(1.0, 1.0, 1.0, alpha),
                             ..Default::default()
                         },
                         ..Default::default()
@@ -593,16 +604,16 @@ fn player_hit(
 
         player_hit_events.send(PlayerHitEvent {
             hp: base.hp,
+            damage,
             location: motion.translation.truncate(),
         });
+        base.hp -= damage;
         if base.hp <= 0.0 {
             if let Some(hint) = hint {
                 commands.entity(hint.0).despawn();
             }
             commands.entity(ball_entity).despawn_recursive();
             game_over_events.send(GameOverEvent::Win);
-        } else {
-            base.hp -= damage;
         }
         timer.hit.reset();
 
@@ -639,7 +650,7 @@ fn player_miss(
 
         let (hint, motion) = ball_query.get(ball_entity).ok()?;
         player_miss_events.send(PlayerMissEvent {
-            balls: base.balls,
+            ball_count: base.balls,
             location: motion.translation.truncate(),
         });
         if base.balls == 0 {
@@ -662,6 +673,42 @@ fn player_miss(
         for event in collision_events.iter() {
             closure(event.entities[0], event.entities[1]);
             closure(event.entities[1], event.entities[0]);
+        }
+    }
+}
+
+fn game_over(
+    time: Res<Time>,
+    mut time_scale: ResMut<TimeScale>,
+    mut app_state: ResMut<State<AppState>>,
+    mut game_over_events: EventReader<GameOverEvent>,
+    mut game_over: ResMut<GameOver>,
+) {
+    if let Some(event) = game_over.event {
+        let mut target_time_scale = 0.2;
+        if game_over.slow_motion_timer.tick(time.delta()).finished() {
+            target_time_scale = 1.0;
+        }
+        time_scale.0 = time_scale
+            .0
+            .damp(target_time_scale, TIME_SCALE_DAMP, time.delta_seconds());
+
+        // it's time to switch state
+        if game_over
+            .state_change_timer
+            .tick(time.delta())
+            .just_finished()
+        {
+            time_scale.reset();
+            match event {
+                GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
+                GameOverEvent::Lose => app_state.set(AppState::Title).unwrap(),
+            }
+        }
+    } else {
+        for event in game_over_events.iter() {
+            game_over.event = Some(*event);
+            time_scale.0 = 0.2;
         }
     }
 }
@@ -702,42 +749,6 @@ fn bounce_effects(
     }
 }
 
-fn game_over(
-    time: Res<Time>,
-    mut time_scale: ResMut<TimeScale>,
-    mut app_state: ResMut<State<AppState>>,
-    mut game_over_events: EventReader<GameOverEvent>,
-    mut game_over: ResMut<GameOver>,
-) {
-    if let Some(event) = game_over.event {
-        let mut target_time_scale = 0.2;
-        if game_over.slow_motion_timer.tick(time.delta()).finished() {
-            target_time_scale = 1.0;
-        }
-        time_scale.0 = time_scale
-            .0
-            .damp(target_time_scale, TIME_SCALE_DAMP, time.delta_seconds());
-
-        // it's time to switch back
-        if game_over
-            .state_change_timer
-            .tick(time.delta())
-            .just_finished()
-        {
-            time_scale.reset();
-            match event {
-                GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
-                GameOverEvent::Lose => app_state.set(AppState::Title).unwrap(),
-            }
-        }
-    } else {
-        for event in game_over_events.iter() {
-            game_over.event = Some(*event);
-            time_scale.0 = 0.2;
-        }
-    }
-}
-
 fn score_effects(
     mut commands: Commands,
     materials: Res<Materials>,
@@ -770,12 +781,12 @@ fn score_effects(
     };
 
     for event in player_miss_events.iter() {
-        let duration = if event.balls <= 0 { 2.0 } else { 1.0 };
+        let duration = if event.ball_count <= 0 { 2.0 } else { 1.0 };
         make_effect(event.location, duration);
     }
 
     for event in player_hit_events.iter() {
-        if event.hp <= 0.0 {
+        if event.hp - event.damage <= 0.0 {
             let duration = 2.0;
             make_effect(event.location, duration);
         }
