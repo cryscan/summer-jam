@@ -2,8 +2,7 @@
 extern crate derive_new;
 
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioChannel, AudioPlugin};
-use config::BACKGROUND_MUSIC;
+use bevy_kira_audio::AudioPlugin;
 use wasm_bindgen::prelude::*;
 
 mod background;
@@ -34,7 +33,8 @@ pub fn run() {
             resizable: false,
             ..Default::default()
         })
-        .init_resource::<utils::TimeScale>();
+        .init_resource::<utils::TimeScale>()
+        .insert_resource(utils::MusicVolume(0.3));
 
     #[cfg(feature = "dot")]
     app.add_plugins_with(DefaultPlugins, |plugins| {
@@ -61,14 +61,9 @@ pub fn run() {
     app.run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>, audio: Res<Audio>) {
+fn setup(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
-
-    let channel = AudioChannel::new("background".into());
-    audio.play_looped_in_channel(asset_server.load(BACKGROUND_MUSIC), &channel);
-    // audio.set_playback_rate_in_channel(1.5, &channel);
-    audio.set_volume_in_channel(0.5, &channel);
 }
 
 fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Windows>) {

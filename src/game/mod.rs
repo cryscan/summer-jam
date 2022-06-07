@@ -2,7 +2,7 @@ use self::{ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::
 use crate::{
     config::*,
     score::Score,
-    utils::{cleanup_system, Damp, Interpolation, TimeScale},
+    utils::{cleanup_system, Damp, Interpolation, MusicVolume, TimeScale},
     AppState,
 };
 use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
@@ -29,7 +29,7 @@ impl Plugin for GamePlugin {
                 bounce_long: Timer::from_seconds(0.5, false),
                 bounce_short: Timer::from_seconds(0.1, false),
                 effects: Timer::from_seconds(0.1, false),
-                hit: Timer::from_seconds(0.5, false),
+                hit: Timer::from_seconds(0.1, false),
                 miss: Timer::from_seconds(0.5, false),
             })
             .insert_resource(GameOver {
@@ -50,6 +50,7 @@ impl Plugin for GamePlugin {
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
                     .with_system(make_ball)
+                    .with_system(destroy_ball.after(make_ball))
                     .with_system(move_player)
                     .with_system(move_enemy)
                     .with_system(move_ball)
@@ -95,12 +96,14 @@ enum GameOverEvent {
 struct MakeBallEvent;
 
 struct PlayerHitEvent {
+    ball_entity: Entity,
     hp: f32,
     damage: f32,
     location: Vec2,
 }
 
 struct PlayerMissEvent {
+    ball_entity: Entity,
     ball_count: i32,
     location: Vec2,
 }
@@ -187,7 +190,11 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn enter_game(
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
+    volume: Res<MusicVolume>,
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut score: ResMut<Score>,
@@ -208,6 +215,11 @@ fn enter_game(
     game_over.event = None;
 
     make_ball_events.send(MakeBallEvent);
+
+    audio.stop();
+    audio.set_volume(volume.0);
+    audio.set_playback_rate(1.2);
+    audio.play_looped(asset_server.load(GAME_MUSIC));
 }
 
 fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
@@ -274,7 +286,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(PlayerBase { balls: 3 })
+        .insert(PlayerBase { ball_count: 3 })
         .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5))
         .insert(PhysicsLayers::BOUNDARY);
 
@@ -581,38 +593,61 @@ fn make_ball(
     }
 }
 
+fn destroy_ball(
+    mut commands: Commands,
+    mut player_miss_events: EventReader<PlayerMissEvent>,
+    mut player_hit_events: EventReader<PlayerHitEvent>,
+    ball_query: Query<Option<&Hint>, With<Ball>>,
+) {
+    let mut closure = |ball_entity| -> Option<()> {
+        if let Some(hint) = ball_query.get(ball_entity).ok()? {
+            commands.entity(hint.0).despawn();
+        }
+        commands.entity(ball_entity).despawn_recursive();
+        Some(())
+    };
+
+    for event in player_hit_events.iter() {
+        if event.hp <= event.damage {
+            closure(event.ball_entity);
+        }
+    }
+
+    for event in player_miss_events.iter() {
+        closure(event.ball_entity);
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn player_hit(
-    mut commands: Commands,
     time: Res<Time>,
     mut timer: ResMut<Debounce>,
     mut collision_events: EventReader<CollisionEvent>,
     mut player_hit_events: EventWriter<PlayerHitEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    ball_query: Query<(&RigidBody, &Motion, Option<&Hint>), With<Ball>>,
+    ball_query: Query<(&RigidBody, &Motion), With<Ball>>,
     mut base_query: Query<&mut EnemyBase>,
 ) {
     let can_hit = timer.hit.tick(time.delta()).finished();
 
     let mut closure = |ball_entity: Entity, base_entity: Entity| -> Option<()> {
-        let (rigid_body, motion, hint) = ball_query.get(ball_entity).ok()?;
+        let (rigid_body, motion) = ball_query.get(ball_entity).ok()?;
         let mass = rigid_body.mass();
         let speed = motion.velocity.length();
 
         let mut base = base_query.get_mut(base_entity).ok()?;
-        let damage = base.hp.min(speed * mass).min(MAX_DAMAGE);
+        let hp = base.hp;
+        let damage = hp.min(speed * mass).min(MAX_DAMAGE);
 
         player_hit_events.send(PlayerHitEvent {
-            hp: base.hp,
+            ball_entity,
+            hp,
             damage,
             location: motion.translation.truncate(),
         });
+
         base.hp -= damage;
         if base.hp <= 0.0 {
-            if let Some(hint) = hint {
-                commands.entity(hint.0).despawn();
-            }
-            commands.entity(ball_entity).despawn_recursive();
             game_over_events.send(GameOverEvent::Win);
         }
         timer.hit.reset();
@@ -630,14 +665,13 @@ fn player_hit(
 
 #[allow(clippy::too_many_arguments)]
 fn player_miss(
-    mut commands: Commands,
     time: Res<Time>,
     mut timer: ResMut<Debounce>,
     mut collision_events: EventReader<CollisionEvent>,
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
     mut make_ball_events: EventWriter<MakeBallEvent>,
-    ball_query: Query<(Option<&Hint>, &Motion), With<Ball>>,
+    ball_query: Query<&Motion, With<Ball>>,
     mut base_query: Query<(Entity, &mut PlayerBase), Without<Ball>>,
 ) {
     let can_miss = timer.miss.tick(time.delta()).finished();
@@ -648,23 +682,22 @@ fn player_miss(
             return None;
         }
 
-        let (hint, motion) = ball_query.get(ball_entity).ok()?;
+        let motion = ball_query.get(ball_entity).ok()?;
+        let ball_count = base.ball_count;
+
         player_miss_events.send(PlayerMissEvent {
-            ball_count: base.balls,
+            ball_entity,
+            ball_count,
             location: motion.translation.truncate(),
         });
-        if base.balls == 0 {
+
+        if base.ball_count == 0 {
             game_over_events.send(GameOverEvent::Lose);
         } else {
-            base.balls -= 1;
+            base.ball_count -= 1;
             make_ball_events.send(MakeBallEvent);
         }
         timer.miss.reset();
-
-        if let Some(hint) = hint {
-            commands.entity(hint.0).despawn();
-        }
-        commands.entity(ball_entity).despawn_recursive();
 
         Some(())
     };
@@ -864,18 +897,20 @@ fn score_audio(
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut game_over_events: EventReader<GameOverEvent>,
 ) {
+    let channel = AudioChannel::new("score".into());
+
     for _ in player_hit_events.iter() {
-        audio.play(audios.hit_audio.clone());
+        audio.play_in_channel(audios.hit_audio.clone(), &channel);
     }
 
     for _ in player_miss_events.iter() {
-        audio.play(audios.miss_audio.clone());
+        audio.play_in_channel(audios.miss_audio.clone(), &channel);
     }
 
     for event in game_over_events.iter() {
         match event {
-            GameOverEvent::Win => audio.play(audios.explosion_audio.clone()),
-            GameOverEvent::Lose => audio.play(audios.lose_audio.clone()),
+            GameOverEvent::Win => audio.play_in_channel(audios.explosion_audio.clone(), &channel),
+            GameOverEvent::Lose => audio.play_in_channel(audios.lose_audio.clone(), &channel),
         };
     }
 }

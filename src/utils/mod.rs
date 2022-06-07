@@ -27,3 +27,5 @@ impl TimeScale {
         self.0 = 1.0;
     }
 }
+
+pub struct MusicVolume(pub f32);

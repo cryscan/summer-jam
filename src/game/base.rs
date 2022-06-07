@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct PlayerBase {
-    pub balls: i32,
+    pub ball_count: i32,
 }
 
 #[derive(Component)]
@@ -21,7 +21,7 @@ pub fn count_ball(
 ) {
     let base = base_query.single();
     for mut counter in counter_query.iter_mut() {
-        counter.sections[1].value = base.balls.to_string();
+        counter.sections[1].value = base.ball_count.to_string();
     }
 }
 

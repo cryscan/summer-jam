@@ -38,7 +38,8 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
         loading.push(server.load_untyped(audio));
     }
 
-    loading.push(server.load_untyped(BACKGROUND_MUSIC));
+    loading.push(server.load_untyped(TITLE_MUSIC));
+    loading.push(server.load_untyped(GAME_MUSIC));
 }
 
 fn check_assets_loaded(
