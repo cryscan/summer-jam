@@ -15,10 +15,14 @@ pub struct Player {
     pub max_speed: f32,
     pub sensitivity: f32,
     pub damp: f32,
+}
 
-    pub assist_range: f32,
-    pub assist_speed: f32,
-    pub assist_speed_threshold: f32,
+#[derive(Component)]
+pub struct PlayerAssist {
+    pub range: f32,
+    pub speed: f32,
+    pub vertical_speed_threshold: f32,
+    pub speed_threshold: f32,
 }
 
 pub fn move_player(
@@ -45,21 +49,23 @@ pub fn move_player(
         .clamp_length_max(player.max_speed);
 }
 
-pub fn player_assistance(
+#[allow(clippy::type_complexity)]
+pub fn assist_player(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
-    mut query: Query<(&Transform, &Player, &mut Controller), Without<Ball>>,
+    mut query: Query<(&Transform, &PlayerAssist, &mut Controller), (With<Player>, Without<Ball>)>,
     ball_query: Query<(&Motion, &Trajectory), With<Ball>>,
 ) {
-    let (transform, player, mut controller) = query.single_mut();
+    let (transform, assist, mut controller) = query.single_mut();
     controller.velocity = Vec2::ZERO;
 
     for (motion, trajectory) in ball_query.iter() {
         let position = transform.translation.truncate();
         let delta = motion.translation - transform.translation;
 
-        if motion.velocity.y < player.assist_speed_threshold
-            && delta.x.abs() > player.assist_range * 0.5
+        if motion.velocity.y < assist.vertical_speed_threshold
+            && motion.velocity.length() > assist.speed_threshold
+            && delta.x.abs() > assist.range
         {
             // very dangerous, try to assist the player
             let delta_seconds = time.seconds_since_startup() - trajectory.start_time;
@@ -74,7 +80,7 @@ pub fn player_assistance(
                         // space-time cost
                         let time = (point.time - delta_seconds) as f32;
                         let distance = (point.position - position).length();
-                        time - distance / player.assist_speed
+                        time - distance / assist.speed
                     };
                     cost(a)
                         .partial_cmp(&cost(b))
@@ -85,9 +91,9 @@ pub fn player_assistance(
                 let time = (candidate.time - delta_seconds) as f32;
                 let distance = direction.length();
 
-                let mut speed = (1.5 * (distance / time + 1.0)).clamp(0.0, player.assist_speed);
+                let mut speed = (1.5 * (distance / time + 1.0)).clamp(0.0, assist.speed);
 
-                let stop_distance = 1.5 * player.assist_range;
+                let stop_distance = 1.5 * assist.range;
                 if distance < stop_distance {
                     speed *= distance / stop_distance;
                 }
@@ -96,7 +102,10 @@ pub fn player_assistance(
         }
 
         let mut target_time_scale: f32 = 1.0;
-        if motion.velocity.y < player.assist_speed_threshold && delta.y > 0.0 {
+        if motion.velocity.y < assist.vertical_speed_threshold
+            && motion.velocity.length() > assist.speed_threshold
+            && delta.y > 0.0
+        {
             target_time_scale = target_time_scale
                 .min(delta.y / ARENA_HEIGHT * 2.0 - 0.25)
                 .max(0.2);
