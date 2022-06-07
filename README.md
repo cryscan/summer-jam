@@ -5,7 +5,7 @@ Live version is available [here](https://cryscan.itch.io/bounce-up).
 
 Thanks [@Bobox214](https://github.com/Bobox214) for the [star background](https://github.com/Bobox214/Kataster)!
 
-Background music credits to [One Man Symphony](onemansymphony.com).
+Background music credits to the [Ultimate MIDI Pack](https://archive.org/details/ultimidi/) (License: CC-BY-SA).
 
 ## Build for Web
 Run the following command to compile:

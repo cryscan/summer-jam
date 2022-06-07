@@ -1,9 +1,10 @@
 use crate::{
     config::*,
-    utils::{cleanup_system, TimeScale},
+    utils::{cleanup_system, MusicVolume, TimeScale},
     AppState,
 };
 use bevy::prelude::*;
+use bevy_kira_audio::Audio;
 
 pub struct TitlePlugin;
 
@@ -38,8 +39,18 @@ struct ColorText {
 #[derive(Deref, DerefMut)]
 struct ColorTimer(Timer);
 
-fn enter_title(mut time_scale: ResMut<TimeScale>) {
+fn enter_title(
+    mut time_scale: ResMut<TimeScale>,
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
+    volume: Res<MusicVolume>,
+) {
     time_scale.reset();
+
+    audio.stop();
+    audio.set_playback_rate(1.0);
+    audio.set_volume(volume.0);
+    audio.play_looped(asset_server.load(TITLE_MUSIC));
 }
 
 fn make_title(mut commands: Commands, asset_server: Res<AssetServer>) {
