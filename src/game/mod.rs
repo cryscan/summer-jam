@@ -33,7 +33,7 @@ impl Plugin for GamePlugin {
                 miss: Timer::from_seconds(0.5, false),
             })
             .insert_resource(GameOver {
-                slow_motion_timer: Timer::from_seconds(1.0, false),
+                slow_motion_timer: Timer::from_seconds(0.8, false),
                 state_change_timer: Timer::from_seconds(2.0, false),
                 event: None,
             })
@@ -719,12 +719,15 @@ fn game_over(
 ) {
     if let Some(event) = game_over.event {
         let mut target_time_scale = 0.2;
+        let mut time_scale_damp = TIME_SCALE_DAMP;
+
         if game_over.slow_motion_timer.tick(time.delta()).finished() {
             target_time_scale = 1.0;
+            time_scale_damp = GAME_OVER_TIME_SCALE_DAMP;
         }
         time_scale.0 = time_scale
             .0
-            .damp(target_time_scale, TIME_SCALE_DAMP, time.delta_seconds());
+            .damp(target_time_scale, time_scale_damp, time.delta_seconds());
 
         // it's time to switch state
         if game_over
@@ -845,14 +848,23 @@ fn bounce_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
     time: Res<Time>,
+    // time_scale: Res<TimeScale>,
     mut timer: ResMut<Debounce>,
     mut events: EventReader<CollisionEvent>,
-    mut index: Local<u32>,
+    mut index: Local<usize>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<Entity, With<BounceAudio>>,
 ) {
     let mut can_play_audio = timer.bounce_long.tick(time.delta()).finished();
     timer.bounce_short.tick(time.delta());
+
+    let channels = (0..MAX_IMPACT_AUDIO_CHANNELS)
+        .map(|index| AudioChannel::new(format!("impact_{}", index)))
+        .collect_vec();
+
+    // for channel in channels.iter() {
+    //     audio.set_playback_rate_in_channel(time_scale.0, channel);
+    // }
 
     for event in events.iter() {
         let entities = query.get_many(event.entities).ok();
@@ -866,8 +878,8 @@ fn bounce_audio(
             *bounce_entities = entities;
         }
 
-        let channel = &AudioChannel::new(format!("impact-{}", *index));
         *index = (*index + 1) % MAX_IMPACT_AUDIO_CHANNELS;
+        let channel = &channels[*index];
 
         if can_play_audio {
             let speed = event.velocity.length();
@@ -875,6 +887,9 @@ fn bounce_audio(
                 let normalized_speed = speed
                     .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)
                     .clamp(0.0, 1.0);
+
+                let panning = event.hit.location().x / ARENA_WIDTH + 0.5;
+                audio.set_panning_in_channel(panning, channel);
 
                 let volume = 0.2 * normalized_speed + 0.05;
                 audio.set_volume_in_channel(volume, channel);
@@ -893,24 +908,26 @@ fn bounce_audio(
 fn score_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
+    // time_scale: Res<TimeScale>,
     mut player_hit_events: EventReader<PlayerHitEvent>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut game_over_events: EventReader<GameOverEvent>,
 ) {
-    let channel = AudioChannel::new("score".into());
+    let channel = &AudioChannel::new("score".into());
+    // audio.set_playback_rate_in_channel(time_scale.0, channel);
 
     for _ in player_hit_events.iter() {
-        audio.play_in_channel(audios.hit_audio.clone(), &channel);
+        audio.play_in_channel(audios.hit_audio.clone(), channel);
     }
 
     for _ in player_miss_events.iter() {
-        audio.play_in_channel(audios.miss_audio.clone(), &channel);
+        audio.play_in_channel(audios.miss_audio.clone(), channel);
     }
 
     for event in game_over_events.iter() {
         match event {
-            GameOverEvent::Win => audio.play_in_channel(audios.explosion_audio.clone(), &channel),
-            GameOverEvent::Lose => audio.play_in_channel(audios.lose_audio.clone(), &channel),
+            GameOverEvent::Win => audio.play_in_channel(audios.explosion_audio.clone(), channel),
+            GameOverEvent::Lose => audio.play_in_channel(audios.lose_audio.clone(), channel),
         };
     }
 }

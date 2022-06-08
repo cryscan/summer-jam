@@ -137,12 +137,12 @@ fn collision(
         };
 
         if let Some(hit) = collide(
-            Collider {
+            &Collider {
                 previous_position: p1.truncate(),
                 position: t1.translation.truncate(),
                 size: rb1.size,
             },
-            Collider {
+            &Collider {
                 previous_position: p2.truncate(),
                 position: t2.translation.truncate(),
                 size: rb2.size,
@@ -158,9 +158,7 @@ fn collision(
             } else {
                 0.0
             };
-
             let impulse = (rb1.inverted_mass + rb2.inverted_mass).recip();
-
             let normal = hit.normal();
 
             let resolve = |rigid_body: &RigidBody,
@@ -206,7 +204,7 @@ fn collision(
                         let normal_delta = delta + correction - debounce;
                         transform.translation += normal_delta * normal.extend(0.0);
                     }
-                    Hit::Intersection(x) => {
+                    Hit::Cast(x) => {
                         if x.near_time > 0.0 {
                             transform.translation =
                                 motion.translation.lerp(transform.translation, x.near_time);
@@ -216,10 +214,10 @@ fn collision(
             };
 
             if let Some(motion) = m1 {
-                resolve(rb1, motion, t1, v2 - v1, normal)
+                resolve(rb1, motion, t1, v2 - v1, normal);
             }
             if let Some(motion) = m2 {
-                resolve(rb2, motion, t2, v1 - v2, -normal)
+                resolve(rb2, motion, t2, v1 - v2, -normal);
             }
 
             let mut entities = [e1, e2];
