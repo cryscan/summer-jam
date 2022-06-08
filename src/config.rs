@@ -24,7 +24,7 @@ pub const IMPACT_AUDIOS: [&str; 4] = [
     "audios/impacts/impact-f.wav",
     "audios/impacts/impact-g.wav",
 ];
-pub const MAX_IMPACT_AUDIO_CHANNELS: u32 = 10;
+pub const MAX_IMPACT_AUDIO_CHANNELS: usize = 4;
 
 pub const TITLE_MUSIC: &str = "musics/E2M2 Myrgharok - Halls of Wandering Spirits.ogg";
 pub const GAME_MUSIC: &str = "musics/E3M8 Myrgharok - Mother of All Doom.ogg";
@@ -71,3 +71,4 @@ pub const DEATH_EFFECT_SPEED: f32 = 2000.0;
 pub const DEATH_EFFECT_ACCELERATION: f32 = 6000.0;
 
 pub const TIME_SCALE_DAMP: f32 = 100.0;
+pub const GAME_OVER_TIME_SCALE_DAMP: f32 = 5.0;
