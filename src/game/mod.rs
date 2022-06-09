@@ -49,13 +49,13 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
-                    .with_system(make_ball)
-                    .with_system(destroy_ball.after(make_ball))
+                    .with_system(make_ball.exclusive_system())
                     .with_system(move_player)
                     .with_system(move_enemy)
                     .with_system(move_ball)
                     .with_system(activate_ball)
                     .with_system(update_ball)
+                    .with_system(destroy_ball)
                     .with_system(assist_player)
                     .with_system(player_hit)
                     .with_system(player_miss)
@@ -96,15 +96,15 @@ enum GameOverEvent {
 struct MakeBallEvent;
 
 struct PlayerHitEvent {
-    ball_entity: Entity,
+    ball: Entity,
     hp: f32,
     damage: f32,
     location: Vec2,
 }
 
 struct PlayerMissEvent {
-    ball_entity: Entity,
-    ball_count: i32,
+    ball: Entity,
+    lives: i32,
     location: Vec2,
 }
 
@@ -599,22 +599,22 @@ fn destroy_ball(
     mut player_hit_events: EventReader<PlayerHitEvent>,
     ball_query: Query<Option<&Hint>, With<Ball>>,
 ) {
-    let mut closure = |ball_entity| -> Option<()> {
-        if let Some(hint) = ball_query.get(ball_entity).ok()? {
+    let mut closure = |ball| -> Option<()> {
+        if let Some(hint) = ball_query.get(ball).ok()? {
             commands.entity(hint.0).despawn();
         }
-        commands.entity(ball_entity).despawn_recursive();
+        commands.entity(ball).despawn_recursive();
         Some(())
     };
 
     for event in player_hit_events.iter() {
         if event.hp <= event.damage {
-            closure(event.ball_entity);
+            closure(event.ball);
         }
     }
 
     for event in player_miss_events.iter() {
-        closure(event.ball_entity);
+        closure(event.ball);
     }
 }
 
@@ -626,37 +626,35 @@ fn player_hit(
     mut player_hit_events: EventWriter<PlayerHitEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
     ball_query: Query<(&RigidBody, &Motion), With<Ball>>,
-    mut base_query: Query<&mut EnemyBase>,
+    mut base_query: Query<&mut EnemyBase, Without<Ball>>,
 ) {
-    let can_hit = timer.hit.tick(time.delta()).finished();
-
-    let mut closure = |ball_entity: Entity, base_entity: Entity| -> Option<()> {
-        let (rigid_body, motion) = ball_query.get(ball_entity).ok()?;
-        let mass = rigid_body.mass();
-        let speed = motion.velocity.length();
-
-        let mut base = base_query.get_mut(base_entity).ok()?;
-        let hp = base.hp;
-        let damage = hp.min(speed * mass).min(MAX_DAMAGE);
-
-        player_hit_events.send(PlayerHitEvent {
-            ball_entity,
-            hp,
-            damage,
-            location: motion.translation.truncate(),
-        });
-
-        base.hp -= damage;
-        if base.hp <= 0.0 {
-            game_over_events.send(GameOverEvent::Win);
-        }
-        timer.hit.reset();
-
-        Some(())
-    };
-
-    if can_hit {
+    if timer.hit.tick(time.delta()).finished() {
         for event in collision_events.iter() {
+            let mut closure = |ball: Entity, base: Entity| -> Option<()> {
+                let (rigid_body, motion) = ball_query.get(ball).ok()?;
+                let mass = rigid_body.mass();
+                let speed = motion.velocity.length();
+
+                let mut base = base_query.get_mut(base).ok()?;
+                let hp = base.hp;
+                let damage = hp.min(speed * mass).min(MAX_DAMAGE);
+
+                player_hit_events.send(PlayerHitEvent {
+                    ball,
+                    hp,
+                    damage,
+                    location: event.hit.location(),
+                });
+
+                base.hp -= damage;
+                if base.hp <= 0.0 {
+                    game_over_events.send(GameOverEvent::Win);
+                }
+                timer.hit.reset();
+
+                Some(())
+            };
+
             closure(event.entities[0], event.entities[1]);
             closure(event.entities[1], event.entities[0]);
         }
@@ -671,39 +669,31 @@ fn player_miss(
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
     mut make_ball_events: EventWriter<MakeBallEvent>,
-    ball_query: Query<&Motion, With<Ball>>,
-    mut base_query: Query<(Entity, &mut PlayerBase), Without<Ball>>,
+    ball_query: Query<(), With<Ball>>,
+    mut base_query: Query<&mut PlayerBase, Without<Ball>>,
 ) {
-    let can_miss = timer.miss.tick(time.delta()).finished();
-    let (entity, mut base) = base_query.single_mut();
-
-    let mut closure = |ball_entity: Entity, base_entity: Entity| -> Option<()> {
-        if base_entity != entity {
-            return None;
-        }
-
-        let motion = ball_query.get(ball_entity).ok()?;
-        let ball_count = base.ball_count;
-
-        player_miss_events.send(PlayerMissEvent {
-            ball_entity,
-            ball_count,
-            location: motion.translation.truncate(),
-        });
-
-        if base.ball_count == 0 {
-            game_over_events.send(GameOverEvent::Lose);
-        } else {
-            base.ball_count -= 1;
-            make_ball_events.send(MakeBallEvent);
-        }
-        timer.miss.reset();
-
-        Some(())
-    };
-
-    if can_miss {
+    if timer.miss.tick(time.delta()).finished() {
         for event in collision_events.iter() {
+            let mut closure = |ball: Entity, base: Entity| -> Option<()> {
+                let _ = ball_query.get(ball).ok()?;
+                let mut base = base_query.get_mut(base).ok()?;
+
+                player_miss_events.send(PlayerMissEvent {
+                    ball,
+                    lives: base.ball_count,
+                    location: event.hit.location(),
+                });
+
+                if base.ball_count == 0 {
+                    game_over_events.send(GameOverEvent::Lose);
+                } else {
+                    base.ball_count -= 1;
+                    make_ball_events.send(MakeBallEvent);
+                }
+                timer.miss.reset();
+
+                Some(())
+            };
             closure(event.entities[0], event.entities[1]);
             closure(event.entities[1], event.entities[0]);
         }
@@ -817,7 +807,7 @@ fn score_effects(
     };
 
     for event in player_miss_events.iter() {
-        let duration = if event.ball_count <= 0 { 2.0 } else { 1.0 };
+        let duration = if event.lives <= 0 { 2.0 } else { 1.0 };
         make_effect(event.location, duration);
     }
 
@@ -916,11 +906,15 @@ fn score_audio(
     let channel = &AudioChannel::new("score".into());
     // audio.set_playback_rate_in_channel(time_scale.0, channel);
 
-    for _ in player_hit_events.iter() {
+    for event in player_hit_events.iter() {
+        let panning = event.location.x / ARENA_WIDTH + 0.5;
+        audio.set_panning_in_channel(panning, channel);
         audio.play_in_channel(audios.hit_audio.clone(), channel);
     }
 
-    for _ in player_miss_events.iter() {
+    for event in player_miss_events.iter() {
+        let panning = event.location.x / ARENA_WIDTH + 0.5;
+        audio.set_panning_in_channel(panning, channel);
         audio.play_in_channel(audios.miss_audio.clone(), channel);
     }
 
