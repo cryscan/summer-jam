@@ -784,8 +784,8 @@ dependencies = [
  "bevy",
  "bevy_kira_audio",
  "derive-new",
+ "fastrand",
  "itertools",
- "rand",
  "wasm-bindgen",
 ]
 

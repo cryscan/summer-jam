@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 dot = []
 
 [dependencies]
-rand = "0.8"
+fastrand = "1.7"
 itertools = "0.10"
 derive-new = "0.5"
 wasm-bindgen = "0.2"
