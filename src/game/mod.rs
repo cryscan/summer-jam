@@ -888,10 +888,10 @@ fn bounce_audio(
                 let panning = event.hit.location().x / ARENA_WIDTH + 0.5;
                 audio.set_panning_in_channel(panning, channel);
 
-                let volume = normalized_speed + 0.5;
+                let volume = 0.5 * normalized_speed + 0.5;
                 audio.set_volume_in_channel(volume, channel);
 
-                let playback_rate = fastrand::f32() + 0.5;
+                let playback_rate = 0.4 * fastrand::f32() + 0.8;
                 audio.set_playback_rate_in_channel(playback_rate, channel);
 
                 audio.play_in_channel(audio_source, channel);
@@ -906,28 +906,9 @@ fn bounce_audio(
 fn score_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
-    // time_scale: Res<TimeScale>,
-    // mut player_hit_events: EventReader<PlayerHitEvent>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut game_over_events: EventReader<GameOverEvent>,
-    // mut index: Local<usize>,
 ) {
-    // for event in player_hit_events.iter() {
-    //     let channels = (0..AUDIO_CHANNEL_COUNT)
-    //         .map(|index| AudioChannel::new(format!("hit_{}", index)))
-    //         .collect_vec();
-
-    //     *index = (*index + 1) % AUDIO_CHANNEL_COUNT;
-    //     let channel = &channels[*index];
-
-    //     let playback_rate = fastrand::f32() + 0.5;
-    //     audio.set_playback_rate_in_channel(playback_rate, channel);
-
-    //     let panning = event.location.x / ARENA_WIDTH + 0.5;
-    //     audio.set_panning_in_channel(panning, channel);
-    //     audio.play_in_channel(audios.hit_audio.clone(), channel);
-    // }
-
     for event in player_miss_events.iter() {
         let channel = &AudioChannel::new("miss".into());
         let panning = event.location.x / ARENA_WIDTH + 0.5;
