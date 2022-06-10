@@ -848,7 +848,7 @@ fn bounce_audio(
     let mut can_play_audio = timer.bounce_long.tick(time.delta()).finished();
     timer.bounce_short.tick(time.delta());
 
-    let channels = (0..MAX_IMPACT_AUDIO_CHANNELS)
+    let channels = (0..AUDIO_CHANNEL_COUNT)
         .map(|index| AudioChannel::new(format!("impact_{}", index)))
         .collect_vec();
 
@@ -868,7 +868,7 @@ fn bounce_audio(
             *bounce_entities = entities;
         }
 
-        *index = (*index + 1) % MAX_IMPACT_AUDIO_CHANNELS;
+        *index = (*index + 1) % AUDIO_CHANNEL_COUNT;
         let channel = &channels[*index];
 
         if can_play_audio {
@@ -881,11 +881,14 @@ fn bounce_audio(
                 let panning = event.hit.location().x / ARENA_WIDTH + 0.5;
                 audio.set_panning_in_channel(panning, channel);
 
-                let volume = 0.2 * normalized_speed + 0.05;
+                let volume = normalized_speed + 0.5;
                 audio.set_volume_in_channel(volume, channel);
 
-                let pitch = ((normalized_speed * 4.0) as usize).min(3);
-                let audio_source = audios.impact_audios[pitch].clone();
+                let playback_rate = fastrand::f32() + 0.5;
+                audio.set_playback_rate_in_channel(playback_rate, channel);
+
+                let index = fastrand::usize(..IMPACT_AUDIOS.len());
+                let audio_source = audios.impact_audios[index].clone();
                 audio.play_in_channel(audio_source, channel);
 
                 timer.bounce_long.reset();
@@ -902,23 +905,33 @@ fn score_audio(
     mut player_hit_events: EventReader<PlayerHitEvent>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut game_over_events: EventReader<GameOverEvent>,
+    mut index: Local<usize>,
 ) {
-    let channel = &AudioChannel::new("score".into());
-    // audio.set_playback_rate_in_channel(time_scale.0, channel);
-
     for event in player_hit_events.iter() {
+        let channels = (0..AUDIO_CHANNEL_COUNT)
+            .map(|index| AudioChannel::new(format!("hit_{}", index)))
+            .collect_vec();
+
+        *index = (*index + 1) % AUDIO_CHANNEL_COUNT;
+        let channel = &channels[*index];
+
+        let playback_rate = fastrand::f32() + 0.5;
+        audio.set_playback_rate_in_channel(playback_rate, channel);
+
         let panning = event.location.x / ARENA_WIDTH + 0.5;
         audio.set_panning_in_channel(panning, channel);
         audio.play_in_channel(audios.hit_audio.clone(), channel);
     }
 
     for event in player_miss_events.iter() {
+        let channel = &AudioChannel::new("miss".into());
         let panning = event.location.x / ARENA_WIDTH + 0.5;
         audio.set_panning_in_channel(panning, channel);
         audio.play_in_channel(audios.miss_audio.clone(), channel);
     }
 
     for event in game_over_events.iter() {
+        let channel = &AudioChannel::new("over".into());
         match event {
             GameOverEvent::Win => audio.play_in_channel(audios.explosion_audio.clone(), channel),
             GameOverEvent::Lose => audio.play_in_channel(audios.lose_audio.clone(), channel),

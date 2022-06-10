@@ -13,18 +13,13 @@ pub const BALL_SPRITE: &str = "sprites/ball.png";
 pub const HINT_SPRITE: &str = "sprites/hint.png";
 pub const DEATH_SPRITE: &str = "sprites/death.png";
 
-pub const HIT_AUDIO: &str = "audios/hit.flac";
+pub const HIT_AUDIO: &str = "audios/hits/hit-1.ogg";
 pub const MISS_AUDIO: &str = "audios/miss.flac";
 pub const EXPLOSION_AUDIO: &str = "audios/explosion.flac";
 pub const LOSE_AUDIO: &str = "audios/lose.flac";
+pub const IMPACT_AUDIOS: [&str; 2] = ["audios/impacts/impact-1.ogg", "audios/impacts/impact-2.ogg"];
 
-pub const IMPACT_AUDIOS: [&str; 4] = [
-    "audios/impacts/impact-d.wav",
-    "audios/impacts/impact-e.wav",
-    "audios/impacts/impact-f.wav",
-    "audios/impacts/impact-g.wav",
-];
-pub const MAX_IMPACT_AUDIO_CHANNELS: usize = 4;
+pub const AUDIO_CHANNEL_COUNT: usize = 16;
 
 pub const TITLE_MUSIC: &str = "musics/E2M2 Myrgharok - Halls of Wandering Spirits.ogg";
 pub const GAME_MUSIC: &str = "musics/E3M8 Myrgharok - Mother of All Doom.ogg";
