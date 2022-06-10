@@ -13,10 +13,10 @@ pub const BALL_SPRITE: &str = "sprites/ball.png";
 pub const HINT_SPRITE: &str = "sprites/hint.png";
 pub const DEATH_SPRITE: &str = "sprites/death.png";
 
-pub const HIT_AUDIO: &str = "audios/hits/hit-1.ogg";
 pub const MISS_AUDIO: &str = "audios/miss.flac";
 pub const EXPLOSION_AUDIO: &str = "audios/explosion.flac";
 pub const LOSE_AUDIO: &str = "audios/lose.flac";
+pub const HIT_AUDIO: &str = "audios/hit.ogg";
 pub const IMPACT_AUDIOS: [&str; 2] = ["audios/impacts/impact-1.ogg", "audios/impacts/impact-2.ogg"];
 
 pub const AUDIO_CHANNEL_COUNT: usize = 16;

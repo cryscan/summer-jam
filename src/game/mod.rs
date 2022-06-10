@@ -49,13 +49,13 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
                     .with_system(update_game)
-                    .with_system(make_ball.exclusive_system())
                     .with_system(move_player)
                     .with_system(move_enemy)
                     .with_system(move_ball)
+                    .with_system(make_ball.exclusive_system())
+                    .with_system(destroy_ball.exclusive_system().at_end())
                     .with_system(activate_ball)
                     .with_system(update_ball)
-                    .with_system(destroy_ball)
                     .with_system(assist_player)
                     .with_system(player_hit)
                     .with_system(player_miss)
@@ -122,8 +122,11 @@ struct GameOver {
     event: Option<GameOverEvent>,
 }
 
-#[derive(Component)]
-struct BounceAudio;
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
+enum BounceAudio {
+    Bounce,
+    Hit,
+}
 
 #[derive(Component)]
 struct Cleanup;
@@ -272,7 +275,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             hp: ENEMY_BASE_FULL_HP,
         })
         .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.0))
-        .insert(PhysicsLayers::BOUNDARY);
+        .insert(PhysicsLayers::BOUNDARY)
+        .insert(BounceAudio::Hit);
 
     // bottom boundary
     commands
@@ -471,7 +475,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         .insert(PhysicsLayers::PLAYER)
         .insert(Motion::default())
         .insert(Hint(hint))
-        .insert(BounceAudio)
+        .insert(BounceAudio::Bounce)
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
@@ -517,7 +521,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         ))
         .insert(PhysicsLayers::PLAYER)
         .insert(Motion::default())
-        .insert(BounceAudio)
+        .insert(BounceAudio::Bounce)
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
@@ -577,7 +581,7 @@ fn make_ball(
                 points: vec![Point::default(); PREDICT_SIZE],
             })
             .insert(Hint(hint))
-            .insert(BounceAudio)
+            .insert(BounceAudio::Bounce)
             .with_children(|parent| {
                 for _ in 0..BALL_GHOSTS_COUNT {
                     parent.spawn_bundle(SpriteBundle {
@@ -838,12 +842,11 @@ fn bounce_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
     time: Res<Time>,
-    // time_scale: Res<TimeScale>,
     mut timer: ResMut<Debounce>,
     mut events: EventReader<CollisionEvent>,
     mut index: Local<usize>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
-    query: Query<Entity, With<BounceAudio>>,
+    query: Query<(Entity, &BounceAudio)>,
 ) {
     let mut can_play_audio = timer.bounce_long.tick(time.delta()).finished();
     timer.bounce_short.tick(time.delta());
@@ -852,15 +855,19 @@ fn bounce_audio(
         .map(|index| AudioChannel::new(format!("impact_{}", index)))
         .collect_vec();
 
-    // for channel in channels.iter() {
-    //     audio.set_playback_rate_in_channel(time_scale.0, channel);
-    // }
-
     for event in events.iter() {
-        let entities = query.get_many(event.entities).ok();
-        if entities.is_none() {
+        let (entities, audio_source) = if let Ok(x) = query.get_many(event.entities) {
+            let (entities, bounce_audios): (Vec<_>, Vec<_>) = x.iter().cloned().unzip();
+            let audio_source = if bounce_audios.contains(&BounceAudio::Hit) {
+                audios.hit_audio.clone()
+            } else {
+                let index = fastrand::usize(..IMPACT_AUDIOS.len());
+                audios.impact_audios[index].clone()
+            };
+            (entities.try_into().ok(), audio_source)
+        } else {
             continue;
-        }
+        };
 
         // bounce happens between a different pair
         if entities != *bounce_entities {
@@ -887,8 +894,6 @@ fn bounce_audio(
                 let playback_rate = fastrand::f32() + 0.5;
                 audio.set_playback_rate_in_channel(playback_rate, channel);
 
-                let index = fastrand::usize(..IMPACT_AUDIOS.len());
-                let audio_source = audios.impact_audios[index].clone();
                 audio.play_in_channel(audio_source, channel);
 
                 timer.bounce_long.reset();
@@ -902,26 +907,26 @@ fn score_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
     // time_scale: Res<TimeScale>,
-    mut player_hit_events: EventReader<PlayerHitEvent>,
+    // mut player_hit_events: EventReader<PlayerHitEvent>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut game_over_events: EventReader<GameOverEvent>,
-    mut index: Local<usize>,
+    // mut index: Local<usize>,
 ) {
-    for event in player_hit_events.iter() {
-        let channels = (0..AUDIO_CHANNEL_COUNT)
-            .map(|index| AudioChannel::new(format!("hit_{}", index)))
-            .collect_vec();
+    // for event in player_hit_events.iter() {
+    //     let channels = (0..AUDIO_CHANNEL_COUNT)
+    //         .map(|index| AudioChannel::new(format!("hit_{}", index)))
+    //         .collect_vec();
 
-        *index = (*index + 1) % AUDIO_CHANNEL_COUNT;
-        let channel = &channels[*index];
+    //     *index = (*index + 1) % AUDIO_CHANNEL_COUNT;
+    //     let channel = &channels[*index];
 
-        let playback_rate = fastrand::f32() + 0.5;
-        audio.set_playback_rate_in_channel(playback_rate, channel);
+    //     let playback_rate = fastrand::f32() + 0.5;
+    //     audio.set_playback_rate_in_channel(playback_rate, channel);
 
-        let panning = event.location.x / ARENA_WIDTH + 0.5;
-        audio.set_panning_in_channel(panning, channel);
-        audio.play_in_channel(audios.hit_audio.clone(), channel);
-    }
+    //     let panning = event.location.x / ARENA_WIDTH + 0.5;
+    //     audio.set_panning_in_channel(panning, channel);
+    //     audio.play_in_channel(audios.hit_audio.clone(), channel);
+    // }
 
     for event in player_miss_events.iter() {
         let channel = &AudioChannel::new("miss".into());
