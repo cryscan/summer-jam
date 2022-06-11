@@ -21,11 +21,31 @@ pub enum AppState {
     Win,
 }
 
+#[derive(Reflect)]
+pub struct TimeScale(pub f32);
+
+impl Default for TimeScale {
+    fn default() -> Self {
+        Self(1.0)
+    }
+}
+
+impl TimeScale {
+    pub fn reset(&mut self) {
+        self.0 = 1.0;
+    }
+}
+
+#[derive(Reflect)]
+pub struct MusicVolume(pub f32);
+
 #[wasm_bindgen]
 pub fn run() {
     let mut app = App::new();
 
-    app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+    app.register_type::<TimeScale>()
+        .register_type::<MusicVolume>()
+        .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .insert_resource(WindowDescriptor {
             title: "Bounce Up!".into(),
             width: config::ARENA_WIDTH,
@@ -33,8 +53,8 @@ pub fn run() {
             resizable: false,
             ..Default::default()
         })
-        .init_resource::<utils::TimeScale>()
-        .insert_resource(utils::MusicVolume(0.3));
+        .init_resource::<TimeScale>()
+        .insert_resource(MusicVolume(0.3));
 
     #[cfg(feature = "dot")]
     app.add_plugins_with(DefaultPlugins, |plugins| {

@@ -2,8 +2,8 @@ use self::{ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::
 use crate::{
     config::*,
     score::Score,
-    utils::{cleanup_system, Damp, Interpolation, MusicVolume, TimeScale},
-    AppState,
+    utils::{cleanup_system, Damp, Interpolation},
+    AppState, MusicVolume, TimeScale,
 };
 use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
@@ -21,7 +21,16 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<GameOverEvent>()
+        app.register_type::<Cleanup>()
+            .register_type::<BounceAudio>()
+            .register_type::<GameOver>()
+            .register_type::<Ball>()
+            .register_type::<Trajectory>()
+            .register_type::<Player>()
+            .register_type::<PlayerAssist>()
+            .register_type::<Enemy>()
+            .register_type::<Controller>()
+            .add_event::<GameOverEvent>()
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
@@ -54,6 +63,8 @@ impl Plugin for GamePlugin {
                     .with_system(move_ball)
                     .with_system(make_ball.exclusive_system())
                     .with_system(destroy_ball.exclusive_system().at_end())
+                    .with_system(make_player_hint)
+                    .with_system(make_ball_hint)
                     .with_system(activate_ball)
                     .with_system(update_ball)
                     .with_system(assist_player)
@@ -116,20 +127,30 @@ struct Debounce {
     miss: Timer,
 }
 
+#[derive(Reflect)]
 struct GameOver {
     slow_motion_timer: Timer,
     state_change_timer: Timer,
+    #[reflect(ignore)]
     event: Option<GameOverEvent>,
 }
 
-#[derive(Component, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
+struct Cleanup;
+
+#[derive(Clone, Copy, PartialEq, Eq, Component, Reflect)]
+#[reflect(Component)]
 enum BounceAudio {
     Bounce,
     Hit,
 }
 
-#[derive(Component)]
-struct Cleanup;
+impl Default for BounceAudio {
+    fn default() -> Self {
+        Self::Bounce
+    }
+}
 
 struct Materials {
     // dynamic entities
@@ -430,19 +451,6 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
 }
 
 fn make_player(mut commands: Commands, materials: Res<Materials>) {
-    let hint = commands
-        .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
-            texture: materials.hint.clone(),
-            sprite: Sprite {
-                color: Color::rgba(1.0, 1.0, 1.0, 0.5),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(Cleanup)
-        .id();
-
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(0.0, -160.0, 0.0),
@@ -454,18 +462,9 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(Player {
-            max_speed: PLAYER_MAX_SPEED,
-            sensitivity: PLAYER_SENSITIVITY,
-            damp: PLAYER_DAMP,
-        })
-        .insert(PlayerAssist {
-            range: PLAYER_ASSIST_RANGE,
-            speed: PLAYER_ASSIST_SPEED,
-            vertical_speed_threshold: PLAYER_ASSIST_VERTICAL_SPEED_THRESHOLD,
-            speed_threshold: PLAYER_ASSIST_SPEED_THRESHOLD,
-        })
-        .insert(Controller::new())
+        .insert(Player::default())
+        .insert(PlayerAssist::default())
+        .insert(Controller::default())
         .insert(RigidBody::new(
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
             3.0,
@@ -474,7 +473,6 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
         ))
         .insert(PhysicsLayers::PLAYER)
         .insert(Motion::default())
-        .insert(Hint(hint))
         .insert(BounceAudio::Bounce)
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
@@ -503,16 +501,8 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(Enemy {
-            min_speed: ENEMY_MIN_SPEED,
-            max_speed: ENEMY_MAX_SPEED,
-            normal_speed: ENEMY_NORMAL_SPEED,
-            damp: ENEMY_DAMP,
-            hit_range: Vec2::new(ENEMY_HIT_RANGE_HORIZONTAL, ENEMY_HIT_RANGE_VERTICAL),
-            hit_speed_threshold: ENEMY_HIT_SPEED_THRESHOLD,
-            hit_height_threshold: 0.125 * ARENA_HEIGHT,
-        })
-        .insert(Controller::new())
+        .insert(Enemy::default())
+        .insert(Controller::default())
         .insert(RigidBody::new(
             Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
             3.0,
@@ -543,19 +533,6 @@ fn make_ball(
     mut events: EventReader<MakeBallEvent>,
 ) {
     for _ in events.iter() {
-        let hint = commands
-            .spawn_bundle(SpriteBundle {
-                transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
-                texture: materials.hint.clone(),
-                sprite: Sprite {
-                    color: Color::rgba(1.0, 1.0, 1.0, 0.5),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            .insert(Cleanup)
-            .id();
-
         let alpha = 1.0 / BALL_GHOSTS_COUNT as f32;
         commands
             .spawn_bundle(SpriteBundle {
@@ -580,7 +557,6 @@ fn make_ball(
                 start_time: 0.0,
                 points: vec![Point::default(); PREDICT_SIZE],
             })
-            .insert(Hint(hint))
             .insert(BounceAudio::Bounce)
             .with_children(|parent| {
                 for _ in 0..BALL_GHOSTS_COUNT {
@@ -619,6 +595,52 @@ fn destroy_ball(
 
     for event in player_miss_events.iter() {
         closure(event.ball);
+    }
+}
+
+fn make_player_hint(
+    mut commands: Commands,
+    materials: Res<Materials>,
+    query: Query<Entity, (Added<Player>, Without<Hint>)>,
+) {
+    for entity in query.iter() {
+        let hint = commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
+                texture: materials.hint.clone(),
+                sprite: Sprite {
+                    color: Color::rgba(1.0, 1.0, 1.0, 0.5),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(Cleanup)
+            .id();
+
+        commands.entity(entity).insert(Hint(hint));
+    }
+}
+
+fn make_ball_hint(
+    mut commands: Commands,
+    materials: Res<Materials>,
+    query: Query<Entity, (Added<Ball>, Without<Hint>)>,
+) {
+    for entity in query.iter() {
+        let hint = commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
+                texture: materials.hint.clone(),
+                sprite: Sprite {
+                    color: Color::rgba(1.0, 1.0, 1.0, 0.5),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(Cleanup)
+            .id();
+
+        commands.entity(entity).insert(Hint(hint));
     }
 }
 

@@ -1,6 +1,4 @@
-use std::time::Duration;
-
-use crate::utils::*;
+use crate::TimeScale;
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
     prelude::*,
@@ -19,12 +17,14 @@ use bevy::{
         Material2dPipeline, Material2dPlugin,
     },
 };
+use std::time::Duration;
 
 pub struct EffectsPlugin;
 
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(CameraShakeTimer(Timer::from_seconds(0.02, false)))
+        app.register_type::<DeathEffect>()
+            .insert_resource(CameraShakeTimer(Timer::from_seconds(0.02, false)))
             .add_event::<CameraShakeEvent>()
             .add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
             .add_system(death_effect_system)
@@ -145,7 +145,8 @@ impl Material2d for DeathEffectMaterial {
     }
 }
 
-#[derive(Component, Clone)]
+#[derive(Default, Clone, Component, Reflect)]
+#[reflect(Component)]
 pub struct DeathEffect {
     pub timer: Timer,
     pub speed: f32,

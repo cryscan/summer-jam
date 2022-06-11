@@ -1,6 +1,6 @@
 use crate::{
     config::{ARENA_HEIGHT, ARENA_WIDTH, BACKGROUND_SHADER},
-    utils::TimeScale,
+    TimeScale,
 };
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},

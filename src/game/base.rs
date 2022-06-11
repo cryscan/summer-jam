@@ -1,4 +1,4 @@
-use crate::utils::{Damp, TimeScale};
+use crate::{utils::Damp, TimeScale};
 use bevy::prelude::*;
 
 #[derive(Component)]

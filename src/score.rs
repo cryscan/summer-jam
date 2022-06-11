@@ -1,11 +1,11 @@
-use crate::{config::*, utils::TimeScale, AppState};
+use crate::{config::*, AppState, TimeScale};
 use bevy::prelude::*;
 
 pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(
+        app.register_type::<Score>().add_system_set(
             SystemSet::on_enter(AppState::Win)
                 .with_system(enter_score)
                 .with_system(make_ui),
@@ -13,6 +13,7 @@ impl Plugin for ScorePlugin {
     }
 }
 
+#[derive(Reflect)]
 pub struct Score {
     pub timestamp: f64,
     pub hits: i32,

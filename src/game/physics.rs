@@ -1,6 +1,7 @@
 use crate::{
     config::{PHYSICS_REST_SPEED, PHYSICS_TIME_STEP},
     utils::*,
+    TimeScale,
 };
 use bevy::{core::FixedTimestep, prelude::*, render::view::RenderLayers};
 
@@ -14,12 +15,16 @@ impl Plugin for PhysicsPlugin {
             .with_system(movement)
             .with_system(collision.after(init_motion).after(movement));
 
-        app.add_event::<CollisionEvent>()
+        app.register_type::<PhysicsLayers>()
+            .register_type::<RigidBody>()
+            .register_type::<Motion>()
+            .add_event::<CollisionEvent>()
             .add_system_set_to_stage(CoreStage::PostUpdate, systems);
     }
 }
 
-#[derive(Component, Clone, Default)]
+#[derive(Default, Clone, Component, Reflect)]
+#[reflect(Component)]
 pub struct PhysicsLayers {
     pub collision: RenderLayers,
     pub bounciness: RenderLayers,
@@ -49,7 +54,8 @@ impl PhysicsLayers {
     };
 }
 
-#[derive(Component)]
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct RigidBody {
     pub size: Vec2,
     pub inverted_mass: f32,
@@ -78,7 +84,8 @@ impl RigidBody {
     }
 }
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct Motion {
     pub velocity: Vec2,
     pub translation: Vec3,

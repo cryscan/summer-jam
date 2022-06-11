@@ -1,8 +1,4 @@
-use crate::{
-    config::*,
-    utils::{cleanup_system, MusicVolume, TimeScale},
-    AppState,
-};
+use crate::{config::*, utils::cleanup_system, AppState, MusicVolume, TimeScale};
 use bevy::prelude::*;
 use bevy_kira_audio::Audio;
 
@@ -10,7 +6,9 @@ pub struct TitlePlugin;
 
 impl Plugin for TitlePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
+        app.register_type::<Cleanup>()
+            .register_type::<ColorText>()
+            .insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
             .add_system_set(
                 SystemSet::on_enter(AppState::Title)
                     .with_system(enter_title)
@@ -27,10 +25,12 @@ impl Plugin for TitlePlugin {
     }
 }
 
-#[derive(Component)]
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
 struct Cleanup;
 
-#[derive(Default, Clone, Copy, Component)]
+#[derive(Default, Clone, Copy, Component, Reflect)]
+#[reflect(Component)]
 struct ColorText {
     bright: Color,
     dark: Color,

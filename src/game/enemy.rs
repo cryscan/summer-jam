@@ -3,12 +3,18 @@ use super::{
     physics::Motion,
 };
 use crate::{
-    config::{ARENA_HEIGHT, ENEMY_BRAKE_DISTANCE},
-    utils::{Damp, TimeScale},
+    config::{
+        ARENA_HEIGHT, ENEMY_BRAKE_DISTANCE, ENEMY_DAMP, ENEMY_HIT_RANGE_HORIZONTAL,
+        ENEMY_HIT_RANGE_VERTICAL, ENEMY_HIT_SPEED_THRESHOLD, ENEMY_MAX_SPEED, ENEMY_MIN_SPEED,
+        ENEMY_NORMAL_SPEED,
+    },
+    utils::Damp,
+    TimeScale,
 };
 use bevy::prelude::*;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct Enemy {
     pub min_speed: f32,
     pub max_speed: f32,
@@ -20,9 +26,23 @@ pub struct Enemy {
     pub hit_height_threshold: f32,
 }
 
-#[derive(new, Component)]
+impl Default for Enemy {
+    fn default() -> Self {
+        Self {
+            min_speed: ENEMY_MIN_SPEED,
+            max_speed: ENEMY_MAX_SPEED,
+            normal_speed: ENEMY_NORMAL_SPEED,
+            damp: ENEMY_DAMP,
+            hit_range: Vec2::new(ENEMY_HIT_RANGE_HORIZONTAL, ENEMY_HIT_RANGE_VERTICAL),
+            hit_speed_threshold: ENEMY_HIT_SPEED_THRESHOLD,
+            hit_height_threshold: 0.125 * ARENA_HEIGHT,
+        }
+    }
+}
+
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct Controller {
-    #[new(default)]
     pub velocity: Vec2,
 }
 
