@@ -4,25 +4,53 @@ use super::{
     physics::Motion,
 };
 use crate::{
-    config::{ARENA_HEIGHT, TIME_SCALE_DAMP},
-    utils::{Damp, TimeScale},
+    config::{
+        ARENA_HEIGHT, PLAYER_ASSIST_RANGE, PLAYER_ASSIST_SPEED, PLAYER_ASSIST_SPEED_THRESHOLD,
+        PLAYER_ASSIST_VERTICAL_SPEED_THRESHOLD, PLAYER_DAMP, PLAYER_MAX_SPEED, PLAYER_SENSITIVITY,
+        TIME_SCALE_DAMP,
+    },
+    utils::Damp,
+    TimeScale,
 };
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::ops::Add;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct Player {
     pub max_speed: f32,
     pub sensitivity: f32,
     pub damp: f32,
 }
 
-#[derive(Component)]
+impl Default for Player {
+    fn default() -> Self {
+        Self {
+            max_speed: PLAYER_MAX_SPEED,
+            sensitivity: PLAYER_SENSITIVITY,
+            damp: PLAYER_DAMP,
+        }
+    }
+}
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct PlayerAssist {
     pub range: f32,
     pub speed: f32,
     pub vertical_speed_threshold: f32,
     pub speed_threshold: f32,
+}
+
+impl Default for PlayerAssist {
+    fn default() -> Self {
+        Self {
+            range: PLAYER_ASSIST_RANGE,
+            speed: PLAYER_ASSIST_SPEED,
+            vertical_speed_threshold: PLAYER_ASSIST_VERTICAL_SPEED_THRESHOLD,
+            speed_threshold: PLAYER_ASSIST_SPEED_THRESHOLD,
+        }
+    }
 }
 
 pub fn move_player(

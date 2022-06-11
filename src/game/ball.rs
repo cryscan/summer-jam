@@ -1,10 +1,15 @@
+use super::physics::{Motion, RigidBody};
+use crate::{
+    config::{
+        ARENA_HEIGHT, ARENA_WIDTH, BALL_GHOSTS_COUNT, BALL_MAX_SPEED, BALL_SIZE, PREDICT_TIME_STEP,
+    },
+    TimeScale,
+};
+use bevy::prelude::*;
 use std::f32::consts::FRAC_PI_2;
 
-use super::physics::{Motion, RigidBody};
-use crate::{config::*, utils::TimeScale};
-use bevy::prelude::*;
-
-#[derive(Clone, Component)]
+#[derive(Clone, Component, Reflect)]
+#[reflect(Component)]
 pub struct Ball {
     pub gravity: f32,
     pub set_timer: Timer,
@@ -78,9 +83,12 @@ pub struct Point {
     pub time: f64,
 }
 
-#[derive(Component)]
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct Trajectory {
+    #[reflect(ignore)]
     pub start_time: f64,
+    #[reflect(ignore)]
     pub points: Vec<Point>,
 }
 
