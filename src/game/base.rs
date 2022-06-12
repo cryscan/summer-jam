@@ -1,18 +1,42 @@
-use crate::{utils::Damp, TimeScale};
+use crate::{
+    config::{ENEMY_BASE_FULL_HP, HEALTH_BAR_BIAS, HEALTH_BAR_DAMP, PLAYER_BASE_BALL_COUNT},
+    utils::Damp,
+    TimeScale,
+};
 use bevy::prelude::*;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct PlayerBase {
     pub ball_count: i32,
 }
 
-#[derive(Component)]
+impl Default for PlayerBase {
+    fn default() -> Self {
+        Self {
+            ball_count: PLAYER_BASE_BALL_COUNT,
+        }
+    }
+}
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct EnemyBase {
     pub full_hp: f32,
     pub hp: f32,
 }
 
-#[derive(Component)]
+impl Default for EnemyBase {
+    fn default() -> Self {
+        Self {
+            full_hp: ENEMY_BASE_FULL_HP,
+            hp: ENEMY_BASE_FULL_HP,
+        }
+    }
+}
+
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct BallCounter;
 
 pub fn count_ball(
@@ -25,15 +49,26 @@ pub fn count_ball(
     }
 }
 
-#[derive(Component)]
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
 pub struct HealthBar;
 
-#[derive(new, Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct HealthBarTracker {
-    damp: f32,
-    bias: f32,
-    #[new(value = "100.0")]
-    percent: f32,
+    pub damp: f32,
+    pub bias: f32,
+    pub percent: f32,
+}
+
+impl Default for HealthBarTracker {
+    fn default() -> Self {
+        Self {
+            damp: HEALTH_BAR_DAMP,
+            bias: HEALTH_BAR_BIAS,
+            percent: 100.0,
+        }
+    }
 }
 
 pub fn health_bar(base_query: Query<&EnemyBase>, mut query: Query<&mut Style, With<HealthBar>>) {

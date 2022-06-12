@@ -30,13 +30,20 @@ impl Plugin for GamePlugin {
             .register_type::<PlayerAssist>()
             .register_type::<Enemy>()
             .register_type::<Controller>()
+            .register_type::<PlayerBase>()
+            .register_type::<EnemyBase>()
+            .register_type::<BallCounter>()
+            .register_type::<HealthBar>()
+            .register_type::<HealthBarTracker>()
             .add_event::<GameOverEvent>()
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
+            .add_event::<BounceEvent>()
             .insert_resource(Debounce {
-                bounce_long: Timer::from_seconds(0.5, false),
-                bounce_short: Timer::from_seconds(0.1, false),
+                bounce_audio_long: Timer::from_seconds(0.5, false),
+                bounce_audio_short: Timer::from_seconds(0.1, false),
+                bounce: Timer::from_seconds(0.1, false),
                 effects: Timer::from_seconds(0.1, false),
                 hit: Timer::from_seconds(0.1, false),
                 miss: Timer::from_seconds(0.5, false),
@@ -61,8 +68,8 @@ impl Plugin for GamePlugin {
                     .with_system(move_player)
                     .with_system(move_enemy)
                     .with_system(move_ball)
-                    .with_system(make_ball.exclusive_system())
-                    .with_system(destroy_ball.exclusive_system().at_end())
+                    .with_system(make_ball)
+                    .with_system(destroy_ball)
                     .with_system(make_player_hint)
                     .with_system(make_ball_hint)
                     .with_system(activate_ball)
@@ -70,6 +77,7 @@ impl Plugin for GamePlugin {
                     .with_system(assist_player)
                     .with_system(player_hit)
                     .with_system(player_miss)
+                    .with_system(ball_bounce)
                     .with_system(count_ball)
                     .with_system(health_bar)
                     .with_system(health_bar_tracker)
@@ -108,20 +116,28 @@ struct MakeBallEvent;
 
 struct PlayerHitEvent {
     ball: Entity,
+    location: Vec2,
     hp: f32,
     damage: f32,
-    location: Vec2,
 }
 
 struct PlayerMissEvent {
     ball: Entity,
+    location: Vec2,
     lives: i32,
+}
+
+#[allow(dead_code)]
+struct BounceEvent {
+    ball: Entity,
+    other: Entity,
     location: Vec2,
 }
 
 struct Debounce {
-    bounce_long: Timer,
-    bounce_short: Timer,
+    bounce_audio_long: Timer,
+    bounce_audio_short: Timer,
+    bounce: Timer,
     effects: Timer,
     hit: Timer,
     miss: Timer,
@@ -291,10 +307,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(EnemyBase {
-            full_hp: ENEMY_BASE_FULL_HP,
-            hp: ENEMY_BASE_FULL_HP,
-        })
+        .insert(EnemyBase::default())
         .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.0))
         .insert(PhysicsLayers::BOUNDARY)
         .insert(BounceAudio::Hit);
@@ -311,7 +324,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             ..Default::default()
         })
         .insert(Cleanup)
-        .insert(PlayerBase { ball_count: 3 })
+        .insert(PlayerBase::default())
         .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5))
         .insert(PhysicsLayers::BOUNDARY);
 
@@ -392,7 +405,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                     color: materials.health_bar_tracker.into(),
                     ..Default::default()
                 })
-                .insert(HealthBarTracker::new(1.0, 10.0));
+                .insert(HealthBarTracker::default());
         });
 
     commands
@@ -658,18 +671,20 @@ fn player_hit(
         for event in collision_events.iter() {
             let mut closure = |ball: Entity, base: Entity| -> Option<()> {
                 let (rigid_body, motion) = ball_query.get(ball).ok()?;
+                let mut base = base_query.get_mut(base).ok()?;
+
+                let location = event.hit.location();
+                let hp = base.hp;
+
                 let mass = rigid_body.mass();
                 let speed = motion.velocity.length();
-
-                let mut base = base_query.get_mut(base).ok()?;
-                let hp = base.hp;
                 let damage = hp.min(speed * mass).min(MAX_DAMAGE);
 
                 player_hit_events.send(PlayerHitEvent {
                     ball,
+                    location,
                     hp,
                     damage,
-                    location: event.hit.location(),
                 });
 
                 base.hp -= damage;
@@ -681,8 +696,8 @@ fn player_hit(
                 Some(())
             };
 
-            closure(event.entities[0], event.entities[1]);
-            closure(event.entities[1], event.entities[0]);
+            closure(event.entities[0], event.entities[1])
+                .or_else(|| closure(event.entities[1], event.entities[0]));
         }
     }
 }
@@ -701,13 +716,16 @@ fn player_miss(
     if timer.miss.tick(time.delta()).finished() {
         for event in collision_events.iter() {
             let mut closure = |ball: Entity, base: Entity| -> Option<()> {
-                let _ = ball_query.get(ball).ok()?;
+                ball_query.get(ball).ok()?;
                 let mut base = base_query.get_mut(base).ok()?;
+
+                let location = event.hit.location();
+                let lives = base.ball_count;
 
                 player_miss_events.send(PlayerMissEvent {
                     ball,
-                    lives: base.ball_count,
-                    location: event.hit.location(),
+                    location,
+                    lives,
                 });
 
                 if base.ball_count == 0 {
@@ -720,8 +738,39 @@ fn player_miss(
 
                 Some(())
             };
-            closure(event.entities[0], event.entities[1]);
-            closure(event.entities[1], event.entities[0]);
+
+            closure(event.entities[0], event.entities[1])
+                .or_else(|| closure(event.entities[1], event.entities[0]));
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn ball_bounce(
+    time: Res<Time>,
+    mut timer: ResMut<Debounce>,
+    mut collision_events: EventReader<CollisionEvent>,
+    mut player_bounce_events: EventWriter<BounceEvent>,
+    ball_query: Query<(), With<Ball>>,
+) {
+    if timer.bounce.tick(time.delta()).finished() {
+        for event in collision_events.iter() {
+            let mut closure = |ball: Entity, other: Entity| -> Option<()> {
+                ball_query.get(ball).ok()?;
+
+                let location = event.hit.location();
+                player_bounce_events.send(BounceEvent {
+                    ball,
+                    other,
+                    location,
+                });
+
+                timer.bounce.reset();
+                Some(())
+            };
+
+            closure(event.entities[0], event.entities[1])
+                .or_else(|| closure(event.entities[1], event.entities[0]));
         }
     }
 }
@@ -870,8 +919,8 @@ fn bounce_audio(
     mut bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<(Entity, &BounceAudio)>,
 ) {
-    let mut can_play_audio = timer.bounce_long.tick(time.delta()).finished();
-    timer.bounce_short.tick(time.delta());
+    let mut can_play_audio = timer.bounce_audio_long.tick(time.delta()).finished();
+    timer.bounce_audio_short.tick(time.delta());
 
     let channels = (0..AUDIO_CHANNEL_COUNT)
         .map(|index| AudioChannel::new(format!("impact_{}", index)))
@@ -893,7 +942,7 @@ fn bounce_audio(
 
         // bounce happens between a different pair
         if entities != *bounce_entities {
-            can_play_audio = timer.bounce_short.finished();
+            can_play_audio = timer.bounce_audio_short.finished();
             *bounce_entities = entities;
         }
 
@@ -918,8 +967,8 @@ fn bounce_audio(
 
                 audio.play_in_channel(audio_source, channel);
 
-                timer.bounce_long.reset();
-                timer.bounce_short.reset();
+                timer.bounce_audio_long.reset();
+                timer.bounce_audio_short.reset();
             }
         }
     }

@@ -52,6 +52,7 @@ pub const ENEMY_HIT_RANGE_VERTICAL: f32 = 144.0;
 pub const ENEMY_HIT_RANGE_HORIZONTAL: f32 = 144.0;
 pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -0.0;
 
+pub const PLAYER_BASE_BALL_COUNT: i32 = 3;
 pub const ENEMY_BASE_FULL_HP: f32 = 40000.0;
 pub const MAX_DAMAGE: f32 = 2000.0;
 
@@ -64,6 +65,9 @@ pub const MAX_BOUNCE_EFFECTS_SPEED: f32 = 2500.0;
 
 pub const DEATH_EFFECT_SPEED: f32 = 2000.0;
 pub const DEATH_EFFECT_ACCELERATION: f32 = 6000.0;
+
+pub const HEALTH_BAR_BIAS: f32 = 10.0;
+pub const HEALTH_BAR_DAMP: f32 = 1.0;
 
 pub const TIME_SCALE_DAMP: f32 = 100.0;
 pub const GAME_OVER_TIME_SCALE_DAMP: f32 = 5.0;
