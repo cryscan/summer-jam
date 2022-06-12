@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate derive_new;
-
 use bevy::prelude::*;
 use bevy_kira_audio::AudioPlugin;
 use wasm_bindgen::prelude::*;
