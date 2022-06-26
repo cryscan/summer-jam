@@ -821,7 +821,8 @@ fn bounce_effects(
     mut collision_events: EventReader<CollisionEvent>,
     mut camera_shake_events: EventWriter<CameraShakeEvent>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
-    query: Query<Entity, With<Ball>>,
+    query: Query<(), With<Ball>>,
+    motions: Query<Option<&Motion>>,
 ) {
     if timer.effects.tick(time.delta()).finished() {
         if collision_events.is_empty() {
@@ -829,17 +830,24 @@ fn bounce_effects(
         }
 
         for event in collision_events.iter() {
-            if query
-                .get(event.entities[0])
-                .or_else(|_| query.get(event.entities[1]))
-                .is_ok()
-            {
+            let results = event.entities.map(|entity| query.get(entity).ok());
+            if results.contains(&Some(())) {
+                let velocities = motions
+                    .many(event.entities)
+                    .map(|maybe_motion| maybe_motion.map_or(Vec2::ZERO, |motion| motion.velocity));
+
+                let velocity = if results[0].is_some() {
+                    velocities[0]
+                } else {
+                    velocities[1]
+                };
+
                 if bounce_entities.map_or(true, |entities| entities != event.entities) {
-                    let speed = event.velocity.length();
+                    let speed = velocity.length();
                     let scale = (speed / MAX_BOUNCE_EFFECTS_SPEED).min(1.0);
 
                     // screen shake
-                    let amplitude = event.velocity.normalize() * scale * 8.0;
+                    let amplitude = velocity.normalize() * scale * 8.0;
                     camera_shake_events.send(CameraShakeEvent { amplitude });
                     timer.effects.reset();
                 }
@@ -918,6 +926,7 @@ fn bounce_audio(
     mut index: Local<usize>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<(Entity, &BounceAudio)>,
+    motions: Query<Option<&Motion>>,
 ) {
     let mut can_play_audio = timer.bounce_audio_long.tick(time.delta()).finished();
     timer.bounce_audio_short.tick(time.delta());
@@ -950,7 +959,10 @@ fn bounce_audio(
         let channel = &channels[*index];
 
         if can_play_audio {
-            let speed = event.velocity.length();
+            let velocities = motions
+                .many(event.entities)
+                .map(|maybe_motion| maybe_motion.map_or(Vec2::ZERO, |motion| motion.velocity));
+            let speed = (velocities[0] - velocities[1]).length();
             if speed > MIN_BOUNCE_AUDIO_SPEED {
                 let normalized_speed = speed
                     .intermediate(MIN_BOUNCE_AUDIO_SPEED, MAX_BOUNCE_AUDIO_SPEED)

@@ -12,6 +12,7 @@ pub const ENEMY_SPRITE: &str = "sprites/enemy.png";
 pub const BALL_SPRITE: &str = "sprites/ball.png";
 pub const HINT_SPRITE: &str = "sprites/hint.png";
 pub const DEATH_SPRITE: &str = "sprites/death.png";
+pub const HIT_SPRITE: &str = "sprites/hit.png";
 
 pub const MISS_AUDIO: &str = "audios/miss.flac";
 pub const EXPLOSION_AUDIO: &str = "audios/explosion.flac";
@@ -65,6 +66,7 @@ pub const MAX_BOUNCE_EFFECTS_SPEED: f32 = 2500.0;
 
 pub const DEATH_EFFECT_SPEED: f32 = 2000.0;
 pub const DEATH_EFFECT_ACCELERATION: f32 = 6000.0;
+pub const HIT_EFFECT_TIME_STEP: f32 = 1.0 / 60.0;
 
 pub const HEALTH_BAR_BIAS: f32 = 10.0;
 pub const HEALTH_BAR_DAMP: f32 = 1.0;

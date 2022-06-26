@@ -93,7 +93,6 @@ pub struct Motion {
 
 pub struct CollisionEvent {
     pub entities: [Entity; 2],
-    pub velocity: Vec2,
     pub impulse: f32,
     pub bounciness: f32,
     pub friction: f32,
@@ -231,7 +230,6 @@ fn collision(
             entities.sort();
             events.send(CollisionEvent {
                 entities,
-                velocity: v2 - v1,
                 impulse,
                 bounciness,
                 friction,

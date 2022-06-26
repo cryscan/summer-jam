@@ -28,6 +28,7 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
     loading.push(server.load_untyped(BALL_SPRITE));
     loading.push(server.load_untyped(HINT_SPRITE));
     loading.push(server.load_untyped(DEATH_SPRITE));
+    loading.push(server.load_untyped(HIT_SPRITE));
 
     loading.push(server.load_untyped(HIT_AUDIO));
     loading.push(server.load_untyped(MISS_AUDIO));
