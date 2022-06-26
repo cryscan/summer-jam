@@ -1,3 +1,5 @@
+use std::f32::consts::FRAC_PI_4;
+
 use self::{ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::*};
 use crate::{
     config::*,
@@ -176,6 +178,7 @@ struct Materials {
     ball: Handle<Image>,
     hint: Handle<Image>,
     death: Handle<Image>,
+    hit: Handle<TextureAtlas>,
 
     // static entities
     boundary: Color,
@@ -195,7 +198,12 @@ struct Audios {
     impact_audios: Vec<Handle<AudioSource>>,
 }
 
-fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetServer>) {
+fn setup_game(
+    mut commands: Commands,
+    time: Res<Time>,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+) {
     commands.insert_resource(Materials {
         player: asset_server.load(PLAYER_SPRITE),
         enemy: asset_server.load(ENEMY_SPRITE),
@@ -203,6 +211,12 @@ fn setup_game(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetSe
         ball: asset_server.load(BALL_SPRITE),
         hint: asset_server.load(HINT_SPRITE),
         death: asset_server.load(DEATH_SPRITE),
+        hit: texture_atlases.add(TextureAtlas::from_grid(
+            asset_server.load(HIT_SPRITE),
+            Vec2::new(1024.0, 1024.0),
+            4,
+            4,
+        )),
 
         boundary: Color::NONE,
         separate: Color::rgba(0.5, 0.5, 0.5, 0.2),
@@ -346,7 +360,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             1.0,
             0.0,
         ))
-        .insert(PhysicsLayers::BOUNDARY);
+        .insert(PhysicsLayers::BOUNDARY)
+        .insert(BounceAudio::Bounce);
 
     // right boundary
     commands
@@ -366,7 +381,8 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             1.0,
             0.0,
         ))
-        .insert(PhysicsLayers::BOUNDARY);
+        .insert(PhysicsLayers::BOUNDARY)
+        .insert(BounceAudio::Bounce);
 }
 
 fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<AssetServer>) {
@@ -815,12 +831,15 @@ fn game_over(
 }
 
 #[allow(clippy::type_complexity)]
+#[allow(clippy::too_many_arguments)]
 fn bounce_effects(
+    mut commands: Commands,
     time: Res<Time>,
     mut timer: ResMut<Debounce>,
     mut collision_events: EventReader<CollisionEvent>,
     mut camera_shake_events: EventWriter<CameraShakeEvent>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
+    materials: Res<Materials>,
     query: Query<(), With<Ball>>,
     motions: Query<Option<&Motion>>,
 ) {
@@ -830,19 +849,19 @@ fn bounce_effects(
         }
 
         for event in collision_events.iter() {
-            let results = event.entities.map(|entity| query.get(entity).ok());
-            if results.contains(&Some(())) {
-                let velocities = motions
-                    .many(event.entities)
-                    .map(|maybe_motion| maybe_motion.map_or(Vec2::ZERO, |motion| motion.velocity));
-
-                let velocity = if results[0].is_some() {
-                    velocities[0]
-                } else {
-                    velocities[1]
-                };
-
+            let results = event.entities.map(|entity| query.get(entity).is_ok());
+            if results.contains(&true) {
                 if bounce_entities.map_or(true, |entities| entities != event.entities) {
+                    let velocities = motions.many(event.entities).map(|maybe_motion| {
+                        maybe_motion.map_or(Vec2::ZERO, |motion| motion.velocity)
+                    });
+
+                    let velocity = if results[0] {
+                        velocities[0] - velocities[1]
+                    } else {
+                        velocities[1] - velocities[0]
+                    };
+
                     let speed = velocity.length();
                     let scale = (speed / MAX_BOUNCE_EFFECTS_SPEED).min(1.0);
 
@@ -850,6 +869,22 @@ fn bounce_effects(
                     let amplitude = velocity.normalize() * scale * 8.0;
                     camera_shake_events.send(CameraShakeEvent { amplitude });
                     timer.effects.reset();
+
+                    // hit effect
+                    commands
+                        .spawn_bundle(SpriteSheetBundle {
+                            transform: Transform {
+                                translation: event.hit.location().extend(0.0),
+                                rotation: Quat::from_rotation_z(
+                                    f32::atan2(-velocity.y, -velocity.x) + FRAC_PI_4,
+                                ),
+                                scale: scale.max(0.5) * Vec3::new(0.2, 0.2, 1.0),
+                            },
+                            texture_atlas: materials.hit.clone(),
+                            ..Default::default()
+                        })
+                        .insert(HitEffect::default())
+                        .insert(Cleanup);
                 }
 
                 *bounce_entities = Some(event.entities);
@@ -926,6 +961,7 @@ fn bounce_audio(
     mut index: Local<usize>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<(Entity, &BounceAudio)>,
+    balls: Query<(), With<Ball>>,
     motions: Query<Option<&Motion>>,
 ) {
     let mut can_play_audio = timer.bounce_audio_long.tick(time.delta()).finished();
@@ -936,6 +972,12 @@ fn bounce_audio(
         .collect_vec();
 
     for event in events.iter() {
+        // one of the entities must be a ball
+        let results = event.entities.map(|entity| balls.get(entity).is_ok());
+        if !results.contains(&true) {
+            continue;
+        }
+
         let (entities, audio_source) = if let Ok(x) = query.get_many(event.entities) {
             let (entities, bounce_audios): (Vec<_>, Vec<_>) = x.iter().cloned().unzip();
             let audio_source = if bounce_audios.contains(&BounceAudio::Hit) {
