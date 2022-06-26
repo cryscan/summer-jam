@@ -1,4 +1,4 @@
-use crate::TimeScale;
+use crate::{config::HIT_EFFECT_TIME_STEP, TimeScale};
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
     prelude::*,
@@ -24,10 +24,12 @@ pub struct EffectsPlugin;
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<DeathEffect>()
+            .register_type::<HitEffect>()
             .insert_resource(CameraShakeTimer(Timer::from_seconds(0.02, false)))
             .add_event::<CameraShakeEvent>()
             .add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
             .add_system(death_effect_system)
+            .add_system(hit_effect_system)
             .add_system(camera_shake_system);
     }
 }
@@ -171,6 +173,49 @@ fn death_effect_system(
 
         effect.speed += effect.acceleration * time.delta_seconds() * time_scale.0;
         transform.scale += effect.speed * time.delta_seconds() * time_scale.0;
+    }
+}
+
+#[derive(Clone, Component, Reflect)]
+#[reflect(Component)]
+pub struct HitEffect {
+    timer: Timer,
+}
+
+impl Default for HitEffect {
+    fn default() -> Self {
+        Self {
+            timer: Timer::from_seconds(HIT_EFFECT_TIME_STEP, true),
+        }
+    }
+}
+
+fn hit_effect_system(
+    mut commands: Commands,
+    time: Res<Time>,
+    time_scale: Res<TimeScale>,
+    texture_atlases: Res<Assets<TextureAtlas>>,
+    mut query: Query<(
+        Entity,
+        &mut HitEffect,
+        &mut TextureAtlasSprite,
+        &Handle<TextureAtlas>,
+    )>,
+) {
+    for (entity, mut effect, mut sprite, texture_atlas_handle) in query.iter_mut() {
+        if effect
+            .timer
+            .tick(Duration::from_secs_f32(time.delta_seconds() * time_scale.0))
+            .just_finished()
+        {
+            if let Some(texture_atlas) = texture_atlases.get(texture_atlas_handle) {
+                if sprite.index + 1 < texture_atlas.len() {
+                    sprite.index += 1;
+                } else {
+                    commands.entity(entity).despawn_recursive();
+                }
+            }
+        }
     }
 }
 
