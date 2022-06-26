@@ -878,7 +878,7 @@ fn bounce_effects(
                                 rotation: Quat::from_rotation_z(
                                     f32::atan2(-velocity.y, -velocity.x) + FRAC_PI_4,
                                 ),
-                                scale: scale.max(0.5) * Vec3::new(0.2, 0.2, 1.0),
+                                scale: Vec3::new(0.2, 0.2, 1.0),
                             },
                             texture_atlas: materials.hit.clone(),
                             ..Default::default()
