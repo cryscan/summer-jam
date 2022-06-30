@@ -912,7 +912,7 @@ fn score_effects(
                 .spawn_bundle(MaterialMesh2dBundle {
                     mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
                     material: color_materials.add(materials.death.clone().into()),
-                    transform: Transform::from_translation((location + offset).extend(0.01)),
+                    transform: Transform::from_translation((location + offset).extend(0.9)),
                     ..Default::default()
                 })
                 .insert(DeathEffect {
