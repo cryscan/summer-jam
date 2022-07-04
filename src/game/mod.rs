@@ -43,8 +43,9 @@ impl Plugin for GamePlugin {
             .add_event::<PlayerMissEvent>()
             .add_event::<BounceEvent>()
             .insert_resource(Debounce {
-                bounce_audio_long: Timer::from_seconds(0.5, false),
-                bounce_audio_short: Timer::from_seconds(0.1, false),
+                audio_bounce_long: Timer::from_seconds(0.5, false),
+                audio_bounce_short: Timer::from_seconds(0.1, false),
+                audio_hit: Timer::from_seconds(0.1, false),
                 bounce: Timer::from_seconds(0.1, false),
                 effects: Timer::from_seconds(0.1, false),
                 hit: Timer::from_seconds(0.1, false),
@@ -137,8 +138,10 @@ struct BounceEvent {
 }
 
 struct Debounce {
-    bounce_audio_long: Timer,
-    bounce_audio_short: Timer,
+    audio_bounce_long: Timer,
+    audio_bounce_short: Timer,
+    audio_hit: Timer,
+
     bounce: Timer,
     effects: Timer,
     hit: Timer,
@@ -964,8 +967,9 @@ fn bounce_audio(
     balls: Query<(), With<Ball>>,
     motions: Query<Option<&Motion>>,
 ) {
-    let mut can_play_audio = timer.bounce_audio_long.tick(time.delta()).finished();
-    timer.bounce_audio_short.tick(time.delta());
+    let mut can_play_audio = timer.audio_bounce_long.tick(time.delta()).finished();
+    timer.audio_bounce_short.tick(time.delta());
+    timer.audio_hit.tick(time.delta());
 
     let channels = (0..AUDIO_CHANNEL_COUNT)
         .map(|index| AudioChannel::new(format!("impact_{}", index)))
@@ -978,22 +982,31 @@ fn bounce_audio(
             continue;
         }
 
-        let (entities, audio_source) = if let Ok(x) = query.get_many(event.entities) {
+        let (entities, bounce_audio) = if let Ok(x) = query.get_many(event.entities) {
             let (entities, bounce_audios): (Vec<_>, Vec<_>) = x.iter().cloned().unzip();
-            let audio_source = if bounce_audios.contains(&BounceAudio::Hit) {
-                audios.hit_audio.clone()
+            let bounce_audio = if bounce_audios.contains(&BounceAudio::Hit) {
+                BounceAudio::Hit
             } else {
-                let index = fastrand::usize(..IMPACT_AUDIOS.len());
-                audios.impact_audios[index].clone()
+                BounceAudio::Bounce
             };
-            (entities.try_into().ok(), audio_source)
+            (entities.try_into().ok(), bounce_audio)
         } else {
             continue;
         };
 
-        // bounce happens between a different pair
+        let (audio_source, debounce_timer) = match bounce_audio {
+            BounceAudio::Bounce => {
+                let index = fastrand::usize(..IMPACT_AUDIOS.len());
+                (
+                    audios.impact_audios[index].clone(),
+                    &timer.audio_bounce_short,
+                )
+            }
+            BounceAudio::Hit => (audios.hit_audio.clone(), &timer.audio_hit),
+        };
+
         if entities != *bounce_entities {
-            can_play_audio = timer.bounce_audio_short.finished();
+            can_play_audio = debounce_timer.finished();
             *bounce_entities = entities;
         }
 
@@ -1021,8 +1034,8 @@ fn bounce_audio(
 
                 audio.play_in_channel(audio_source, channel);
 
-                timer.bounce_audio_long.reset();
-                timer.bounce_audio_short.reset();
+                timer.audio_bounce_long.reset();
+                timer.audio_bounce_short.reset();
             }
         }
     }
