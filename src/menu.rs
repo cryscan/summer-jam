@@ -1,26 +1,26 @@
-use crate::{config::*, utils::cleanup_system, AppState, MusicVolume, TimeScale};
+use crate::{config::*, utils::cleanup_system, AppState, AudioVolume, TimeScale};
 use bevy::prelude::*;
 use bevy_kira_audio::Audio;
 
-pub struct TitlePlugin;
+pub struct MenuPlugin;
 
-impl Plugin for TitlePlugin {
+impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Cleanup>()
             .register_type::<ColorText>()
             .insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
             .add_system_set(
-                SystemSet::on_enter(AppState::Title)
-                    .with_system(enter_title)
-                    .with_system(make_title),
+                SystemSet::on_enter(AppState::Menu)
+                    .with_system(enter_menu)
+                    .with_system(make_menu),
             )
             .add_system_set(
-                SystemSet::on_update(AppState::Title)
-                    .with_system(update_title)
+                SystemSet::on_update(AppState::Menu)
+                    .with_system(update_menu)
                     .with_system(title_color),
             )
             .add_system_set(
-                SystemSet::on_exit(AppState::Title).with_system(cleanup_system::<Cleanup>),
+                SystemSet::on_exit(AppState::Menu).with_system(cleanup_system::<Cleanup>),
             );
     }
 }
@@ -39,22 +39,22 @@ struct ColorText {
 #[derive(Deref, DerefMut)]
 struct ColorTimer(Timer);
 
-fn enter_title(
+fn enter_menu(
     mut time_scale: ResMut<TimeScale>,
     asset_server: Res<AssetServer>,
     audio: Res<Audio>,
-    volume: Res<MusicVolume>,
+    volume: Res<AudioVolume>,
 ) {
     time_scale.reset();
 
     audio.stop();
     audio.set_playback_rate(1.0);
-    audio.set_volume(volume.0);
+    audio.set_volume(volume.music);
     audio.play_looped(asset_server.load(TITLE_MUSIC));
 }
 
-fn make_title(mut commands: Commands, asset_server: Res<AssetServer>) {
-    info!("Entering Title");
+fn make_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+    info!("Entering Menu");
 
     commands
         .spawn_bundle(NodeBundle {
@@ -119,7 +119,7 @@ fn make_title(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
-fn update_title(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<MouseButton>>) {
+fn update_menu(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<MouseButton>>) {
     if input.just_pressed(MouseButton::Left) {
         input.reset(MouseButton::Left);
         app_state.set(AppState::Game).unwrap();

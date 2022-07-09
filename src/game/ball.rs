@@ -1,7 +1,8 @@
 use super::physics::{Motion, RigidBody};
 use crate::{
     config::{
-        ARENA_HEIGHT, ARENA_WIDTH, BALL_GHOSTS_COUNT, BALL_MAX_SPEED, BALL_SIZE, PREDICT_TIME_STEP,
+        ARENA_HEIGHT, ARENA_WIDTH, BALL_GHOSTS_COUNT, BALL_MAX_SPEED, BALL_SIZE, PREDICT_SIZE,
+        PREDICT_TIME_STEP,
     },
     TimeScale,
 };
@@ -83,13 +84,22 @@ pub struct Point {
     pub time: f64,
 }
 
-#[derive(Default, Component, Reflect)]
+#[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct Trajectory {
     #[reflect(ignore)]
     pub start_time: f64,
     #[reflect(ignore)]
     pub points: Vec<Point>,
+}
+
+impl Default for Trajectory {
+    fn default() -> Self {
+        Self {
+            start_time: 0.0,
+            points: vec![Point::default(); PREDICT_SIZE],
+        }
+    }
 }
 
 pub fn predict_ball(

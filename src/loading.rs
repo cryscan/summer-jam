@@ -53,7 +53,7 @@ fn check_assets_loaded(
     match server.get_group_load_state(loading.iter().map(|handle| handle.id)) {
         LoadState::Loaded => {
             info!("Assets Loaded");
-            app_state.set(AppState::Title).unwrap();
+            app_state.set(AppState::Menu).unwrap();
         }
         LoadState::Failed => {
             info!("Assets Loading Failed");

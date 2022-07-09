@@ -5,7 +5,7 @@ use crate::{
     config::*,
     score::Score,
     utils::{cleanup_system, Damp, Interpolation},
-    AppState, MusicVolume, TimeScale,
+    AppState, AudioVolume, TimeScale,
 };
 use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
@@ -251,7 +251,7 @@ fn setup_game(
 fn enter_game(
     asset_server: Res<AssetServer>,
     audio: Res<Audio>,
-    volume: Res<MusicVolume>,
+    volume: Res<AudioVolume>,
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut score: ResMut<Score>,
@@ -274,7 +274,7 @@ fn enter_game(
     make_ball_events.send(MakeBallEvent);
 
     audio.stop();
-    audio.set_volume(volume.0);
+    audio.set_volume(volume.music);
     audio.set_playback_rate(1.2);
     audio.play_looped(asset_server.load(GAME_MUSIC));
 }
@@ -282,7 +282,7 @@ fn enter_game(
 fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
     if input.just_pressed(KeyCode::Escape) {
         input.reset(KeyCode::Escape);
-        app_state.set(AppState::Title).unwrap();
+        app_state.set(AppState::Menu).unwrap();
     }
 }
 
@@ -298,19 +298,22 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             },
             ..Default::default()
         })
-        .insert(Cleanup)
-        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5))
-        .insert(PhysicsLayers::SEPARATE);
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: materials.separate,
-                custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
+        .insert_bundle((
+            RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5),
+            PhysicsLayers::SEPARATE,
+            Cleanup,
+        ))
+        .with_children(|parent| {
+            parent.spawn_bundle(SpriteBundle {
+                transform: Transform::from_xyz(0.0, -8.0, 0.0),
+                sprite: Sprite {
+                    color: materials.separate,
+                    custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(Cleanup);
+            });
+        });
 
     // top boundary
     commands
@@ -323,11 +326,13 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             },
             ..Default::default()
         })
-        .insert(Cleanup)
-        .insert(EnemyBase::default())
-        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.0))
-        .insert(PhysicsLayers::BOUNDARY)
-        .insert(BounceAudio::Hit);
+        .insert_bundle((
+            RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.0),
+            PhysicsLayers::BOUNDARY,
+            BounceAudio::Hit,
+            EnemyBase::default(),
+            Cleanup,
+        ));
 
     // bottom boundary
     commands
@@ -340,10 +345,12 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             },
             ..Default::default()
         })
-        .insert(Cleanup)
-        .insert(PlayerBase::default())
-        .insert(RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5))
-        .insert(PhysicsLayers::BOUNDARY);
+        .insert_bundle((
+            RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5),
+            PhysicsLayers::BOUNDARY,
+            PlayerBase::default(),
+            Cleanup,
+        ));
 
     // left boundary
     commands
@@ -356,15 +363,12 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             },
             ..Default::default()
         })
-        .insert(Cleanup)
-        .insert(RigidBody::new(
-            Vec2::new(32.0, ARENA_HEIGHT + 64.0),
-            0.0,
-            1.0,
-            0.0,
-        ))
-        .insert(PhysicsLayers::BOUNDARY)
-        .insert(BounceAudio::Bounce);
+        .insert_bundle((
+            RigidBody::new(Vec2::new(32.0, ARENA_HEIGHT + 64.0), 0.0, 1.0, 0.0),
+            PhysicsLayers::BOUNDARY,
+            BounceAudio::Bounce,
+            Cleanup,
+        ));
 
     // right boundary
     commands
@@ -377,15 +381,12 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             },
             ..Default::default()
         })
-        .insert(Cleanup)
-        .insert(RigidBody::new(
-            Vec2::new(32.0, ARENA_HEIGHT + 64.0),
-            0.0,
-            1.0,
-            0.0,
-        ))
-        .insert(PhysicsLayers::BOUNDARY)
-        .insert(BounceAudio::Bounce);
+        .insert_bundle((
+            RigidBody::new(Vec2::new(32.0, ARENA_HEIGHT + 64.0), 0.0, 1.0, 0.0),
+            PhysicsLayers::BOUNDARY,
+            BounceAudio::Bounce,
+            Cleanup,
+        ));
 }
 
 fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<AssetServer>) {
@@ -493,19 +494,16 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             },
             ..Default::default()
         })
-        .insert(Cleanup)
-        .insert(Player::default())
-        .insert(PlayerAssist::default())
-        .insert(Controller::default())
-        .insert(RigidBody::new(
-            Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
-            3.0,
-            2.0,
-            1.0,
+        .insert_bundle((
+            RigidBody::new(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT), 3.0, 2.0, 1.0),
+            Motion::default(),
+            PhysicsLayers::PLAYER,
+            BounceAudio::Bounce,
+            Controller::default(),
+            Player::default(),
+            PlayerAssist::default(),
+            Cleanup,
         ))
-        .insert(PhysicsLayers::PLAYER)
-        .insert(Motion::default())
-        .insert(BounceAudio::Bounce)
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
@@ -532,18 +530,15 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             },
             ..Default::default()
         })
-        .insert(Cleanup)
-        .insert(Enemy::default())
-        .insert(Controller::default())
-        .insert(RigidBody::new(
-            Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT),
-            3.0,
-            1.0,
-            1.0,
+        .insert_bundle((
+            RigidBody::new(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT), 3.0, 1.0, 1.0),
+            Motion::default(),
+            PhysicsLayers::PLAYER,
+            BounceAudio::Bounce,
+            Controller::default(),
+            Enemy::default(),
+            Cleanup,
         ))
-        .insert(PhysicsLayers::PLAYER)
-        .insert(Motion::default())
-        .insert(BounceAudio::Bounce)
         .with_children(|parent| {
             parent.spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
@@ -576,20 +571,14 @@ fn make_ball(
                 },
                 ..Default::default()
             })
-            .insert(Cleanup)
-            .insert(Ball::default())
-            .insert(RigidBody::new(
-                Vec2::new(BALL_SIZE, BALL_SIZE),
-                1.0,
-                1.0,
-                0.5,
+            .insert_bundle((
+                RigidBody::new(Vec2::new(BALL_SIZE, BALL_SIZE), 1.0, 1.0, 0.5),
+                PhysicsLayers::BALL,
+                BounceAudio::Bounce,
+                Ball::default(),
+                Trajectory::default(),
+                Cleanup,
             ))
-            .insert(PhysicsLayers::BALL)
-            .insert(Trajectory {
-                start_time: 0.0,
-                points: vec![Point::default(); PREDICT_SIZE],
-            })
-            .insert(BounceAudio::Bounce)
             .with_children(|parent| {
                 for _ in 0..BALL_GHOSTS_COUNT {
                     parent.spawn_bundle(SpriteBundle {
@@ -822,7 +811,7 @@ fn game_over(
             time_scale.reset();
             match event {
                 GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
-                GameOverEvent::Lose => app_state.set(AppState::Title).unwrap(),
+                GameOverEvent::Lose => app_state.set(AppState::Menu).unwrap(),
             }
         }
     } else {
@@ -958,6 +947,7 @@ fn score_system(
 fn bounce_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
+    volume: Res<AudioVolume>,
     time: Res<Time>,
     mut timer: ResMut<Debounce>,
     mut events: EventReader<CollisionEvent>,
@@ -1026,7 +1016,7 @@ fn bounce_audio(
                 let panning = event.hit.location().x / ARENA_WIDTH + 0.5;
                 audio.set_panning_in_channel(panning, channel);
 
-                let volume = 0.5 * normalized_speed + 0.5;
+                let volume = volume.effects * (0.5 * normalized_speed + 0.5);
                 audio.set_volume_in_channel(volume, channel);
 
                 let playback_rate = 0.4 * fastrand::f32() + 0.8;
@@ -1044,18 +1034,21 @@ fn bounce_audio(
 fn score_audio(
     audios: Res<Audios>,
     audio: Res<Audio>,
+    volume: Res<AudioVolume>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut game_over_events: EventReader<GameOverEvent>,
 ) {
     for event in player_miss_events.iter() {
         let channel = &AudioChannel::new("miss".into());
         let panning = event.location.x / ARENA_WIDTH + 0.5;
+        audio.set_volume_in_channel(volume.effects, channel);
         audio.set_panning_in_channel(panning, channel);
         audio.play_in_channel(audios.miss_audio.clone(), channel);
     }
 
     for event in game_over_events.iter() {
         let channel = &AudioChannel::new("over".into());
+        audio.set_volume_in_channel(volume.effects, channel);
         match event {
             GameOverEvent::Win => audio.play_in_channel(audios.explosion_audio.clone(), channel),
             GameOverEvent::Lose => audio.play_in_channel(audios.lose_audio.clone(), channel),

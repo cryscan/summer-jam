@@ -6,14 +6,14 @@ mod background;
 mod config;
 mod game;
 mod loading;
+mod menu;
 mod score;
-mod title;
 mod utils;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
     Loading,
-    Title,
+    Menu,
     Game,
     Win,
 }
@@ -34,14 +34,17 @@ impl TimeScale {
 }
 
 #[derive(Reflect)]
-pub struct MusicVolume(pub f32);
+pub struct AudioVolume {
+    pub music: f32,
+    pub effects: f32,
+}
 
 #[wasm_bindgen]
 pub fn run() {
     let mut app = App::new();
 
     app.register_type::<TimeScale>()
-        .register_type::<MusicVolume>()
+        .register_type::<AudioVolume>()
         .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .insert_resource(WindowDescriptor {
             title: "Bounce Up!".into(),
@@ -51,7 +54,10 @@ pub fn run() {
             ..Default::default()
         })
         .init_resource::<TimeScale>()
-        .insert_resource(MusicVolume(0.3));
+        .insert_resource(AudioVolume {
+            music: 0.3,
+            effects: 1.0,
+        });
 
     #[cfg(feature = "dot")]
     app.add_plugins_with(DefaultPlugins, |plugins| {
@@ -67,7 +73,7 @@ pub fn run() {
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
         .add_plugin(loading::LoadingPlugin)
-        .add_plugin(title::TitlePlugin)
+        .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)
         .add_plugin(score::ScorePlugin)
         .add_plugin(background::BackgroundPlugin);
