@@ -3,15 +3,7 @@ use super::{
     enemy::Controller,
     physics::Motion,
 };
-use crate::{
-    config::{
-        ARENA_HEIGHT, PLAYER_ASSIST_RANGE, PLAYER_ASSIST_SPEED, PLAYER_ASSIST_SPEED_THRESHOLD,
-        PLAYER_ASSIST_VERTICAL_SPEED_THRESHOLD, PLAYER_DAMP, PLAYER_MAX_SPEED, PLAYER_SENSITIVITY,
-        TIME_SCALE_DAMP,
-    },
-    utils::Damp,
-    TimeScale,
-};
+use crate::{config::*, utils::Damp, TimeScale};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::ops::Add;
 

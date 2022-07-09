@@ -1,3 +1,5 @@
+use bevy::prelude::*;
+
 pub const ARENA_WIDTH: f32 = 480.0;
 pub const ARENA_HEIGHT: f32 = 640.0;
 
@@ -13,6 +15,12 @@ pub const BALL_SPRITE: &str = "sprites/ball.png";
 pub const HINT_SPRITE: &str = "sprites/hint.png";
 pub const DEATH_SPRITE: &str = "sprites/death.png";
 pub const HIT_SPRITE: &str = "sprites/hit.png";
+
+pub const PADDLE_COLOR: Color = Color::rgba(0.608, 0.678, 0.718, 0.392);
+pub const SEPARATE_COLOR: Color = Color::rgba(0.5, 0.5, 0.5, 0.2);
+pub const BOUNDARY_COLOR: Color = Color::NONE;
+pub const HEALTH_BAR_COLOR: Color = Color::rgb(0.608, 0.678, 0.718);
+pub const HEALTH_BAR_TRACKER_COLOR: Color = Color::rgb(0.851, 0.341, 0.388);
 
 pub const MISS_AUDIO: &str = "audios/miss.flac";
 pub const EXPLOSION_AUDIO: &str = "audios/explosion.flac";

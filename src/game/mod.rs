@@ -1,5 +1,3 @@
-use std::f32::consts::FRAC_PI_4;
-
 use self::{ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::*};
 use crate::{
     config::*,
@@ -10,6 +8,7 @@ use crate::{
 use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
 use itertools::Itertools;
+use std::f32::consts::FRAC_PI_4;
 
 mod ball;
 mod base;
@@ -174,23 +173,12 @@ impl Default for BounceAudio {
 }
 
 struct Materials {
-    // dynamic entities
     player: Handle<Image>,
     enemy: Handle<Image>,
-    paddle: Color,
     ball: Handle<Image>,
     hint: Handle<Image>,
     death: Handle<Image>,
     hit: Handle<TextureAtlas>,
-
-    // static entities
-    boundary: Color,
-    separate: Color,
-
-    // ui
-    node: Color,
-    health_bar: Color,
-    health_bar_tracker: Color,
 }
 
 struct Audios {
@@ -210,7 +198,6 @@ fn setup_game(
     commands.insert_resource(Materials {
         player: asset_server.load(PLAYER_SPRITE),
         enemy: asset_server.load(ENEMY_SPRITE),
-        paddle: Color::rgba_u8(155, 173, 183, 100),
         ball: asset_server.load(BALL_SPRITE),
         hint: asset_server.load(HINT_SPRITE),
         death: asset_server.load(DEATH_SPRITE),
@@ -220,13 +207,6 @@ fn setup_game(
             4,
             4,
         )),
-
-        boundary: Color::NONE,
-        separate: Color::rgba(0.5, 0.5, 0.5, 0.2),
-
-        node: Color::NONE,
-        health_bar: Color::rgb_u8(155, 173, 183),
-        health_bar_tracker: Color::rgb_u8(217, 87, 99),
     });
 
     commands.insert_resource(Audios {
@@ -286,13 +266,13 @@ fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<K
     }
 }
 
-fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
+fn make_static_entities(mut commands: Commands) {
     // middle Separate
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(0.0, 8.0, 0.0),
             sprite: Sprite {
-                color: materials.boundary,
+                color: BOUNDARY_COLOR,
                 custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
                 ..Default::default()
             },
@@ -307,7 +287,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
             parent.spawn_bundle(SpriteBundle {
                 transform: Transform::from_xyz(0.0, -8.0, 0.0),
                 sprite: Sprite {
-                    color: materials.separate,
+                    color: SEPARATE_COLOR,
                     custom_size: Some(Vec2::new(ARENA_WIDTH, 16.0)),
                     ..Default::default()
                 },
@@ -320,7 +300,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(0.0, ARENA_HEIGHT * 0.5 + 16.0, 0.0),
             sprite: Sprite {
-                color: materials.boundary,
+                color: BOUNDARY_COLOR,
                 custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
                 ..Default::default()
             },
@@ -339,7 +319,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(0.0, -ARENA_HEIGHT * 0.5 - 16.0, 0.0),
             sprite: Sprite {
-                color: materials.boundary,
+                color: BOUNDARY_COLOR,
                 custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
                 ..Default::default()
             },
@@ -357,7 +337,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(-ARENA_WIDTH * 0.5 - 16.0, 0.0, 0.0),
             sprite: Sprite {
-                color: materials.boundary,
+                color: BOUNDARY_COLOR,
                 custom_size: Some(Vec2::new(32.0, ARENA_HEIGHT + 64.0)),
                 ..Default::default()
             },
@@ -375,7 +355,7 @@ fn make_static_entities(mut commands: Commands, materials: Res<Materials>) {
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(ARENA_WIDTH * 0.5 + 16.0, 0.0, 0.0),
             sprite: Sprite {
-                color: materials.boundary,
+                color: BOUNDARY_COLOR,
                 custom_size: Some(Vec2::new(32.0, ARENA_HEIGHT + 64.0)),
                 ..Default::default()
             },
@@ -401,7 +381,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                 },
                 ..Default::default()
             },
-            color: materials.node.into(),
+            color: Color::NONE.into(),
             ..Default::default()
         })
         .insert(Cleanup)
@@ -412,7 +392,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                         size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    color: materials.health_bar.into(),
+                    color: HEALTH_BAR_COLOR.into(),
                     ..Default::default()
                 })
                 .insert(HealthBar);
@@ -422,7 +402,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                         size: Size::new(Val::Percent(0.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    color: materials.health_bar_tracker.into(),
+                    color: HEALTH_BAR_TRACKER_COLOR.into(),
                     ..Default::default()
                 })
                 .insert(HealthBarTracker::default());
@@ -440,7 +420,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                 },
                 ..Default::default()
             },
-            color: materials.node.into(),
+            color: Color::NONE.into(),
             ..Default::default()
         })
         .insert(Cleanup)
@@ -489,7 +469,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             transform: Transform::from_xyz(0.0, -160.0, 0.0),
             sprite: Sprite {
                 custom_size: Some(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT)),
-                color: materials.paddle,
+                color: PADDLE_COLOR,
                 ..Default::default()
             },
             ..Default::default()
@@ -525,7 +505,7 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             transform: Transform::from_xyz(0.0, 160.0, 0.0),
             sprite: Sprite {
                 custom_size: Some(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT)),
-                color: materials.paddle,
+                color: PADDLE_COLOR,
                 ..Default::default()
             },
             ..Default::default()

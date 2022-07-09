@@ -1,8 +1,4 @@
-use crate::{
-    config::{ENEMY_BASE_FULL_HP, HEALTH_BAR_BIAS, HEALTH_BAR_DAMP, PLAYER_BASE_BALL_COUNT},
-    utils::Damp,
-    TimeScale,
-};
+use crate::{config::*, utils::Damp, TimeScale};
 use bevy::prelude::*;
 
 #[derive(Component, Reflect)]
