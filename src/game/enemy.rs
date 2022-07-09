@@ -2,15 +2,7 @@ use super::{
     ball::{Ball, Trajectory},
     physics::Motion,
 };
-use crate::{
-    config::{
-        ARENA_HEIGHT, ENEMY_BRAKE_DISTANCE, ENEMY_DAMP, ENEMY_HIT_RANGE_HORIZONTAL,
-        ENEMY_HIT_RANGE_VERTICAL, ENEMY_HIT_SPEED_THRESHOLD, ENEMY_MAX_SPEED, ENEMY_MIN_SPEED,
-        ENEMY_NORMAL_SPEED,
-    },
-    utils::Damp,
-    TimeScale,
-};
+use crate::{config::*, utils::Damp, TimeScale};
 use bevy::prelude::*;
 
 #[derive(Component, Reflect)]

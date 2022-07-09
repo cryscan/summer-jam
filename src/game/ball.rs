@@ -1,11 +1,5 @@
 use super::physics::{Motion, RigidBody};
-use crate::{
-    config::{
-        ARENA_HEIGHT, ARENA_WIDTH, BALL_GHOSTS_COUNT, BALL_MAX_SPEED, BALL_SIZE, PREDICT_SIZE,
-        PREDICT_TIME_STEP,
-    },
-    TimeScale,
-};
+use crate::{config::*, TimeScale};
 use bevy::prelude::*;
 use std::f32::consts::FRAC_PI_2;
 
