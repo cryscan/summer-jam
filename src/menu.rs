@@ -1,4 +1,8 @@
-use crate::{config::*, utils::cleanup_system, AppState, AudioVolume, MusicTrack, TimeScale};
+use crate::{
+    config::*,
+    utils::{cleanup_system, escape_system},
+    AppState, AudioVolume, MusicTrack, TimeScale,
+};
 use bevy::prelude::*;
 use bevy_kira_audio::Audio;
 
@@ -8,11 +12,15 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Cleanup>()
             .register_type::<TextColor>()
+            .register_type::<MenuButtonAction>()
+            .register_type::<SettingButtonAction>()
             .insert_resource(TextColorTimer(Timer::from_seconds(0.3, true)))
             .init_resource::<ButtonStyle>()
             .add_system(text_color)
-            .add_system(button_system)
+            .add_system(menu_button_system)
             .add_system(menu_action)
+            .add_system(setting_button_system)
+            .add_system(setting_action)
             .add_system_set(
                 SystemSet::on_enter(AppState::Menu)
                     .with_system(enter_menu)
@@ -22,6 +30,7 @@ impl Plugin for MenuPlugin {
                 SystemSet::on_exit(AppState::Menu).with_system(cleanup_system::<Cleanup>),
             )
             .add_system_set(SystemSet::on_enter(AppState::Settings).with_system(make_settings))
+            .add_system_set(SystemSet::on_update(AppState::Settings).with_system(escape_system))
             .add_system_set(
                 SystemSet::on_exit(AppState::Settings).with_system(cleanup_system::<Cleanup>),
             );
@@ -33,6 +42,10 @@ const TITLE_COLORS: [Color; 2] = [Color::WHITE, Color::GOLD];
 const NORMAL_BUTTON: Color = Color::NONE;
 const HOVERED_BUTTON: Color = Color::WHITE;
 const PRESSED_BUTTON: Color = Color::WHITE;
+
+const NORMAL_SETTING_BUTTON: Color = Color::BLACK;
+const ACTIVE_SETTING_BUTTON: Color = Color::WHITE;
+const HOVERED_SETTING_BUTTON: Color = Color::GRAY;
 
 const NORMAL_BUTTON_TEXT: Color = Color::WHITE;
 const HOVERED_BUTTON_TEXT: Color = Color::BLACK;
@@ -47,6 +60,15 @@ struct Cleanup;
 struct TextColor {
     pub colors: Vec<Color>,
     pub index: usize,
+}
+
+#[derive(Default, Clone, Copy, Component, Reflect)]
+#[reflect(Component)]
+enum SettingButtonAction {
+    #[default]
+    None,
+    AudioVolume(f32),
+    MusicVolume(f32),
 }
 
 #[derive(Default, Clone, Copy, Component, Reflect)]
@@ -266,6 +288,151 @@ fn make_settings(
         })
         .insert(Cleanup)
         .with_children(|parent| {
+            parent.spawn_bundle(TextBundle {
+                style: Style {
+                    position: Rect {
+                        left: Val::Percent(10.0),
+                        ..Default::default()
+                    },
+                    margin: Rect {
+                        bottom: Val::Percent(10.0),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                text: Text::with_section(
+                    "Settings",
+                    TextStyle {
+                        font: asset_server.load(FONT_KARMATIC),
+                        font_size: 30.0,
+                        color: Color::WHITE,
+                    },
+                    TextAlignment {
+                        horizontal: HorizontalAlign::Center,
+                        ..Default::default()
+                    },
+                ),
+                ..Default::default()
+            });
+
+            // audio volume
+            parent
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
+                        align_items: AlignItems::Center,
+                        ..Default::default()
+                    },
+                    color: Color::NONE.into(),
+                    ..Default::default()
+                })
+                .with_children(|parent| {
+                    parent.spawn_bundle(TextBundle {
+                        style: Style {
+                            position: Rect {
+                                left: Val::Percent(10.0),
+                                ..Default::default()
+                            },
+                            margin: Rect {
+                                right: Val::Percent(10.0),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        text: Text::with_section(
+                            "Audio",
+                            TextStyle {
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                            },
+                            TextAlignment {
+                                horizontal: HorizontalAlign::Center,
+                                ..Default::default()
+                            },
+                        ),
+                        ..Default::default()
+                    });
+                    for volume_setting in 0..=10 {
+                        parent
+                            .spawn_bundle(ButtonBundle {
+                                style: Style {
+                                    size: Size::new(Val::Px(20.0), Val::Px(20.0)),
+                                    margin: Rect {
+                                        left: Val::Px(2.0),
+                                        right: Val::Px(2.0),
+                                        ..Default::default()
+                                    },
+                                    ..button_style.button.clone()
+                                },
+                                color: NORMAL_SETTING_BUTTON.into(),
+                                ..Default::default()
+                            })
+                            .insert(SettingButtonAction::AudioVolume(
+                                volume_setting as f32 / 10.0,
+                            ));
+                    }
+                });
+
+            // music volume
+            parent
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
+                        align_items: AlignItems::Center,
+                        ..Default::default()
+                    },
+                    color: Color::NONE.into(),
+                    ..Default::default()
+                })
+                .with_children(|parent| {
+                    parent.spawn_bundle(TextBundle {
+                        style: Style {
+                            position: Rect {
+                                left: Val::Percent(10.0),
+                                ..Default::default()
+                            },
+                            margin: Rect {
+                                right: Val::Percent(10.0),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        text: Text::with_section(
+                            "Music",
+                            TextStyle {
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                            },
+                            TextAlignment {
+                                horizontal: HorizontalAlign::Center,
+                                ..Default::default()
+                            },
+                        ),
+                        ..Default::default()
+                    });
+                    for volume_setting in 0..=10 {
+                        parent
+                            .spawn_bundle(ButtonBundle {
+                                style: Style {
+                                    size: Size::new(Val::Px(20.0), Val::Px(20.0)),
+                                    margin: Rect {
+                                        left: Val::Px(2.0),
+                                        right: Val::Px(2.0),
+                                        ..Default::default()
+                                    },
+                                    ..button_style.button.clone()
+                                },
+                                color: NORMAL_SETTING_BUTTON.into(),
+                                ..Default::default()
+                            })
+                            .insert(SettingButtonAction::MusicVolume(
+                                volume_setting as f32 / 10.0,
+                            ));
+                    }
+                });
+
             parent
                 .spawn_bundle(ButtonBundle {
                     style: button_style.button.clone(),
@@ -306,10 +473,10 @@ fn text_color(
 }
 
 #[allow(clippy::type_complexity)]
-fn button_system(
+fn menu_button_system(
     mut interaction_query: Query<
         (&Interaction, &mut UiColor, &Children),
-        (Changed<Interaction>, With<Button>),
+        (Changed<Interaction>, With<Button>, With<MenuButtonAction>),
     >,
     mut text_query: Query<&mut Text>,
 ) {
@@ -353,6 +520,57 @@ fn menu_action(
                 MenuButtonAction::BackToMenu => AppState::Menu,
             };
             app_state.set(state).unwrap();
+        }
+    }
+}
+
+#[allow(clippy::type_complexity)]
+fn setting_button_system(
+    mut interaction_query: Query<(&Interaction, &mut UiColor, &SettingButtonAction), With<Button>>,
+    volume: Res<AudioVolume>,
+) {
+    for (interaction, mut color, action) in interaction_query.iter_mut() {
+        match *interaction {
+            Interaction::Hovered => *color = HOVERED_SETTING_BUTTON.into(),
+            _ => {
+                *color = NORMAL_SETTING_BUTTON.into();
+                match action {
+                    SettingButtonAction::None => {}
+                    SettingButtonAction::AudioVolume(v) => {
+                        if volume.effects >= *v {
+                            *color = ACTIVE_SETTING_BUTTON.into();
+                        }
+                    }
+                    SettingButtonAction::MusicVolume(v) => {
+                        if volume.music >= *v {
+                            *color = ACTIVE_SETTING_BUTTON.into();
+                        }
+                    }
+                };
+            }
+        }
+    }
+}
+
+#[allow(clippy::type_complexity)]
+fn setting_action(
+    interaction_query: Query<
+        (&Interaction, &SettingButtonAction),
+        (Changed<Interaction>, With<Button>),
+    >,
+    mut volume: ResMut<AudioVolume>,
+    audio: Res<Audio>,
+) {
+    for (interaction, action) in interaction_query.iter() {
+        if *interaction == Interaction::Clicked {
+            match action {
+                SettingButtonAction::None => {}
+                SettingButtonAction::AudioVolume(v) => volume.effects = *v,
+                SettingButtonAction::MusicVolume(v) => {
+                    volume.music = *v;
+                    audio.set_volume(volume.music)
+                }
+            }
         }
     }
 }
