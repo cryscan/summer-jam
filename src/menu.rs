@@ -7,7 +7,8 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Cleanup>()
-            .insert_resource(ColorTimer(Timer::from_seconds(0.2, true)))
+            .register_type::<TextColor>()
+            .insert_resource(TextColorTimer(Timer::from_seconds(0.3, true)))
             .add_system_set(
                 SystemSet::on_enter(AppState::Menu)
                     .with_system(enter_menu)
@@ -16,6 +17,7 @@ impl Plugin for MenuPlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Menu)
                     .with_system(update_menu)
+                    .with_system(text_color)
                     .with_system(button_system),
             )
             .add_system_set(
@@ -23,6 +25,8 @@ impl Plugin for MenuPlugin {
             );
     }
 }
+
+const TITLE_COLORS: [Color; 2] = [Color::WHITE, Color::GOLD];
 
 const NORMAL_BUTTON: Color = Color::NONE;
 const HOVERED_BUTTON: Color = Color::WHITE;
@@ -36,8 +40,15 @@ const PRESSED_BUTTON_TEXT: Color = Color::BLACK;
 #[reflect(Component)]
 struct Cleanup;
 
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
+struct TextColor {
+    pub colors: Vec<Color>,
+    pub index: usize,
+}
+
 #[derive(Deref, DerefMut)]
-struct ColorTimer(Timer);
+struct TextColorTimer(Timer);
 
 fn enter_menu(
     mut time_scale: ResMut<TimeScale>,
@@ -69,28 +80,37 @@ fn make_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .insert(Cleanup)
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle {
-                style: Style {
-                    position: Rect {
-                        left: Val::Percent(10.0),
+            parent
+                .spawn_bundle(TextBundle {
+                    style: Style {
+                        position: Rect {
+                            left: Val::Percent(10.0),
+                            ..Default::default()
+                        },
+                        margin: Rect {
+                            bottom: Val::Percent(20.0),
+                            ..Default::default()
+                        },
                         ..Default::default()
                     },
+                    text: Text::with_section(
+                        "Bounce Up!",
+                        TextStyle {
+                            font: asset_server.load(FONT_ARCADE),
+                            font_size: 50.0,
+                            color: Color::WHITE,
+                        },
+                        TextAlignment {
+                            horizontal: HorizontalAlign::Center,
+                            ..Default::default()
+                        },
+                    ),
                     ..Default::default()
-                },
-                text: Text::with_section(
-                    "Bounce Up!",
-                    TextStyle {
-                        font: asset_server.load(FONT_ARCADE),
-                        font_size: 50.0,
-                        color: Color::WHITE,
-                    },
-                    TextAlignment {
-                        horizontal: HorizontalAlign::Center,
-                        ..Default::default()
-                    },
-                ),
-                ..Default::default()
-            });
+                })
+                .insert(TextColor {
+                    colors: TITLE_COLORS.into(),
+                    ..Default::default()
+                });
 
             let button_style = Style {
                 size: Size::new(Val::Px(200.0), Val::Px(30.0)),
@@ -194,6 +214,20 @@ fn update_menu(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<M
     if input.just_pressed(MouseButton::Left) {
         input.reset(MouseButton::Left);
         app_state.set(AppState::Game).unwrap();
+    }
+}
+
+fn text_color(
+    time: Res<Time>,
+    mut timer: ResMut<TextColorTimer>,
+    mut query: Query<(&mut Text, &mut TextColor)>,
+) {
+    timer.tick(time.delta());
+    for (mut text, mut text_color) in query.iter_mut() {
+        text.sections[0].style.color = text_color.colors[text_color.index];
+        if timer.just_finished() {
+            text_color.index = (text_color.index + 1) % text_color.colors.len();
+        }
     }
 }
 
