@@ -45,6 +45,9 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
         loading.push(server.load_untyped(audio));
     }
 
+    loading.push(server.load_untyped(BUTTON_HOVER_AUDIO));
+    loading.push(server.load_untyped(BUTTON_CLICK_AUDIO));
+
     loading.push(server.load_untyped(MENU_MUSIC));
     loading.push(server.load_untyped(GAME_MUSIC));
 }

@@ -4,7 +4,7 @@ use crate::{
     AppState, AudioVolume, MusicTrack, TimeScale,
 };
 use bevy::prelude::*;
-use bevy_kira_audio::Audio;
+use bevy_kira_audio::{Audio, AudioChannel};
 
 pub struct MenuPlugin;
 
@@ -17,6 +17,7 @@ impl Plugin for MenuPlugin {
             .insert_resource(TextColorTimer(Timer::from_seconds(0.3, true)))
             .init_resource::<ButtonStyle>()
             .add_system(text_color)
+            .add_system(button_audio)
             .add_system(menu_button_system)
             .add_system(menu_action)
             .add_system(setting_button_system)
@@ -62,13 +63,17 @@ struct TextColor {
     pub index: usize,
 }
 
-#[derive(Default, Clone, Copy, Component, Reflect)]
+#[derive(Clone, Copy, Component, Reflect)]
 #[reflect(Component)]
 enum SettingButtonAction {
-    #[default]
-    None,
     AudioVolume(f32),
     MusicVolume(f32),
+}
+
+impl Default for SettingButtonAction {
+    fn default() -> Self {
+        Self::MusicVolume(0.0)
+    }
 }
 
 #[derive(Default, Clone, Copy, Component, Reflect)]
@@ -473,6 +478,29 @@ fn text_color(
 }
 
 #[allow(clippy::type_complexity)]
+fn button_audio(
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<Button>)>,
+    audio: Res<Audio>,
+    volume: Res<AudioVolume>,
+    asset_server: Res<AssetServer>,
+) {
+    let channel = AudioChannel::new("button".into());
+    for interaction in interaction_query.iter() {
+        match *interaction {
+            Interaction::Clicked => {
+                audio.set_volume_in_channel(volume.effects * 0.5, &channel);
+                audio.play_in_channel(asset_server.load(BUTTON_CLICK_AUDIO), &channel);
+            }
+            Interaction::Hovered => {
+                audio.set_volume_in_channel(volume.effects * 0.5, &channel);
+                audio.play_in_channel(asset_server.load(BUTTON_HOVER_AUDIO), &channel);
+            }
+            Interaction::None => {}
+        }
+    }
+}
+
+#[allow(clippy::type_complexity)]
 fn menu_button_system(
     mut interaction_query: Query<
         (&Interaction, &mut UiColor, &Children),
@@ -535,7 +563,6 @@ fn setting_button_system(
             _ => {
                 *color = NORMAL_SETTING_BUTTON.into();
                 match action {
-                    SettingButtonAction::None => {}
                     SettingButtonAction::AudioVolume(v) => {
                         if volume.effects >= *v {
                             *color = ACTIVE_SETTING_BUTTON.into();
@@ -564,7 +591,6 @@ fn setting_action(
     for (interaction, action) in interaction_query.iter() {
         if *interaction == Interaction::Clicked {
             match action {
-                SettingButtonAction::None => {}
                 SettingButtonAction::AudioVolume(v) => volume.effects = *v,
                 SettingButtonAction::MusicVolume(v) => {
                     volume.music = *v;
