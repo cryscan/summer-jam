@@ -35,6 +35,9 @@ pub const LOSE_AUDIO: &str = "audios/lose.flac";
 pub const HIT_AUDIO: &str = "audios/hit.ogg";
 pub const IMPACT_AUDIOS: [&str; 2] = ["audios/impacts/impact-1.ogg", "audios/impacts/impact-2.ogg"];
 
+pub const BUTTON_HOVER_AUDIO: &str = "audios/button/hover.ogg";
+pub const BUTTON_CLICK_AUDIO: &str = "audios/button/click.ogg";
+
 pub const AUDIO_CHANNEL_COUNT: usize = 16;
 
 pub const MENU_MUSIC: &str = "musics/E2M2 Myrgharok - Halls of Wandering Spirits.ogg";
