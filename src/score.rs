@@ -5,11 +5,13 @@ pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Score>().add_system_set(
-            SystemSet::on_enter(AppState::Win)
-                .with_system(enter_score)
-                .with_system(make_ui),
-        );
+        app.register_type::<Score>()
+            .init_resource::<Score>()
+            .add_system_set(
+                SystemSet::on_enter(AppState::Win)
+                    .with_system(enter_score)
+                    .with_system(make_ui),
+            );
     }
 }
 
@@ -18,6 +20,17 @@ pub struct Score {
     pub timestamp: f64,
     pub hits: i32,
     pub miss: i32,
+}
+
+impl FromWorld for Score {
+    fn from_world(world: &mut World) -> Self {
+        let time = world.resource::<Time>();
+        Self {
+            timestamp: time.seconds_since_startup(),
+            hits: 0,
+            miss: 0,
+        }
+    }
 }
 
 fn enter_score(mut time_scale: ResMut<TimeScale>) {
