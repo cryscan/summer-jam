@@ -66,42 +66,57 @@ impl Plugin for GamePlugin {
             )
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
+                    // logical game-play systems
                     .with_system(escape_system)
-                    .with_system(move_player)
-                    .with_system(move_enemy)
-                    .with_system(move_ball)
                     .with_system(make_ball)
                     .with_system(destroy_ball)
-                    .with_system(make_player_hint)
-                    .with_system(make_ball_hint)
-                    .with_system(activate_ball)
-                    .with_system(update_ball)
-                    .with_system(assist_player)
                     .with_system(player_hit)
                     .with_system(player_miss)
-                    .with_system(ball_bounce)
+                    .with_system(game_over)
+                    // score and display
                     .with_system(count_ball)
-                    .with_system(health_bar)
-                    .with_system(health_bar_tracker)
-                    .with_system(hint_system)
                     .with_system(score_system)
-                    .with_system(score_effects)
-                    .with_system(bounce_effects)
-                    .with_system(game_over),
+                    .with_system(health_bar)
+                    .with_system(health_bar_tracker),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
+            )
+            .add_system_set(
+                SystemSet::on_enter(AppState::Tutorial)
+                    .with_system(enter_game)
+                    .with_system(make_static_entities)
+                    .with_system(make_player),
+            )
+            .add_system_set(SystemSet::on_update(AppState::Tutorial).with_system(escape_system))
+            .add_system_set(
+                SystemSet::on_exit(AppState::Tutorial).with_system(cleanup_system::<Cleanup>),
+            )
+            .add_system_set(
+                SystemSet::new()
+                    // fundamental game-play systems
+                    .with_system(move_player)
+                    .with_system(assist_player)
+                    .with_system(move_enemy)
+                    .with_system(move_ball)
+                    .with_system(activate_ball)
+                    .with_system(update_ball)
+                    .with_system(ball_bounce)
+                    // effects and juice
+                    .with_system(bounce_audio)
+                    .with_system(score_audio)
+                    .with_system(score_effects)
+                    .with_system(bounce_effects)
+                    // hints
+                    .with_system(make_player_hint)
+                    .with_system(make_ball_hint)
+                    .with_system(hint_system),
             )
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(FixedTimestep::step(AI_TIME_STEP))
                     .with_system(predict_ball)
                     .with_system(control_enemy),
-            )
-            .add_system_set(
-                SystemSet::new()
-                    .with_system(bounce_audio)
-                    .with_system(score_audio),
             )
             .add_plugin(PhysicsPlugin)
             .add_plugin(EffectsPlugin);
@@ -186,7 +201,6 @@ struct Audios {
 
 fn setup_game(
     mut commands: Commands,
-    time: Res<Time>,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
@@ -215,11 +229,7 @@ fn setup_game(
             .collect_vec(),
     });
 
-    commands.insert_resource(Score {
-        timestamp: time.seconds_since_startup(),
-        hits: 0,
-        miss: 0,
-    });
+    commands.init_resource::<Score>();
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -731,7 +741,7 @@ fn ball_bounce(
     time: Res<Time>,
     mut timer: ResMut<Debounce>,
     mut collision_events: EventReader<CollisionEvent>,
-    mut player_bounce_events: EventWriter<BounceEvent>,
+    mut bounce_events: EventWriter<BounceEvent>,
     ball_query: Query<(), With<Ball>>,
 ) {
     if timer.bounce.tick(time.delta()).finished() {
@@ -740,7 +750,7 @@ fn ball_bounce(
                 ball_query.get(ball).ok()?;
 
                 let location = event.hit.location();
-                player_bounce_events.send(BounceEvent {
+                bounce_events.send(BounceEvent {
                     ball,
                     other,
                     location,

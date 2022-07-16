@@ -243,7 +243,7 @@ fn make_menu(
                 .with_children(|parent| {
                     parent.spawn_bundle(ImageBundle {
                         style: button_style.icon.clone(),
-                        image: UiImage(asset_server.load(RIGHT_ICON)),
+                        image: UiImage(asset_server.load(HELP_ICON)),
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
