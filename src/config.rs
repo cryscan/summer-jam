@@ -8,6 +8,7 @@ pub const BACKGROUND_SHADER: &str = "shaders/background.wgsl";
 pub const FONT_FIRA_MONO: &str = "fonts/FiraMono-Medium.ttf";
 pub const FONT_FIRA_SANS: &str = "fonts/FiraSans-Bold.ttf";
 pub const FONT_ARCADE: &str = "fonts/Arcade.ttf";
+pub const FONT_KARMATIC: &str = "fonts/ka1.ttf";
 
 pub const PLAYER_SPRITE: &str = "sprites/player.png";
 pub const ENEMY_SPRITE: &str = "sprites/enemy.png";
@@ -15,6 +16,10 @@ pub const BALL_SPRITE: &str = "sprites/ball.png";
 pub const HINT_SPRITE: &str = "sprites/hint.png";
 pub const DEATH_SPRITE: &str = "sprites/death.png";
 pub const HIT_SPRITE: &str = "sprites/hit.png";
+
+pub const GAME_ICON: &str = "sprites/icons/icon.png";
+pub const RIGHT_ICON: &str = "sprites/icons/right.png";
+pub const WRENCH_ICON: &str = "sprites/icons/wrench.png";
 
 pub const PADDLE_COLOR: Color = Color::rgba(0.608, 0.678, 0.718, 0.392);
 pub const SEPARATE_COLOR: Color = Color::rgba(0.5, 0.5, 0.5, 0.2);
