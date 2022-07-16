@@ -17,11 +17,15 @@ impl Plugin for MenuPlugin {
             .insert_resource(TextColorTimer(Timer::from_seconds(0.3, true)))
             .init_resource::<ButtonStyle>()
             .add_system(text_color)
-            .add_system(button_audio)
-            .add_system(menu_button_system)
-            .add_system(menu_action)
-            .add_system(setting_button_system)
-            .add_system(setting_action)
+            .add_system_set(
+                SystemSet::new()
+                    .label(ButtonSystems)
+                    .with_system(menu_button_system)
+                    .with_system(menu_action)
+                    .with_system(setting_button_system)
+                    .with_system(setting_action),
+            )
+            .add_system(button_audio.after(ButtonSystems))
             .add_system_set(
                 SystemSet::on_enter(AppState::Menu)
                     .with_system(enter_menu)
@@ -55,6 +59,9 @@ const PRESSED_BUTTON_TEXT: Color = Color::BLACK;
 #[derive(Default, Component, Reflect)]
 #[reflect(Component)]
 struct Cleanup;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
+pub struct ButtonSystems;
 
 #[derive(Default, Component, Reflect)]
 #[reflect(Component)]
@@ -479,21 +486,28 @@ fn text_color(
 
 #[allow(clippy::type_complexity)]
 fn button_audio(
-    interaction_query: Query<&Interaction, (Changed<Interaction>, With<Button>)>,
+    interaction_query: Query<
+        (&Interaction, Option<&MenuButtonAction>),
+        (Changed<Interaction>, With<Button>),
+    >,
     audio: Res<Audio>,
     volume: Res<AudioVolume>,
     asset_server: Res<AssetServer>,
 ) {
     let channel = AudioChannel::new("button".into());
-    for interaction in interaction_query.iter() {
+    for (interaction, maybe_action) in interaction_query.iter() {
         match *interaction {
             Interaction::Clicked => {
-                audio.set_volume_in_channel(volume.effects * 0.5, &channel);
+                let volume = volume.effects * 0.5;
+                audio.set_volume_in_channel(volume, &channel);
                 audio.play_in_channel(asset_server.load(BUTTON_CLICK_AUDIO), &channel);
             }
             Interaction::Hovered => {
-                audio.set_volume_in_channel(volume.effects * 0.5, &channel);
-                audio.play_in_channel(asset_server.load(BUTTON_HOVER_AUDIO), &channel);
+                if maybe_action.is_some() {
+                    let volume = volume.effects * 0.5;
+                    audio.set_volume_in_channel(volume, &channel);
+                    audio.play_in_channel(asset_server.load(BUTTON_HOVER_AUDIO), &channel);
+                }
             }
             Interaction::None => {}
         }
