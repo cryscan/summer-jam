@@ -2,7 +2,7 @@ use self::{ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::
 use crate::{
     config::*,
     score::Score,
-    utils::{cleanup_system, Damp, Interpolation},
+    utils::{cleanup_system, escape_system, Damp, Interpolation},
     AppState, AudioVolume, MusicTrack, TimeScale,
 };
 use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
@@ -66,7 +66,7 @@ impl Plugin for GamePlugin {
             )
             .add_system_set(
                 SystemSet::on_update(AppState::Game)
-                    .with_system(update_game)
+                    .with_system(escape_system)
                     .with_system(move_player)
                     .with_system(move_enemy)
                     .with_system(move_ball)
@@ -256,13 +256,6 @@ fn enter_game(
         audio.play_looped(asset_server.load(GAME_MUSIC));
 
         music_track.0 = GAME_MUSIC;
-    }
-}
-
-fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
-    if input.just_pressed(KeyCode::Escape) {
-        input.reset(KeyCode::Escape);
-        app_state.set(AppState::Menu).unwrap();
     }
 }
 
