@@ -22,6 +22,7 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
     loading.push(server.load_untyped(FONT_FIRA_MONO));
     loading.push(server.load_untyped(FONT_FIRA_SANS));
     loading.push(server.load_untyped(FONT_ARCADE));
+    loading.push(server.load_untyped(FONT_KARMATIC));
 
     loading.push(server.load_untyped(PLAYER_SPRITE));
     loading.push(server.load_untyped(ENEMY_SPRITE));
@@ -29,6 +30,10 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
     loading.push(server.load_untyped(HINT_SPRITE));
     loading.push(server.load_untyped(DEATH_SPRITE));
     loading.push(server.load_untyped(HIT_SPRITE));
+
+    loading.push(server.load_untyped(GAME_ICON));
+    loading.push(server.load_untyped(RIGHT_ICON));
+    loading.push(server.load_untyped(WRENCH_ICON));
 
     loading.push(server.load_untyped(HIT_AUDIO));
     loading.push(server.load_untyped(MISS_AUDIO));
