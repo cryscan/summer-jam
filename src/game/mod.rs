@@ -3,7 +3,7 @@ use crate::{
     config::*,
     score::Score,
     utils::{cleanup_system, Damp, Interpolation},
-    AppState, AudioVolume, TimeScale,
+    AppState, AudioVolume, MusicTrack, TimeScale,
 };
 use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_kira_audio::{Audio, AudioChannel, AudioSource};
@@ -159,17 +159,12 @@ struct GameOver {
 #[reflect(Component)]
 struct Cleanup;
 
-#[derive(Clone, Copy, PartialEq, Eq, Component, Reflect)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Component, Reflect)]
 #[reflect(Component)]
 enum BounceAudio {
+    #[default]
     Bounce,
     Hit,
-}
-
-impl Default for BounceAudio {
-    fn default() -> Self {
-        Self::Bounce
-    }
 }
 
 struct Materials {
@@ -232,6 +227,7 @@ fn enter_game(
     asset_server: Res<AssetServer>,
     audio: Res<Audio>,
     volume: Res<AudioVolume>,
+    mut music_track: ResMut<MusicTrack>,
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut score: ResMut<Score>,
@@ -253,10 +249,14 @@ fn enter_game(
 
     make_ball_events.send(MakeBallEvent);
 
-    audio.stop();
-    audio.set_volume(volume.music);
-    audio.set_playback_rate(1.2);
-    audio.play_looped(asset_server.load(GAME_MUSIC));
+    if music_track.0 != GAME_MUSIC {
+        audio.stop();
+        audio.set_volume(volume.music);
+        audio.set_playback_rate(1.2);
+        audio.play_looped(asset_server.load(GAME_MUSIC));
+
+        music_track.0 = GAME_MUSIC;
+    }
 }
 
 fn update_game(mut app_state: ResMut<State<AppState>>, mut input: ResMut<Input<KeyCode>>) {
@@ -610,7 +610,7 @@ fn make_player_hint(
                 transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
                 texture: materials.hint.clone(),
                 sprite: Sprite {
-                    color: Color::rgba(1.0, 1.0, 1.0, 0.5),
+                    color: HINT_COLOR,
                     ..Default::default()
                 },
                 ..Default::default()
@@ -633,7 +633,7 @@ fn make_ball_hint(
                 transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
                 texture: materials.hint.clone(),
                 sprite: Sprite {
-                    color: Color::rgba(1.0, 1.0, 1.0, 0.5),
+                    color: HINT_COLOR,
                     ..Default::default()
                 },
                 ..Default::default()
