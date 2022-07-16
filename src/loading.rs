@@ -34,6 +34,7 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
     loading.push(server.load_untyped(GAME_ICON));
     loading.push(server.load_untyped(RIGHT_ICON));
     loading.push(server.load_untyped(WRENCH_ICON));
+    loading.push(server.load_untyped(EXIT_ICON));
 
     loading.push(server.load_untyped(HIT_AUDIO));
     loading.push(server.load_untyped(MISS_AUDIO));
@@ -44,7 +45,7 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
         loading.push(server.load_untyped(audio));
     }
 
-    loading.push(server.load_untyped(TITLE_MUSIC));
+    loading.push(server.load_untyped(MENU_MUSIC));
     loading.push(server.load_untyped(GAME_MUSIC));
 }
 

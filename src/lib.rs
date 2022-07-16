@@ -14,7 +14,9 @@ mod utils;
 pub enum AppState {
     Loading,
     Menu,
+    Settings,
     Game,
+    Tutorial,
     Win,
 }
 
@@ -39,6 +41,8 @@ pub struct AudioVolume {
     pub effects: f32,
 }
 
+pub struct MusicTrack(&'static str);
+
 #[wasm_bindgen]
 pub fn run() {
     let mut app = App::new();
@@ -57,7 +61,8 @@ pub fn run() {
         .insert_resource(AudioVolume {
             music: 0.3,
             effects: 1.0,
-        });
+        })
+        .insert_resource(MusicTrack(""));
 
     #[cfg(feature = "dot")]
     app.add_plugins_with(DefaultPlugins, |plugins| {
@@ -68,7 +73,6 @@ pub fn run() {
     app.add_plugins(DefaultPlugins);
 
     app.add_plugin(AudioPlugin)
-        // .add_plugin(HanabiPlugin)
         .add_state(AppState::Loading)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)

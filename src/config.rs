@@ -20,12 +20,14 @@ pub const HIT_SPRITE: &str = "sprites/hit.png";
 pub const GAME_ICON: &str = "sprites/icons/icon.png";
 pub const RIGHT_ICON: &str = "sprites/icons/right.png";
 pub const WRENCH_ICON: &str = "sprites/icons/wrench.png";
+pub const EXIT_ICON: &str = "sprites/icons/exit.png";
 
 pub const PADDLE_COLOR: Color = Color::rgba(0.608, 0.678, 0.718, 0.392);
 pub const SEPARATE_COLOR: Color = Color::rgba(0.5, 0.5, 0.5, 0.2);
 pub const BOUNDARY_COLOR: Color = Color::NONE;
 pub const HEALTH_BAR_COLOR: Color = Color::rgb(0.608, 0.678, 0.718);
 pub const HEALTH_BAR_TRACKER_COLOR: Color = Color::rgb(0.851, 0.341, 0.388);
+pub const HINT_COLOR: Color = Color::rgba(1.0, 1.0, 1.0, 0.2);
 
 pub const MISS_AUDIO: &str = "audios/miss.flac";
 pub const EXPLOSION_AUDIO: &str = "audios/explosion.flac";
@@ -35,7 +37,7 @@ pub const IMPACT_AUDIOS: [&str; 2] = ["audios/impacts/impact-1.ogg", "audios/imp
 
 pub const AUDIO_CHANNEL_COUNT: usize = 16;
 
-pub const TITLE_MUSIC: &str = "musics/E2M2 Myrgharok - Halls of Wandering Spirits.ogg";
+pub const MENU_MUSIC: &str = "musics/E2M2 Myrgharok - Halls of Wandering Spirits.ogg";
 pub const GAME_MUSIC: &str = "musics/E3M8 Myrgharok - Mother of All Doom.ogg";
 
 pub const PREDICT_SIZE: usize = 100;
