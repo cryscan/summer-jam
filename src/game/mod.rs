@@ -41,6 +41,7 @@ impl Plugin for GamePlugin {
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
             .add_event::<BounceEvent>()
+            .add_event::<HealEvent>()
             .insert_resource(Debounce {
                 audio_bounce_long: Timer::from_seconds(0.5, false),
                 audio_bounce_short: Timer::from_seconds(0.1, false),
@@ -72,12 +73,7 @@ impl Plugin for GamePlugin {
                     .with_system(destroy_ball)
                     .with_system(player_hit)
                     .with_system(player_miss)
-                    .with_system(game_over)
-                    // score and display
-                    .with_system(count_ball)
-                    .with_system(score_system)
-                    .with_system(health_bar)
-                    .with_system(health_bar_tracker),
+                    .with_system(game_over),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
@@ -94,9 +90,7 @@ impl Plugin for GamePlugin {
                     .with_system(escape_system)
                     .with_system(make_ball)
                     .with_system(player_hit)
-                    .with_system(count_ball)
-                    .with_system(health_bar)
-                    .with_system(health_bar_tracker),
+                    .with_system(tutorial_heal_enemy_base),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Tutorial).with_system(cleanup_system::<Cleanup>),
@@ -111,11 +105,17 @@ impl Plugin for GamePlugin {
                     .with_system(activate_ball)
                     .with_system(update_ball)
                     .with_system(ball_bounce)
+                    .with_system(heal_enemy_base)
                     // effects and juice
                     .with_system(bounce_audio)
                     .with_system(score_audio)
                     .with_system(score_effects)
                     .with_system(bounce_effects)
+                    // score and display
+                    .with_system(count_ball)
+                    .with_system(score_system)
+                    .with_system(health_bar)
+                    .with_system(health_bar_tracker)
                     // hints
                     .with_system(make_player_hint)
                     .with_system(make_ball_hint)
@@ -810,6 +810,25 @@ fn game_over(
         for event in game_over_events.iter() {
             game_over.event = Some(*event);
             time_scale.0 = 0.2;
+        }
+    }
+}
+
+fn tutorial_heal_enemy_base(
+    mut game_over_events: EventReader<GameOverEvent>,
+    mut heal_events: EventWriter<HealEvent>,
+) {
+    for event in game_over_events.iter() {
+        let heal_time = 1.0;
+        let amount_per_second = ENEMY_BASE_FULL_HP / heal_time;
+        let heal = Heal {
+            amount_per_second,
+            timer: Timer::from_seconds(heal_time, false),
+        };
+
+        match event {
+            GameOverEvent::Win => heal_events.send(HealEvent(heal)),
+            GameOverEvent::Lose => {}
         }
     }
 }
