@@ -229,12 +229,12 @@ fn make_menu(
                 .with_children(|parent| {
                     parent.spawn_bundle(ImageBundle {
                         style: button_style.icon.clone(),
-                        image: UiImage(asset_server.load(HELP_ICON)),
+                        image: UiImage(asset_server.load(RETICLE_ICON)),
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
                         text: Text::with_section(
-                            "Tutorial",
+                            "Practice",
                             button_style.text.clone(),
                             Default::default(),
                         ),
@@ -529,7 +529,7 @@ fn menu_action(
         if *interaction == Interaction::Clicked {
             let state = match action {
                 MenuButtonAction::Play => AppState::Game,
-                MenuButtonAction::Tutorial => AppState::Tutorial,
+                MenuButtonAction::Tutorial => AppState::Practice,
                 MenuButtonAction::Settings => AppState::Settings,
                 MenuButtonAction::BackToMenu => AppState::Menu,
             };

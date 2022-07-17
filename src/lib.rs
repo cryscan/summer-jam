@@ -16,7 +16,7 @@ pub enum AppState {
     Menu,
     Settings,
     Game,
-    Tutorial,
+    Practice,
     Win,
 }
 
@@ -106,7 +106,7 @@ fn setup(mut commands: Commands) {
 fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Windows>) {
     if let Some(window) = windows.get_primary_mut() {
         match app_state.current() {
-            AppState::Game | AppState::Tutorial => {
+            AppState::Game | AppState::Practice => {
                 window.set_cursor_lock_mode(true);
                 window.set_cursor_visibility(false);
             }
