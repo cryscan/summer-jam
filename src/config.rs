@@ -20,6 +20,7 @@ pub const HIT_SPRITE: &str = "sprites/hit.png";
 pub const GAME_ICON: &str = "sprites/icons/icon.png";
 pub const RIGHT_ICON: &str = "sprites/icons/right.png";
 pub const HELP_ICON: &str = "sprites/icons/help.png";
+pub const RETICLE_ICON: &str = "sprites/icons/reticle.png";
 pub const WRENCH_ICON: &str = "sprites/icons/wrench.png";
 pub const EXIT_ICON: &str = "sprites/icons/exit.png";
 

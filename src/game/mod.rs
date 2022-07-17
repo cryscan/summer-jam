@@ -74,14 +74,14 @@ impl Plugin for GamePlugin {
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
             )
             .add_system_set(
-                SystemSet::on_enter(AppState::Tutorial)
+                SystemSet::on_enter(AppState::Practice)
                     .with_system(enter_game)
                     .with_system(make_arena)
                     .with_system(make_ui)
                     .with_system(make_player),
             )
             .add_system_set(
-                SystemSet::on_update(AppState::Tutorial)
+                SystemSet::on_update(AppState::Practice)
                     .with_system(escape_system)
                     .with_system(make_ball)
                     .with_system(destroy_ball)
@@ -92,7 +92,7 @@ impl Plugin for GamePlugin {
                     .with_system(player_ball_infinite),
             )
             .add_system_set(
-                SystemSet::on_exit(AppState::Tutorial).with_system(cleanup_system::<Cleanup>),
+                SystemSet::on_exit(AppState::Practice).with_system(cleanup_system::<Cleanup>),
             )
             .add_system_set(
                 SystemSet::new()
@@ -753,7 +753,7 @@ fn remake_ball(
     mut make_ball_events: EventWriter<MakeBallEvent>,
 ) {
     for event in player_hit_events.iter() {
-        if event.win && state.current() == &AppState::Tutorial {
+        if event.win && state.current() == &AppState::Practice {
             make_ball_events.send(MakeBallEvent);
         }
     }

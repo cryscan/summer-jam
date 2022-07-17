@@ -34,6 +34,7 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
     loading.push(server.load_untyped(GAME_ICON));
     loading.push(server.load_untyped(RIGHT_ICON));
     loading.push(server.load_untyped(HELP_ICON));
+    loading.push(server.load_untyped(RETICLE_ICON));
     loading.push(server.load_untyped(WRENCH_ICON));
     loading.push(server.load_untyped(EXIT_ICON));
 
