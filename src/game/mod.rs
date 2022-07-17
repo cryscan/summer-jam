@@ -24,7 +24,6 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Cleanup>()
             .register_type::<BounceAudio>()
-            .register_type::<GameOver>()
             .register_type::<Ball>()
             .register_type::<Trajectory>()
             .register_type::<Player>()
@@ -51,11 +50,6 @@ impl Plugin for GamePlugin {
                 hit: Timer::from_seconds(0.1, false),
                 miss: Timer::from_seconds(0.5, false),
             })
-            .insert_resource(GameOver {
-                slow_motion_timer: Timer::from_seconds(0.8, false),
-                state_change_timer: Timer::from_seconds(2.0, false),
-                event: None,
-            })
             .add_startup_system(setup_game)
             .add_system_set(
                 SystemSet::on_enter(AppState::Game)
@@ -71,9 +65,10 @@ impl Plugin for GamePlugin {
                     .with_system(escape_system)
                     .with_system(make_ball)
                     .with_system(destroy_ball)
+                    .with_system(remake_ball)
                     .with_system(player_hit)
                     .with_system(player_miss)
-                    .with_system(game_over),
+                    .with_system(game_over_system),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
@@ -89,8 +84,12 @@ impl Plugin for GamePlugin {
                 SystemSet::on_update(AppState::Tutorial)
                     .with_system(escape_system)
                     .with_system(make_ball)
+                    .with_system(destroy_ball)
+                    .with_system(remake_ball)
                     .with_system(player_hit)
-                    .with_system(tutorial_heal_enemy_base),
+                    .with_system(player_miss)
+                    .with_system(recover_enemy_health)
+                    .with_system(player_ball_infinite),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::Tutorial).with_system(cleanup_system::<Cleanup>),
@@ -143,14 +142,13 @@ struct MakeBallEvent;
 struct PlayerHitEvent {
     ball: Entity,
     location: Vec2,
-    hp: f32,
-    damage: f32,
+    win: bool,
 }
 
 struct PlayerMissEvent {
     ball: Entity,
     location: Vec2,
-    lives: i32,
+    lose: bool,
 }
 
 #[allow(dead_code)]
@@ -170,13 +168,20 @@ struct Debounce {
     hit: Timer,
     miss: Timer,
 }
-
-#[derive(Reflect)]
 struct GameOver {
     slow_motion_timer: Timer,
     state_change_timer: Timer,
-    #[reflect(ignore)]
     event: Option<GameOverEvent>,
+}
+
+impl Default for GameOver {
+    fn default() -> Self {
+        Self {
+            slow_motion_timer: Timer::from_seconds(0.8, false),
+            state_change_timer: Timer::from_seconds(2.0, false),
+            event: None,
+        }
+    }
 }
 
 #[derive(Default, Component, Reflect)]
@@ -250,8 +255,8 @@ fn enter_game(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut score: ResMut<Score>,
-    mut game_over: ResMut<GameOver>,
     mut make_ball_events: EventWriter<MakeBallEvent>,
+    mut heal_events: EventWriter<HealEvent>,
 ) {
     info!("Entering Game");
 
@@ -262,11 +267,8 @@ fn enter_game(
 
     time_scale.reset();
 
-    game_over.slow_motion_timer.reset();
-    game_over.state_change_timer.reset();
-    game_over.event = None;
-
     make_ball_events.send(MakeBallEvent);
+    heal_events.send(HealEvent(Heal::default()));
 
     if music_track.0 != GAME_MUSIC {
         audio.stop();
@@ -401,7 +403,7 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
             parent
                 .spawn_bundle(NodeBundle {
                     style: Style {
-                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                        size: Size::new(Val::Percent(0.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
                     color: HEALTH_BAR_COLOR.into(),
@@ -601,7 +603,7 @@ fn destroy_ball(
     };
 
     for event in player_hit_events.iter() {
-        if event.hp <= event.damage {
+        if event.win {
             closure(event.ball);
         }
     }
@@ -680,18 +682,19 @@ fn player_hit(
                 let speed = motion.velocity.length();
                 let damage = hp.min(speed * mass).min(MAX_DAMAGE);
 
-                player_hit_events.send(PlayerHitEvent {
-                    ball,
-                    location,
-                    hp,
-                    damage,
-                });
-
                 base.hp -= damage;
-                if base.hp <= 0.0 {
+
+                let win = base.hp <= 0.0;
+                if win {
                     game_over_events.send(GameOverEvent::Win);
                 }
                 timer.hit.reset();
+
+                player_hit_events.send(PlayerHitEvent {
+                    ball,
+                    location,
+                    win,
+                });
 
                 Some(())
             };
@@ -709,7 +712,6 @@ fn player_miss(
     mut collision_events: EventReader<CollisionEvent>,
     mut player_miss_events: EventWriter<PlayerMissEvent>,
     mut game_over_events: EventWriter<GameOverEvent>,
-    mut make_ball_events: EventWriter<MakeBallEvent>,
     ball_query: Query<(), With<Ball>>,
     mut base_query: Query<&mut PlayerBase, Without<Ball>>,
 ) {
@@ -720,27 +722,45 @@ fn player_miss(
                 let mut base = base_query.get_mut(base).ok()?;
 
                 let location = event.hit.location();
-                let lives = base.ball_count;
+
+                let lose = base.ball_count == 0;
+                if lose {
+                    game_over_events.send(GameOverEvent::Lose);
+                } else {
+                    base.ball_count -= 1;
+                }
+                timer.miss.reset();
 
                 player_miss_events.send(PlayerMissEvent {
                     ball,
                     location,
-                    lives,
+                    lose,
                 });
-
-                if base.ball_count == 0 {
-                    game_over_events.send(GameOverEvent::Lose);
-                } else {
-                    base.ball_count -= 1;
-                    make_ball_events.send(MakeBallEvent);
-                }
-                timer.miss.reset();
 
                 Some(())
             };
 
             closure(event.entities[0], event.entities[1])
                 .or_else(|| closure(event.entities[1], event.entities[0]));
+        }
+    }
+}
+
+fn remake_ball(
+    state: Res<State<AppState>>,
+    mut player_hit_events: EventReader<PlayerHitEvent>,
+    mut player_miss_events: EventReader<PlayerMissEvent>,
+    mut make_ball_events: EventWriter<MakeBallEvent>,
+) {
+    for event in player_hit_events.iter() {
+        if event.win && state.current() == &AppState::Tutorial {
+            make_ball_events.send(MakeBallEvent);
+        }
+    }
+
+    for event in player_miss_events.iter() {
+        if !event.lose {
+            make_ball_events.send(MakeBallEvent);
         }
     }
 }
@@ -775,12 +795,12 @@ fn ball_bounce(
     }
 }
 
-fn game_over(
+fn game_over_system(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut app_state: ResMut<State<AppState>>,
     mut game_over_events: EventReader<GameOverEvent>,
-    mut game_over: ResMut<GameOver>,
+    mut game_over: Local<GameOver>,
 ) {
     if let Some(event) = game_over.event {
         let mut target_time_scale = 0.2;
@@ -801,6 +821,8 @@ fn game_over(
             .just_finished()
         {
             time_scale.reset();
+            *game_over = GameOver::default();
+
             match event {
                 GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
                 GameOverEvent::Lose => app_state.set(AppState::Menu).unwrap(),
@@ -814,22 +836,21 @@ fn game_over(
     }
 }
 
-fn tutorial_heal_enemy_base(
+fn recover_enemy_health(
     mut game_over_events: EventReader<GameOverEvent>,
     mut heal_events: EventWriter<HealEvent>,
 ) {
     for event in game_over_events.iter() {
-        let heal_time = 1.0;
-        let amount_per_second = ENEMY_BASE_FULL_HP / heal_time;
-        let heal = Heal {
-            amount_per_second,
-            timer: Timer::from_seconds(heal_time, false),
-        };
-
         match event {
-            GameOverEvent::Win => heal_events.send(HealEvent(heal)),
+            GameOverEvent::Win => heal_events.send(HealEvent(Heal::default())),
             GameOverEvent::Lose => {}
         }
+    }
+}
+
+fn player_ball_infinite(mut query: Query<&mut PlayerBase>) {
+    if let Ok(mut base) = query.get_single_mut() {
+        base.ball_count = 99;
     }
 }
 
@@ -928,12 +949,12 @@ fn score_effects(
     };
 
     for event in player_miss_events.iter() {
-        let duration = if event.lives <= 0 { 2.0 } else { 1.0 };
+        let duration = if event.lose { 2.0 } else { 1.0 };
         make_effect(event.location, duration);
     }
 
     for event in player_hit_events.iter() {
-        if event.hp - event.damage <= 0.0 {
+        if event.win {
             let duration = 2.0;
             make_effect(event.location, duration);
         }

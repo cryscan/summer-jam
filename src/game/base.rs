@@ -26,7 +26,7 @@ impl Default for EnemyBase {
     fn default() -> Self {
         Self {
             full_hp: ENEMY_BASE_FULL_HP,
-            hp: ENEMY_BASE_FULL_HP,
+            hp: 0.0,
         }
     }
 }
@@ -63,7 +63,7 @@ impl Default for HealthBarTracker {
         Self {
             damp: HEALTH_BAR_DAMP,
             bias: HEALTH_BAR_BIAS,
-            percent: 100.0,
+            percent: 0.0,
         }
     }
 }
@@ -100,6 +100,15 @@ pub fn health_bar_tracker(
 pub struct Heal {
     pub amount_per_second: f32,
     pub timer: Timer,
+}
+
+impl Default for Heal {
+    fn default() -> Self {
+        Self {
+            amount_per_second: ENEMY_BASE_FULL_HP,
+            timer: Timer::from_seconds(1.0, false),
+        }
+    }
 }
 
 pub struct HealEvent(pub Heal);
