@@ -43,12 +43,21 @@ pub struct AudioVolume {
 
 pub struct MusicTrack(&'static str);
 
+#[derive(Default, Component, Reflect)]
+#[reflect(Component)]
+pub struct TextColor {
+    pub timer: Timer,
+    pub colors: Vec<Color>,
+    pub index: usize,
+}
+
 #[wasm_bindgen]
 pub fn run() {
     let mut app = App::new();
 
     app.register_type::<TimeScale>()
         .register_type::<AudioVolume>()
+        .register_type::<TextColor>()
         .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .insert_resource(WindowDescriptor {
             title: "Bounce Up!".into(),
@@ -76,6 +85,7 @@ pub fn run() {
         .add_state(AppState::Loading)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
+        .add_system(text_color)
         .add_plugin(loading::LoadingPlugin)
         .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)
@@ -104,6 +114,15 @@ fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Wind
                 window.set_cursor_lock_mode(false);
                 window.set_cursor_visibility(true);
             }
+        }
+    }
+}
+
+fn text_color(time: Res<Time>, mut query: Query<(&mut Text, &mut TextColor)>) {
+    for (mut text, mut text_color) in query.iter_mut() {
+        text.sections[0].style.color = text_color.colors[text_color.index];
+        if text_color.timer.tick(time.delta()).just_finished() {
+            text_color.index = (text_color.index + 1) % text_color.colors.len();
         }
     }
 }

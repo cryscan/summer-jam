@@ -1,7 +1,7 @@
 use crate::{
     config::*,
     utils::{cleanup_system, escape_system},
-    AppState, AudioVolume, MusicTrack, TimeScale,
+    AppState, AudioVolume, MusicTrack, TextColor, TimeScale,
 };
 use bevy::prelude::*;
 use bevy_kira_audio::{Audio, AudioChannel};
@@ -11,12 +11,9 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Cleanup>()
-            .register_type::<TextColor>()
             .register_type::<MenuButtonAction>()
             .register_type::<SettingButtonAction>()
-            .insert_resource(TextColorTimer(Timer::from_seconds(0.3, true)))
             .init_resource::<ButtonStyle>()
-            .add_system(text_color)
             .add_system_set(
                 SystemSet::new()
                     .label(ButtonSystems)
@@ -63,13 +60,6 @@ struct Cleanup;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
 pub struct ButtonSystems;
 
-#[derive(Default, Component, Reflect)]
-#[reflect(Component)]
-struct TextColor {
-    pub colors: Vec<Color>,
-    pub index: usize,
-}
-
 #[derive(Clone, Copy, Component, Reflect)]
 #[reflect(Component)]
 enum SettingButtonAction {
@@ -92,9 +82,6 @@ enum MenuButtonAction {
     Settings,
     BackToMenu,
 }
-
-#[derive(Deref, DerefMut)]
-struct TextColorTimer(Timer);
 
 struct ButtonStyle {
     button: Style,
@@ -208,6 +195,7 @@ fn make_menu(
                 })
                 .insert(TextColor {
                     colors: TITLE_COLORS.into(),
+                    timer: Timer::from_seconds(0.3, true),
                     ..Default::default()
                 });
 
@@ -468,20 +456,6 @@ fn make_settings(
                     });
                 });
         });
-}
-
-fn text_color(
-    time: Res<Time>,
-    mut timer: ResMut<TextColorTimer>,
-    mut query: Query<(&mut Text, &mut TextColor)>,
-) {
-    timer.tick(time.delta());
-    for (mut text, mut text_color) in query.iter_mut() {
-        text.sections[0].style.color = text_color.colors[text_color.index];
-        if timer.just_finished() {
-            text_color.index = (text_color.index + 1) % text_color.colors.len();
-        }
-    }
 }
 
 #[allow(clippy::type_complexity)]
