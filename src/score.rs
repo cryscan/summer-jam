@@ -1,4 +1,4 @@
-use crate::{config::*, AppState, TimeScale};
+use crate::{config::*, AppState, TextColor, TimeScale};
 use bevy::prelude::*;
 
 pub struct ScorePlugin;
@@ -48,11 +48,7 @@ fn make_ui(
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Percent(50.0)),
-                position: Rect {
-                    bottom: Val::Percent(20.0),
-                    ..Default::default()
-                },
+                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                 flex_direction: FlexDirection::ColumnReverse,
                 justify_content: JustifyContent::Center,
                 ..Default::default()
@@ -61,55 +57,72 @@ fn make_ui(
             ..Default::default()
         })
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle {
-                style: Style {
-                    position: Rect {
-                        bottom: Val::Percent(20.0),
-                        left: Val::Percent(10.0),
+            parent
+                .spawn_bundle(TextBundle {
+                    style: Style {
+                        position: Rect {
+                            left: Val::Percent(10.0),
+                            ..Default::default()
+                        },
+                        margin: Rect {
+                            bottom: Val::Percent(20.0),
+                            ..Default::default()
+                        },
                         ..Default::default()
                     },
+                    text: Text::with_section(
+                        "You Win!",
+                        TextStyle {
+                            font: asset_server.load(FONT_ARCADE),
+                            font_size: 50.0,
+                            color: Color::WHITE,
+                        },
+                        TextAlignment {
+                            horizontal: HorizontalAlign::Center,
+                            ..Default::default()
+                        },
+                    ),
+                    ..Default::default()
+                })
+                .insert(TextColor {
+                    timer: Timer::from_seconds(0.3, true),
+                    colors: FLIP_TEXT_COLORS.into(),
+                    ..Default::default()
+                });
+
+            let term_style = Style {
+                size: Size::new(Val::Percent(100.0), Val::Px(30.0)),
+                position: Rect {
+                    left: Val::Percent(10.0),
                     ..Default::default()
                 },
-                text: Text::with_section(
-                    "You Win!",
-                    TextStyle {
-                        font: asset_server.load(FONT_ARCADE),
-                        font_size: 50.0,
-                        color: Color::WHITE,
-                    },
-                    TextAlignment {
-                        horizontal: HorizontalAlign::Center,
-                        ..Default::default()
-                    },
-                ),
+                margin: Rect {
+                    top: Val::Px(10.0),
+                    bottom: Val::Px(10.0),
+                    ..Default::default()
+                },
                 ..Default::default()
-            });
+            };
 
             // time
             let time_passed = time.seconds_since_startup() - score.timestamp;
             parent.spawn_bundle(TextBundle {
-                style: Style {
-                    position: Rect {
-                        left: Val::Percent(10.0),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
+                style: term_style.clone(),
                 text: Text {
                     sections: vec![
                         TextSection {
                             value: "Time: ".into(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_ARCADE),
-                                font_size: 30.0,
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         },
                         TextSection {
                             value: format!("{:.2}", time_passed),
                             style: TextStyle {
-                                font: asset_server.load(FONT_ARCADE),
-                                font_size: 30.0,
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
                                 color: Color::GOLD,
                             },
                         },
@@ -121,28 +134,22 @@ fn make_ui(
 
             // player hits
             parent.spawn_bundle(TextBundle {
-                style: Style {
-                    position: Rect {
-                        left: Val::Percent(10.0),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
+                style: term_style.clone(),
                 text: Text {
                     sections: vec![
                         TextSection {
                             value: "Hits: ".into(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_ARCADE),
-                                font_size: 30.0,
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         },
                         TextSection {
                             value: score.hits.to_string(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_ARCADE),
-                                font_size: 30.0,
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
                                 color: Color::GOLD,
                             },
                         },
@@ -154,28 +161,22 @@ fn make_ui(
 
             // player miss
             parent.spawn_bundle(TextBundle {
-                style: Style {
-                    position: Rect {
-                        left: Val::Percent(10.0),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
+                style: term_style,
                 text: Text {
                     sections: vec![
                         TextSection {
                             value: "Miss: ".into(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_ARCADE),
-                                font_size: 30.0,
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         },
                         TextSection {
                             value: score.miss.to_string(),
                             style: TextStyle {
-                                font: asset_server.load(FONT_ARCADE),
-                                font_size: 30.0,
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
                                 color: Color::GOLD,
                             },
                         },

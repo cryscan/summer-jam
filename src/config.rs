@@ -30,6 +30,8 @@ pub const HEALTH_BAR_COLOR: Color = Color::rgb(0.608, 0.678, 0.718);
 pub const HEALTH_BAR_TRACKER_COLOR: Color = Color::rgb(0.851, 0.341, 0.388);
 pub const HINT_COLOR: Color = Color::rgba(1.0, 1.0, 1.0, 0.2);
 
+pub const FLIP_TEXT_COLORS: [Color; 2] = [Color::WHITE, Color::GOLD];
+
 pub const MISS_AUDIO: &str = "audios/miss.flac";
 pub const EXPLOSION_AUDIO: &str = "audios/explosion.flac";
 pub const LOSE_AUDIO: &str = "audios/lose.flac";
