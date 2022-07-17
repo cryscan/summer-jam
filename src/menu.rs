@@ -39,8 +39,6 @@ impl Plugin for MenuPlugin {
     }
 }
 
-const TITLE_COLORS: [Color; 2] = [Color::WHITE, Color::GOLD];
-
 const NORMAL_BUTTON: Color = Color::NONE;
 const HOVERED_BUTTON: Color = Color::WHITE;
 const PRESSED_BUTTON: Color = Color::WHITE;
@@ -194,7 +192,7 @@ fn make_menu(
                     ..Default::default()
                 })
                 .insert(TextColor {
-                    colors: TITLE_COLORS.into(),
+                    colors: FLIP_TEXT_COLORS.into(),
                     timer: Timer::from_seconds(0.3, true),
                     ..Default::default()
                 });

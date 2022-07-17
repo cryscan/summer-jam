@@ -59,7 +59,7 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_enter(AppState::Game)
                     .with_system(enter_game)
-                    .with_system(make_static_entities)
+                    .with_system(make_arena)
                     .with_system(make_ui)
                     .with_system(make_player)
                     .with_system(make_enemy),
@@ -85,10 +85,19 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_enter(AppState::Tutorial)
                     .with_system(enter_game)
-                    .with_system(make_static_entities)
+                    .with_system(make_arena)
+                    .with_system(make_ui)
                     .with_system(make_player),
             )
-            .add_system_set(SystemSet::on_update(AppState::Tutorial).with_system(escape_system))
+            .add_system_set(
+                SystemSet::on_update(AppState::Tutorial)
+                    .with_system(escape_system)
+                    .with_system(make_ball)
+                    .with_system(player_hit)
+                    .with_system(count_ball)
+                    .with_system(health_bar)
+                    .with_system(health_bar_tracker),
+            )
             .add_system_set(
                 SystemSet::on_exit(AppState::Tutorial).with_system(cleanup_system::<Cleanup>),
             )
@@ -269,7 +278,7 @@ fn enter_game(
     }
 }
 
-fn make_static_entities(mut commands: Commands) {
+fn make_arena(mut commands: Commands) {
     // middle Separate
     commands
         .spawn_bundle(SpriteBundle {
