@@ -1,4 +1,4 @@
-use crate::{config::*, utils::Damp, TimeScale};
+use crate::{config::*, utils::Damp};
 use bevy::prelude::*;
 
 #[derive(Component, Reflect)]
@@ -39,9 +39,10 @@ pub fn count_ball(
     base_query: Query<&PlayerBase>,
     mut counter_query: Query<&mut Text, With<BallCounter>>,
 ) {
-    let base = base_query.single();
-    for mut counter in counter_query.iter_mut() {
-        counter.sections[1].value = base.ball_count.to_string();
+    if let Ok(base) = base_query.get_single() {
+        for mut counter in counter_query.iter_mut() {
+            counter.sections[1].value = base.ball_count.to_string();
+        }
     }
 }
 
@@ -68,28 +69,64 @@ impl Default for HealthBarTracker {
 }
 
 pub fn health_bar(base_query: Query<&EnemyBase>, mut query: Query<&mut Style, With<HealthBar>>) {
-    let base = base_query.single();
-    for mut health_bar in query.iter_mut() {
-        health_bar.size.width = Val::Percent(base.hp / base.full_hp * 100.0);
+    if let Ok(base) = base_query.get_single() {
+        for mut health_bar in query.iter_mut() {
+            health_bar.size.width = Val::Percent(base.hp / base.full_hp * 100.0);
+        }
     }
 }
 
 pub fn health_bar_tracker(
     time: Res<Time>,
-    time_scale: Res<TimeScale>,
     base_query: Query<&EnemyBase>,
     mut query: Query<(&mut Style, &mut HealthBarTracker)>,
 ) {
-    let base = base_query.single();
-    for (mut health_bar, mut tracker) in query.iter_mut() {
-        let percent_hp = base.hp / base.full_hp * 100.0;
-        tracker.percent = percent_hp.max(
-            (tracker.percent + tracker.bias).damp(
-                percent_hp,
-                tracker.damp,
-                time.delta_seconds() * time_scale.0,
-            ) - tracker.bias,
-        );
-        health_bar.size.width = Val::Percent(tracker.percent - percent_hp);
+    if let Ok(base) = base_query.get_single() {
+        for (mut health_bar, mut tracker) in query.iter_mut() {
+            let percent_hp = base.hp / base.full_hp * 100.0;
+            tracker.percent = percent_hp.max(
+                (tracker.percent + tracker.bias).damp(
+                    percent_hp,
+                    tracker.damp,
+                    time.delta_seconds(),
+                ) - tracker.bias,
+            );
+            health_bar.size.width = Val::Percent(tracker.percent - percent_hp);
+        }
+    }
+}
+
+#[derive(Reflect, Clone)]
+pub struct Heal {
+    pub amount_per_second: f32,
+    pub timer: Timer,
+}
+
+pub struct HealEvent(pub Heal);
+
+pub fn heal_enemy_base(
+    time: Res<Time>,
+    mut heal_events: EventReader<HealEvent>,
+    mut query: Query<&mut EnemyBase>,
+    mut heal: Local<Option<Heal>>,
+) {
+    if let Ok(mut base) = query.get_single_mut() {
+        for event in heal_events.iter() {
+            *heal = Some(event.0.clone());
+        }
+
+        if let Some(heal) = heal.as_ref() {
+            let amount = heal.amount_per_second * time.delta_seconds();
+            base.hp += amount;
+            base.hp = base.hp.min(base.full_hp);
+        }
+
+        if heal
+            .as_mut()
+            .map_or(false, |heal| heal.timer.tick(time.delta()).finished())
+            || base.hp >= base.full_hp
+        {
+            *heal = None;
+        }
     }
 }
