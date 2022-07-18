@@ -3,8 +3,7 @@ use crate::{config::*, TimeScale};
 use bevy::prelude::*;
 use std::f32::consts::FRAC_PI_2;
 
-#[derive(Clone, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Component)]
 pub struct Ball {
     pub gravity: f32,
     pub set_timer: Timer,
@@ -78,12 +77,9 @@ pub struct Point {
     pub time: f64,
 }
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 pub struct Trajectory {
-    #[reflect(ignore)]
     pub start_time: f64,
-    #[reflect(ignore)]
     pub points: Vec<Point>,
 }
 

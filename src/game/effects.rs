@@ -23,9 +23,7 @@ pub struct EffectsPlugin;
 
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<DeathEffect>()
-            .register_type::<HitEffect>()
-            .insert_resource(CameraShakeTimer(Timer::from_seconds(0.02, false)))
+        app.insert_resource(CameraShakeTimer(Timer::from_seconds(0.02, false)))
             .add_event::<CameraShakeEvent>()
             .add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
             .add_system(death_effect_system)
@@ -147,8 +145,7 @@ impl Material2d for DeathEffectMaterial {
     }
 }
 
-#[derive(Default, Clone, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Component)]
 pub struct DeathEffect {
     pub timer: Timer,
     pub speed: f32,
@@ -176,8 +173,7 @@ fn death_effect_system(
     }
 }
 
-#[derive(Clone, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Component)]
 pub struct HitEffect {
     timer: Timer,
 }

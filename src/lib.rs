@@ -20,7 +20,6 @@ pub enum AppState {
     Win,
 }
 
-#[derive(Reflect)]
 pub struct TimeScale(pub f32);
 
 impl Default for TimeScale {
@@ -35,7 +34,6 @@ impl TimeScale {
     }
 }
 
-#[derive(Reflect)]
 pub struct AudioVolume {
     pub music: f32,
     pub effects: f32,
@@ -43,22 +41,28 @@ pub struct AudioVolume {
 
 pub struct MusicTrack(&'static str);
 
-#[derive(Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 pub struct TextColor {
-    pub timer: Timer,
-    pub colors: Vec<Color>,
-    pub index: usize,
+    timer: Timer,
+    colors: Vec<Color>,
+    index: usize,
+}
+
+impl TextColor {
+    pub fn new(colors: Vec<Color>, duration: f32) -> Self {
+        Self {
+            timer: Timer::from_seconds(duration, false),
+            colors,
+            index: 0,
+        }
+    }
 }
 
 #[wasm_bindgen]
 pub fn run() {
     let mut app = App::new();
 
-    app.register_type::<TimeScale>()
-        .register_type::<AudioVolume>()
-        .register_type::<TextColor>()
-        .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+    app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .insert_resource(WindowDescriptor {
             title: "Bounce Up!".into(),
             width: config::ARENA_WIDTH,
@@ -85,7 +89,7 @@ pub fn run() {
         .add_state(AppState::Loading)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
-        .add_system(text_color)
+        .add_system(text_color_system)
         .add_plugin(loading::LoadingPlugin)
         .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)
@@ -118,7 +122,7 @@ fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Wind
     }
 }
 
-fn text_color(time: Res<Time>, mut query: Query<(&mut Text, &mut TextColor)>) {
+fn text_color_system(time: Res<Time>, mut query: Query<(&mut Text, &mut TextColor)>) {
     for (mut text, mut text_color) in query.iter_mut() {
         text.sections[0].style.color = text_color.colors[text_color.index];
         if text_color.timer.tick(time.delta()).just_finished() {
