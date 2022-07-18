@@ -14,7 +14,7 @@ Run the following command to compile:
 $ wasm-pack build --release --target web
 ```
 
-And add the `index.html`:
+Then add the `index.html` into the `pkg` folder:
 ```html
 <html>
 
@@ -33,3 +33,5 @@ And add the `index.html`:
 
 </html>
 ```
+
+Finally copy the `assets` folder into the `pkg` folder, pack and release.

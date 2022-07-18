@@ -51,7 +51,7 @@ pub struct TextColor {
 impl TextColor {
     pub fn new(colors: Vec<Color>, duration: f32) -> Self {
         Self {
-            timer: Timer::from_seconds(duration, false),
+            timer: Timer::from_seconds(duration, true),
             colors,
             index: 0,
         }
