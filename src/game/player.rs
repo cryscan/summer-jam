@@ -7,8 +7,7 @@ use crate::{config::*, utils::Damp, TimeScale};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::ops::Add;
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 pub struct Player {
     pub max_speed: f32,
     pub sensitivity: f32,
@@ -25,8 +24,7 @@ impl Default for Player {
     }
 }
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 pub struct PlayerAssist {
     pub range: f32,
     pub speed: f32,

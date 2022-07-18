@@ -1,8 +1,7 @@
 use crate::{config::*, utils::Damp};
 use bevy::prelude::*;
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 pub struct PlayerBase {
     pub ball_count: i32,
 }
@@ -15,8 +14,7 @@ impl Default for PlayerBase {
     }
 }
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 pub struct EnemyBase {
     pub full_hp: f32,
     pub hp: f32,
@@ -31,8 +29,7 @@ impl Default for EnemyBase {
     }
 }
 
-#[derive(Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Default, Component)]
 pub struct BallCounter;
 
 pub fn count_ball(
@@ -46,12 +43,10 @@ pub fn count_ball(
     }
 }
 
-#[derive(Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Default, Component)]
 pub struct HealthBar;
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 pub struct HealthBarTracker {
     pub damp: f32,
     pub bias: f32,
@@ -96,7 +91,7 @@ pub fn health_bar_tracker(
     }
 }
 
-#[derive(Reflect, Clone)]
+#[derive(Clone)]
 pub struct Heal {
     pub amount_per_second: f32,
     pub timer: Timer,

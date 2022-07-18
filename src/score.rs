@@ -5,17 +5,14 @@ pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Score>()
-            .init_resource::<Score>()
-            .add_system_set(
-                SystemSet::on_enter(AppState::Win)
-                    .with_system(enter_score)
-                    .with_system(make_ui),
-            );
+        app.init_resource::<Score>().add_system_set(
+            SystemSet::on_enter(AppState::Win)
+                .with_system(enter_score)
+                .with_system(make_ui),
+        );
     }
 }
 
-#[derive(Reflect)]
 pub struct Score {
     pub timestamp: f64,
     pub hits: i32,
@@ -84,11 +81,7 @@ fn make_ui(
                     ),
                     ..Default::default()
                 })
-                .insert(TextColor {
-                    timer: Timer::from_seconds(0.3, true),
-                    colors: FLIP_TEXT_COLORS.into(),
-                    ..Default::default()
-                });
+                .insert(TextColor::new(FLIP_TEXT_COLORS.into(), 0.3));
 
             let term_style = Style {
                 size: Size::new(Val::Percent(100.0), Val::Px(30.0)),

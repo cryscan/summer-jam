@@ -5,8 +5,7 @@ use super::{
 use crate::{config::*, utils::Damp, TimeScale};
 use bevy::prelude::*;
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 pub struct Enemy {
     pub min_speed: f32,
     pub max_speed: f32,
@@ -32,8 +31,7 @@ impl Default for Enemy {
     }
 }
 
-#[derive(Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Default, Component)]
 pub struct Controller {
     pub velocity: Vec2,
 }

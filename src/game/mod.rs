@@ -22,20 +22,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Cleanup>()
-            .register_type::<BounceAudio>()
-            .register_type::<Ball>()
-            .register_type::<Trajectory>()
-            .register_type::<Player>()
-            .register_type::<PlayerAssist>()
-            .register_type::<Enemy>()
-            .register_type::<Controller>()
-            .register_type::<PlayerBase>()
-            .register_type::<EnemyBase>()
-            .register_type::<BallCounter>()
-            .register_type::<HealthBar>()
-            .register_type::<HealthBarTracker>()
-            .add_event::<GameOverEvent>()
+        app.add_event::<GameOverEvent>()
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
@@ -184,14 +171,11 @@ impl Default for GameOver {
     }
 }
 
-#[derive(Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 struct Cleanup;
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Clone, Copy, PartialEq, Eq, Component)]
 enum BounceAudio {
-    #[default]
     Bounce,
     Hit,
 }

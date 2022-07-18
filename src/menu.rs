@@ -10,17 +10,14 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Cleanup>()
-            .register_type::<MenuButtonAction>()
-            .register_type::<SettingButtonAction>()
-            .init_resource::<ButtonStyle>()
+        app.init_resource::<ButtonStyle>()
             .add_system_set(
                 SystemSet::new()
                     .label(ButtonSystems)
-                    .with_system(menu_button_system)
-                    .with_system(menu_action)
-                    .with_system(setting_button_system)
-                    .with_system(setting_action),
+                    .with_system(button_system)
+                    .with_system(button_action)
+                    .with_system(value_system)
+                    .with_system(value_action),
             )
             .add_system(button_audio.after(ButtonSystems))
             .add_system_set(
@@ -51,34 +48,24 @@ const NORMAL_BUTTON_TEXT: Color = Color::WHITE;
 const HOVERED_BUTTON_TEXT: Color = Color::BLACK;
 const PRESSED_BUTTON_TEXT: Color = Color::BLACK;
 
-#[derive(Default, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Component)]
 struct Cleanup;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
 pub struct ButtonSystems;
 
-#[derive(Clone, Copy, Component, Reflect)]
-#[reflect(Component)]
-enum SettingButtonAction {
-    AudioVolume(f32),
-    MusicVolume(f32),
-}
-
-impl Default for SettingButtonAction {
-    fn default() -> Self {
-        Self::MusicVolume(0.0)
-    }
-}
-
-#[derive(Default, Clone, Copy, Component, Reflect)]
-#[reflect(Component)]
-enum MenuButtonAction {
-    #[default]
+#[derive(Clone, Copy, Component)]
+enum ButtonAction {
     Play,
     Tutorial,
     Settings,
-    BackToMenu,
+    Back,
+}
+
+#[derive(Clone, Copy, Component)]
+enum ValueAction {
+    AudioVolume(f32),
+    MusicVolume(f32),
 }
 
 struct ButtonStyle {
@@ -191,11 +178,7 @@ fn make_menu(
                     ),
                     ..Default::default()
                 })
-                .insert(TextColor {
-                    colors: FLIP_TEXT_COLORS.into(),
-                    timer: Timer::from_seconds(0.3, true),
-                    ..Default::default()
-                });
+                .insert(TextColor::new(FLIP_TEXT_COLORS.into(), 0.3));
 
             parent
                 .spawn_bundle(ButtonBundle {
@@ -203,7 +186,7 @@ fn make_menu(
                     color: NORMAL_BUTTON.into(),
                     ..Default::default()
                 })
-                .insert(MenuButtonAction::Play)
+                .insert(ButtonAction::Play)
                 .with_children(|parent| {
                     parent.spawn_bundle(ImageBundle {
                         style: button_style.icon.clone(),
@@ -225,7 +208,7 @@ fn make_menu(
                     color: NORMAL_BUTTON.into(),
                     ..Default::default()
                 })
-                .insert(MenuButtonAction::Tutorial)
+                .insert(ButtonAction::Tutorial)
                 .with_children(|parent| {
                     parent.spawn_bundle(ImageBundle {
                         style: button_style.icon.clone(),
@@ -247,7 +230,7 @@ fn make_menu(
                     color: NORMAL_BUTTON.into(),
                     ..Default::default()
                 })
-                .insert(MenuButtonAction::Settings)
+                .insert(ButtonAction::Settings)
                 .with_children(|parent| {
                     parent.spawn_bundle(ImageBundle {
                         style: button_style.icon.clone(),
@@ -366,9 +349,7 @@ fn make_settings(
                                 color: NORMAL_SETTING_BUTTON.into(),
                                 ..Default::default()
                             })
-                            .insert(SettingButtonAction::AudioVolume(
-                                volume_setting as f32 / 10.0,
-                            ));
+                            .insert(ValueAction::AudioVolume(volume_setting as f32 / 10.0));
                     }
                 });
 
@@ -425,9 +406,7 @@ fn make_settings(
                                 color: NORMAL_SETTING_BUTTON.into(),
                                 ..Default::default()
                             })
-                            .insert(SettingButtonAction::MusicVolume(
-                                volume_setting as f32 / 10.0,
-                            ));
+                            .insert(ValueAction::MusicVolume(volume_setting as f32 / 10.0));
                     }
                 });
 
@@ -437,7 +416,7 @@ fn make_settings(
                     color: NORMAL_BUTTON.into(),
                     ..Default::default()
                 })
-                .insert(MenuButtonAction::BackToMenu)
+                .insert(ButtonAction::Back)
                 .with_children(|parent| {
                     parent.spawn_bundle(ImageBundle {
                         style: button_style.icon.clone(),
@@ -459,7 +438,7 @@ fn make_settings(
 #[allow(clippy::type_complexity)]
 fn button_audio(
     interaction_query: Query<
-        (&Interaction, Option<&MenuButtonAction>),
+        (&Interaction, Option<&ButtonAction>),
         (Changed<Interaction>, With<Button>),
     >,
     audio: Res<Audio>,
@@ -487,10 +466,10 @@ fn button_audio(
 }
 
 #[allow(clippy::type_complexity)]
-fn menu_button_system(
+fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut UiColor, &Children),
-        (Changed<Interaction>, With<Button>, With<MenuButtonAction>),
+        (Changed<Interaction>, With<Button>, With<ButtonAction>),
     >,
     mut text_query: Query<&mut Text>,
 ) {
@@ -518,20 +497,17 @@ fn menu_button_system(
 }
 
 #[allow(clippy::type_complexity)]
-fn menu_action(
-    interaction_query: Query<
-        (&Interaction, &MenuButtonAction),
-        (Changed<Interaction>, With<Button>),
-    >,
+fn button_action(
+    interaction_query: Query<(&Interaction, &ButtonAction), (Changed<Interaction>, With<Button>)>,
     mut app_state: ResMut<State<AppState>>,
 ) {
     for (interaction, action) in interaction_query.iter() {
         if *interaction == Interaction::Clicked {
             let state = match action {
-                MenuButtonAction::Play => AppState::Game,
-                MenuButtonAction::Tutorial => AppState::Practice,
-                MenuButtonAction::Settings => AppState::Settings,
-                MenuButtonAction::BackToMenu => AppState::Menu,
+                ButtonAction::Play => AppState::Game,
+                ButtonAction::Tutorial => AppState::Practice,
+                ButtonAction::Settings => AppState::Settings,
+                ButtonAction::Back => AppState::Menu,
             };
             app_state.set(state).unwrap();
         }
@@ -539,8 +515,8 @@ fn menu_action(
 }
 
 #[allow(clippy::type_complexity)]
-fn setting_button_system(
-    mut interaction_query: Query<(&Interaction, &mut UiColor, &SettingButtonAction), With<Button>>,
+fn value_system(
+    mut interaction_query: Query<(&Interaction, &mut UiColor, &ValueAction), With<Button>>,
     volume: Res<AudioVolume>,
 ) {
     for (interaction, mut color, action) in interaction_query.iter_mut() {
@@ -549,12 +525,12 @@ fn setting_button_system(
             _ => {
                 *color = NORMAL_SETTING_BUTTON.into();
                 match action {
-                    SettingButtonAction::AudioVolume(v) => {
+                    ValueAction::AudioVolume(v) => {
                         if volume.effects >= *v {
                             *color = ACTIVE_SETTING_BUTTON.into();
                         }
                     }
-                    SettingButtonAction::MusicVolume(v) => {
+                    ValueAction::MusicVolume(v) => {
                         if volume.music >= *v {
                             *color = ACTIVE_SETTING_BUTTON.into();
                         }
@@ -566,19 +542,16 @@ fn setting_button_system(
 }
 
 #[allow(clippy::type_complexity)]
-fn setting_action(
-    interaction_query: Query<
-        (&Interaction, &SettingButtonAction),
-        (Changed<Interaction>, With<Button>),
-    >,
+fn value_action(
+    interaction_query: Query<(&Interaction, &ValueAction), (Changed<Interaction>, With<Button>)>,
     mut volume: ResMut<AudioVolume>,
     audio: Res<Audio>,
 ) {
     for (interaction, action) in interaction_query.iter() {
         if *interaction == Interaction::Clicked {
             match action {
-                SettingButtonAction::AudioVolume(v) => volume.effects = *v,
-                SettingButtonAction::MusicVolume(v) => {
+                ValueAction::AudioVolume(v) => volume.effects = *v,
+                ValueAction::MusicVolume(v) => {
                     volume.music = *v;
                     audio.set_volume(volume.music)
                 }
