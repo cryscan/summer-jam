@@ -22,7 +22,8 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<GameOverEvent>()
+        app.add_state(PracticeState::Plain)
+            .add_event::<GameOverEvent>()
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
@@ -61,7 +62,7 @@ impl Plugin for GamePlugin {
             )
             .add_system_set(
                 SystemSet::on_enter(AppState::Practice)
-                    .with_system(enter_game)
+                    .with_system(enter_practice)
                     .with_system(make_arena)
                     .with_system(make_ui)
                     .with_system(make_player),
@@ -79,6 +80,7 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_exit(AppState::Practice).with_system(cleanup_system::<Cleanup>),
             )
+            .add_system_set(SystemSet::on_enter(PracticeState::Slits).with_system(make_slits))
             .add_system_set(
                 SystemSet::new()
                     // fundamental game-play systems
@@ -114,6 +116,12 @@ impl Plugin for GamePlugin {
             .add_plugin(PhysicsPlugin)
             .add_plugin(EffectsPlugin);
     }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+enum PracticeState {
+    Plain,
+    Slits,
 }
 
 #[derive(Clone, Copy)]
@@ -162,8 +170,8 @@ struct GameOver {
 impl Default for GameOver {
     fn default() -> Self {
         Self {
-            slow_motion_timer: Timer::from_seconds(0.8, false),
-            state_change_timer: Timer::from_seconds(2.0, false),
+            slow_motion_timer: Timer::from_seconds(GAME_OVER_SLOW_MOTION_DURATION, false),
+            state_change_timer: Timer::from_seconds(GAME_OVER_STATE_CHANGE_DURATION, false),
             event: None,
         }
     }
@@ -244,6 +252,34 @@ fn enter_game(
     score.timestamp = time.seconds_since_startup();
     score.hits = 0;
     score.miss = 0;
+
+    time_scale.reset();
+
+    make_ball_events.send(MakeBallEvent);
+    heal_events.send(HealEvent(Heal::default()));
+
+    if music_track.0 != GAME_MUSIC {
+        audio.stop();
+        audio.set_volume(volume.music);
+        audio.set_playback_rate(1.2);
+        audio.play_looped(asset_server.load(GAME_MUSIC));
+
+        music_track.0 = GAME_MUSIC;
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn enter_practice(
+    mut practice_state: ResMut<State<PracticeState>>,
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
+    volume: Res<AudioVolume>,
+    mut music_track: ResMut<MusicTrack>,
+    mut time_scale: ResMut<TimeScale>,
+    mut make_ball_events: EventWriter<MakeBallEvent>,
+    mut heal_events: EventWriter<HealEvent>,
+) {
+    practice_state.set(PracticeState::Plain).unwrap();
 
     time_scale.reset();
 
@@ -528,6 +564,8 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         });
 }
 
+fn make_slits() {}
+
 fn make_ball(
     mut commands: Commands,
     materials: Res<Materials>,
@@ -662,6 +700,8 @@ fn make_ball_hint(
     }
 }
 
+/// Decreases enemy base's health when the ball hits it.
+/// Sends [`PlayerHitEvent`] and [`GameOverEvent::Win`].
 #[allow(clippy::too_many_arguments)]
 fn player_hit(
     time: Res<Time>,
@@ -708,6 +748,8 @@ fn player_hit(
     }
 }
 
+/// Decreases player's ball count when the ball hits player's base.
+/// Sends [`PlayerMissEvent`] and [`GameOverEvent::Lose`].
 #[allow(clippy::too_many_arguments)]
 fn player_miss(
     time: Res<Time>,
@@ -749,6 +791,7 @@ fn player_miss(
     }
 }
 
+/// Emits [`BounceEvent`] when there the ball hits something after debouncing.
 #[allow(clippy::too_many_arguments)]
 fn ball_bounce(
     time: Res<Time>,
@@ -779,6 +822,9 @@ fn ball_bounce(
     }
 }
 
+/// Deals with [`GameOverEvent`].
+/// The system triggers a slow motion with the duration of [`GAME_OVER_SLOW_MOTION_DURATION`]
+/// and also changes the [`AppState`] after [`GAME_OVER_STATE_CHANGE_DURATION`].
 fn game_over_system(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
@@ -820,6 +866,7 @@ fn game_over_system(
     }
 }
 
+/// Triggers a full recovery of enemy base health after beating it. Used in practice mode.
 fn recover_enemy_health(
     mut game_over_events: EventReader<GameOverEvent>,
     mut heal_events: EventWriter<HealEvent>,
@@ -832,12 +879,14 @@ fn recover_enemy_health(
     }
 }
 
+/// Make the player's ball count infinite. Used in practice mode.
 fn player_ball_infinite(mut query: Query<&mut PlayerBase>) {
     if let Ok(mut base) = query.get_single_mut() {
         base.ball_count = 99;
     }
 }
 
+/// Emits [`CameraShakeEvent`] and create hit blast effects when the ball hits something (with debouncing).
 #[allow(clippy::type_complexity)]
 #[allow(clippy::too_many_arguments)]
 fn bounce_effects(
@@ -901,6 +950,7 @@ fn bounce_effects(
     }
 }
 
+/// Creates full-screen explosion effects both when player lose or win.
 fn score_effects(
     mut commands: Commands,
     materials: Res<Materials>,
