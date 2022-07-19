@@ -279,7 +279,7 @@ fn enter_practice(
     mut make_ball_events: EventWriter<MakeBallEvent>,
     mut heal_events: EventWriter<HealEvent>,
 ) {
-    practice_state.set(PracticeState::Plain).unwrap();
+    let _ = practice_state.set(PracticeState::Plain);
 
     time_scale.reset();
 
