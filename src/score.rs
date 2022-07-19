@@ -40,8 +40,6 @@ fn make_ui(
     score: Res<Score>,
     asset_server: Res<AssetServer>,
 ) {
-    info!("Entering Win");
-
     commands
         .spawn_bundle(NodeBundle {
             style: Style {

@@ -51,8 +51,7 @@ impl Plugin for GamePlugin {
                     // logical game-play systems
                     .with_system(escape_system)
                     .with_system(make_ball)
-                    .with_system(destroy_ball)
-                    .with_system(remake_ball)
+                    .with_system(destroy_remake_ball)
                     .with_system(player_hit)
                     .with_system(player_miss)
                     .with_system(game_over_system),
@@ -71,8 +70,7 @@ impl Plugin for GamePlugin {
                 SystemSet::on_update(AppState::Practice)
                     .with_system(escape_system)
                     .with_system(make_ball)
-                    .with_system(destroy_ball)
-                    .with_system(remake_ball)
+                    .with_system(destroy_remake_ball)
                     .with_system(player_hit)
                     .with_system(player_miss)
                     .with_system(recover_enemy_health)
@@ -242,8 +240,6 @@ fn enter_game(
     mut make_ball_events: EventWriter<MakeBallEvent>,
     mut heal_events: EventWriter<HealEvent>,
 ) {
-    info!("Entering Game");
-
     // clear score state
     score.timestamp = time.seconds_since_startup();
     score.hits = 0;
@@ -572,14 +568,17 @@ fn make_ball(
     }
 }
 
-fn destroy_ball(
+fn destroy_remake_ball(
     mut commands: Commands,
+    app_state: Res<State<AppState>>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut player_hit_events: EventReader<PlayerHitEvent>,
-    ball_query: Query<Option<&Hint>, With<Ball>>,
+    mut make_ball_events: EventWriter<MakeBallEvent>,
+    hint_query: Query<Option<&Hint>, With<Ball>>,
+    ball_query: Query<(Entity, &Transform), With<Ball>>,
 ) {
     let mut closure = |ball| -> Option<()> {
-        if let Some(hint) = ball_query.get(ball).ok()? {
+        if let Some(hint) = hint_query.get(ball).ok()? {
             commands.entity(hint.0).despawn();
         }
         commands.entity(ball).despawn_recursive();
@@ -589,11 +588,31 @@ fn destroy_ball(
     for event in player_hit_events.iter() {
         if event.win {
             closure(event.ball);
+
+            if app_state.current() == &AppState::Practice {
+                make_ball_events.send(MakeBallEvent);
+            }
         }
     }
 
     for event in player_miss_events.iter() {
         closure(event.ball);
+
+        if !event.lose {
+            make_ball_events.send(MakeBallEvent);
+        }
+    }
+
+    // destroy if the ball if out of range
+    for (entity, transform) in ball_query.iter() {
+        if transform.translation.x < -ARENA_WIDTH / 2.0
+            || transform.translation.x > ARENA_WIDTH / 2.0
+            || transform.translation.y < -ARENA_HEIGHT / 2.0
+            || transform.translation.y > ARENA_HEIGHT / 2.0
+        {
+            closure(entity);
+            make_ball_events.send(MakeBallEvent);
+        }
     }
 }
 
@@ -726,25 +745,6 @@ fn player_miss(
 
             closure(event.entities[0], event.entities[1])
                 .or_else(|| closure(event.entities[1], event.entities[0]));
-        }
-    }
-}
-
-fn remake_ball(
-    state: Res<State<AppState>>,
-    mut player_hit_events: EventReader<PlayerHitEvent>,
-    mut player_miss_events: EventReader<PlayerMissEvent>,
-    mut make_ball_events: EventWriter<MakeBallEvent>,
-) {
-    for event in player_hit_events.iter() {
-        if event.win && state.current() == &AppState::Practice {
-            make_ball_events.send(MakeBallEvent);
-        }
-    }
-
-    for event in player_miss_events.iter() {
-        if !event.lose {
-            make_ball_events.send(MakeBallEvent);
         }
     }
 }

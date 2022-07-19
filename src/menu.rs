@@ -120,8 +120,6 @@ fn enter_menu(
     volume: Res<AudioVolume>,
     mut music_track: ResMut<MusicTrack>,
 ) {
-    info!("Entering Menu");
-
     time_scale.reset();
     if music_track.0 != MENU_MUSIC {
         audio.stop();
@@ -254,8 +252,6 @@ fn make_settings(
     asset_server: Res<AssetServer>,
     button_style: Res<ButtonStyle>,
 ) {
-    info!("Entering Settings");
-
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
