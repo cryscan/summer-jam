@@ -95,3 +95,6 @@ pub const HEALTH_BAR_DAMP: f32 = 1.0;
 
 pub const TIME_SCALE_DAMP: f32 = 100.0;
 pub const GAME_OVER_TIME_SCALE_DAMP: f32 = 5.0;
+
+pub const GAME_OVER_SLOW_MOTION_DURATION: f32 = 0.8;
+pub const GAME_OVER_STATE_CHANGE_DURATION: f32 = 2.0;
