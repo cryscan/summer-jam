@@ -1,4 +1,6 @@
-use self::{ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::*};
+use self::{
+    ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::*, practice::*, story::*,
+};
 use crate::{
     config::*,
     score::Score,
@@ -17,13 +19,14 @@ mod enemy;
 mod hint;
 mod physics;
 mod player;
+mod practice;
+mod story;
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_state(PracticeState::Plain)
-            .add_event::<GameOverEvent>()
+        app.add_event::<GameOverEvent>()
             .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
@@ -39,48 +42,6 @@ impl Plugin for GamePlugin {
                 miss: Timer::from_seconds(0.5, false),
             })
             .add_startup_system(setup_game)
-            .add_system_set(
-                SystemSet::on_enter(AppState::Game)
-                    .with_system(enter_game)
-                    .with_system(make_arena)
-                    .with_system(make_ui)
-                    .with_system(make_player)
-                    .with_system(make_enemy),
-            )
-            .add_system_set(
-                SystemSet::on_update(AppState::Game)
-                    // logical game-play systems
-                    .with_system(escape_system)
-                    .with_system(make_ball)
-                    .with_system(destroy_remake_ball)
-                    .with_system(player_hit)
-                    .with_system(player_miss)
-                    .with_system(game_over_system),
-            )
-            .add_system_set(
-                SystemSet::on_exit(AppState::Game).with_system(cleanup_system::<Cleanup>),
-            )
-            .add_system_set(
-                SystemSet::on_enter(AppState::Practice)
-                    .with_system(enter_practice)
-                    .with_system(make_arena)
-                    .with_system(make_ui)
-                    .with_system(make_player),
-            )
-            .add_system_set(
-                SystemSet::on_update(AppState::Practice)
-                    .with_system(escape_system)
-                    .with_system(make_ball)
-                    .with_system(destroy_remake_ball)
-                    .with_system(player_hit)
-                    .with_system(player_miss)
-                    .with_system(recover_enemy_health)
-                    .with_system(player_ball_infinite),
-            )
-            .add_system_set(
-                SystemSet::on_exit(AppState::Practice).with_system(cleanup_system::<Cleanup>),
-            )
-            .add_system_set(SystemSet::on_enter(PracticeState::Slits).with_system(make_slits))
             .add_system_set(
                 SystemSet::new()
                     // fundamental game-play systems
@@ -114,14 +75,10 @@ impl Plugin for GamePlugin {
                     .with_system(control_enemy),
             )
             .add_plugin(PhysicsPlugin)
-            .add_plugin(EffectsPlugin);
+            .add_plugin(EffectsPlugin)
+            .add_plugin(StoryPlugin)
+            .add_plugin(PracticePlugin);
     }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-enum PracticeState {
-    Plain,
-    Slits,
 }
 
 #[derive(Clone, Copy)]
@@ -234,66 +191,6 @@ fn setup_game(
     });
 
     commands.init_resource::<Score>();
-}
-
-#[allow(clippy::too_many_arguments)]
-fn enter_game(
-    asset_server: Res<AssetServer>,
-    audio: Res<Audio>,
-    volume: Res<AudioVolume>,
-    mut music_track: ResMut<MusicTrack>,
-    time: Res<Time>,
-    mut time_scale: ResMut<TimeScale>,
-    mut score: ResMut<Score>,
-    mut make_ball_events: EventWriter<MakeBallEvent>,
-    mut heal_events: EventWriter<HealEvent>,
-) {
-    // clear score state
-    score.timestamp = time.seconds_since_startup();
-    score.hits = 0;
-    score.miss = 0;
-
-    time_scale.reset();
-
-    make_ball_events.send(MakeBallEvent);
-    heal_events.send(HealEvent(Heal::default()));
-
-    if music_track.0 != GAME_MUSIC {
-        audio.stop();
-        audio.set_volume(volume.music);
-        audio.set_playback_rate(1.2);
-        audio.play_looped(asset_server.load(GAME_MUSIC));
-
-        music_track.0 = GAME_MUSIC;
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn enter_practice(
-    mut practice_state: ResMut<State<PracticeState>>,
-    asset_server: Res<AssetServer>,
-    audio: Res<Audio>,
-    volume: Res<AudioVolume>,
-    mut music_track: ResMut<MusicTrack>,
-    mut time_scale: ResMut<TimeScale>,
-    mut make_ball_events: EventWriter<MakeBallEvent>,
-    mut heal_events: EventWriter<HealEvent>,
-) {
-    let _ = practice_state.set(PracticeState::Plain);
-
-    time_scale.reset();
-
-    make_ball_events.send(MakeBallEvent);
-    heal_events.send(HealEvent(Heal::default()));
-
-    if music_track.0 != GAME_MUSIC {
-        audio.stop();
-        audio.set_volume(volume.music);
-        audio.set_playback_rate(1.2);
-        audio.play_looped(asset_server.load(GAME_MUSIC));
-
-        music_track.0 = GAME_MUSIC;
-    }
 }
 
 fn make_arena(mut commands: Commands) {
@@ -819,70 +716,6 @@ fn ball_bounce(
             closure(event.entities[0], event.entities[1])
                 .or_else(|| closure(event.entities[1], event.entities[0]));
         }
-    }
-}
-
-/// Deals with [`GameOverEvent`].
-/// The system triggers a slow motion with the duration of [`GAME_OVER_SLOW_MOTION_DURATION`]
-/// and also changes the [`AppState`] after [`GAME_OVER_STATE_CHANGE_DURATION`].
-fn game_over_system(
-    time: Res<Time>,
-    mut time_scale: ResMut<TimeScale>,
-    mut app_state: ResMut<State<AppState>>,
-    mut game_over_events: EventReader<GameOverEvent>,
-    mut game_over: Local<GameOver>,
-) {
-    if let Some(event) = game_over.event {
-        let mut target_time_scale = 0.2;
-        let mut time_scale_damp = TIME_SCALE_DAMP;
-
-        if game_over.slow_motion_timer.tick(time.delta()).finished() {
-            target_time_scale = 1.0;
-            time_scale_damp = GAME_OVER_TIME_SCALE_DAMP;
-        }
-        time_scale.0 = time_scale
-            .0
-            .damp(target_time_scale, time_scale_damp, time.delta_seconds());
-
-        // it's time to switch state
-        if game_over
-            .state_change_timer
-            .tick(time.delta())
-            .just_finished()
-        {
-            time_scale.reset();
-            *game_over = GameOver::default();
-
-            match event {
-                GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
-                GameOverEvent::Lose => app_state.set(AppState::Menu).unwrap(),
-            }
-        }
-    } else {
-        for event in game_over_events.iter() {
-            game_over.event = Some(*event);
-            time_scale.0 = 0.2;
-        }
-    }
-}
-
-/// Triggers a full recovery of enemy base health after beating it. Used in practice mode.
-fn recover_enemy_health(
-    mut game_over_events: EventReader<GameOverEvent>,
-    mut heal_events: EventWriter<HealEvent>,
-) {
-    for event in game_over_events.iter() {
-        match event {
-            GameOverEvent::Win => heal_events.send(HealEvent(Heal::default())),
-            GameOverEvent::Lose => {}
-        }
-    }
-}
-
-/// Make the player's ball count infinite. Used in practice mode.
-fn player_ball_infinite(mut query: Query<&mut PlayerBase>) {
-    if let Ok(mut base) = query.get_single_mut() {
-        base.ball_count = 99;
     }
 }
 
