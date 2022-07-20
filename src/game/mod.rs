@@ -1,5 +1,6 @@
 use self::{
-    ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::*, practice::*, story::*,
+    ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::*, practice::*, slits::*,
+    story::*,
 };
 use crate::{
     config::*,
@@ -20,6 +21,7 @@ mod hint;
 mod physics;
 mod player;
 mod practice;
+mod slits;
 mod story;
 
 pub struct GamePlugin;
@@ -41,6 +43,7 @@ impl Plugin for GamePlugin {
                 hit: Timer::from_seconds(0.1, false),
                 miss: Timer::from_seconds(0.5, false),
             })
+            .init_resource::<Slits>()
             .add_startup_system(setup_game)
             .add_system_set(
                 SystemSet::new()
@@ -53,6 +56,7 @@ impl Plugin for GamePlugin {
                     .with_system(update_ball)
                     .with_system(ball_bounce)
                     .with_system(heal_enemy_base)
+                    .with_system(slits_system)
                     // effects and juice
                     .with_system(bounce_audio)
                     .with_system(score_audio)
@@ -461,7 +465,41 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         });
 }
 
-fn make_slits() {}
+fn make_slit_blocks(mut commands: Commands, _materials: Res<Materials>, mut slits: ResMut<Slits>) {
+    slits.index = slits.count / 2;
+
+    for index in 0..slits.count {
+        let position = SLIT_BLOCK_WIDTH * index as f32 - (ARENA_WIDTH - SLIT_BLOCK_WIDTH) / 2.0;
+        let position = if index <= slits.index {
+            position - ARENA_WIDTH / 2.0
+        } else {
+            position + ARENA_WIDTH / 2.0
+        };
+
+        commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform::from_xyz(position, SLIT_POSITION_VERTICAL, 0.1),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT)),
+                    color: PADDLE_COLOR,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert_bundle((
+                RigidBody::new(
+                    Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT),
+                    0.0,
+                    1.0,
+                    1.0,
+                ),
+                PhysicsLayers::BOUNDARY,
+                BounceAudio::Bounce,
+                SlitBlock { index },
+                Cleanup,
+            ));
+    }
+}
 
 fn make_ball(
     mut commands: Commands,
