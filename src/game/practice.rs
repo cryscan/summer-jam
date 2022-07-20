@@ -4,7 +4,7 @@ pub struct PracticePlugin;
 
 impl Plugin for PracticePlugin {
     fn build(&self, app: &mut App) {
-        app.add_state(PracticeState::Slits)
+        app.add_state(PracticeState::Plain)
             .add_system_set(
                 SystemSet::on_enter(AppState::Practice)
                     .with_system(enter_practice)
@@ -15,6 +15,8 @@ impl Plugin for PracticePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::Practice)
                     .with_system(escape_system)
+                    .with_system(progress_system)
+                    .with_system(dynamic_slits)
                     .with_system(make_ball)
                     .with_system(destroy_remake_ball)
                     .with_system(player_hit)
@@ -25,7 +27,9 @@ impl Plugin for PracticePlugin {
             .add_system_set(
                 SystemSet::on_exit(AppState::Practice).with_system(cleanup_system::<Cleanup>),
             )
-            .add_system_set(SystemSet::on_enter(PracticeState::Slits).with_system(make_slits));
+            .add_system_set(
+                SystemSet::on_enter(PracticeState::Slits).with_system(make_slit_blocks),
+            );
     }
 }
 
@@ -80,5 +84,24 @@ fn recover_enemy_health(
 fn player_ball_infinite(mut query: Query<&mut PlayerBase>) {
     if let Ok(mut base) = query.get_single_mut() {
         base.ball_count = 99;
+    }
+}
+
+fn progress_system(
+    mut practice_state: ResMut<State<PracticeState>>,
+    game_over_events: EventReader<GameOverEvent>,
+) {
+    if !game_over_events.is_empty() {
+        let _ = practice_state.set(PracticeState::Slits);
+    }
+}
+
+fn dynamic_slits(mut slits: ResMut<Slits>, mut player_hit_events: EventReader<PlayerHitEvent>) {
+    for _ in player_hit_events.iter() {
+        let mut next_index = fastrand::usize(0..slits.count);
+        if next_index == slits.index {
+            next_index = (slits.index + 1) % slits.count;
+        }
+        slits.index = next_index;
     }
 }
