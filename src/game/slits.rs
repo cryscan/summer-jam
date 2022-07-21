@@ -27,7 +27,7 @@ pub fn slits_system(
     mut query: Query<(&mut Transform, &SlitBlock)>,
 ) {
     for (mut transform, slit) in query.iter_mut() {
-        let offset = if slit.index <= slits.index { 0 } else { 1 };
+        let offset = if slit.index < slits.index { 0 } else { 1 };
         let left = (slit.index + offset) as f32 * SLIT_BLOCK_WIDTH;
         let position = Vec2::new(
             left + (SLIT_BLOCK_WIDTH - ARENA_WIDTH) / 2.0,
