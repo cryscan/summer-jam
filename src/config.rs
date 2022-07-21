@@ -76,8 +76,7 @@ pub const ENEMY_HIT_RANGE_HORIZONTAL: f32 = 144.0;
 pub const ENEMY_HIT_SPEED_THRESHOLD: f32 = -0.0;
 
 pub const SLIT_BLOCK_WIDTH: f32 = 96.0;
-pub const SLIT_BLOCK_HEIGHT: f32 = 48.0;
-pub const SLIT_BLOCK_DAMP: f32 = 20.0;
+pub const SLIT_BLOCK_HEIGHT: f32 = 16.0;
 pub const SLIT_POSITION_VERTICAL: f32 = 200.0;
 
 pub const PLAYER_BASE_BALL_COUNT: i32 = 3;
