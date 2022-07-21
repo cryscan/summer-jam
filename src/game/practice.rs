@@ -16,7 +16,8 @@ impl Plugin for PracticePlugin {
                 SystemSet::on_update(AppState::Practice)
                     .with_system(escape_system)
                     .with_system(progress_system)
-                    .with_system(dynamic_slits)
+                    .with_system(change_slits)
+                    .with_system(validate_slit_block)
                     .with_system(make_ball)
                     .with_system(destroy_remake_ball)
                     .with_system(player_hit)
@@ -96,20 +97,23 @@ fn progress_system(
     }
 }
 
-fn make_slit_blocks(mut commands: Commands, _materials: Res<Materials>, mut slits: ResMut<Slits>) {
-    slits.index = slits.count / 2;
+fn make_slit_blocks(mut commands: Commands, materials: Res<Materials>, mut slits: ResMut<Slits>) {
+    let slits_index = slits.count / 2;
+    slits.state = SlitState::Stand(slits_index);
 
     for index in 0..slits.count {
-        let position = SLIT_BLOCK_WIDTH * index as f32 - (ARENA_WIDTH - SLIT_BLOCK_WIDTH) / 2.0;
-        let position = if index < slits.index {
-            position - ARENA_WIDTH / 2.0
-        } else {
-            position + ARENA_WIDTH / 2.0
+        let slit_block = SlitBlock {
+            width: SLIT_BLOCK_WIDTH,
+            index,
         };
 
         commands
             .spawn_bundle(SpriteBundle {
-                transform: Transform::from_xyz(position, SLIT_POSITION_VERTICAL, 0.1),
+                transform: Transform::from_xyz(
+                    slit_block.position(slits_index),
+                    SLIT_POSITION_VERTICAL,
+                    0.1,
+                ),
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT)),
                     color: PADDLE_COLOR,
@@ -118,26 +122,69 @@ fn make_slit_blocks(mut commands: Commands, _materials: Res<Materials>, mut slit
                 ..Default::default()
             })
             .insert_bundle((
-                // RigidBody::new(
-                //     Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT),
-                //     0.0,
-                //     1.0,
-                //     1.0,
-                // ),
-                // PhysicsLayers::BOUNDARY,
-                // BounceAudio::Bounce,
-                SlitBlock { index },
+                RigidBody::new(
+                    Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT),
+                    0.0,
+                    1.0,
+                    1.0,
+                ),
+                PhysicsLayers::BOUNDARY,
+                BounceAudio::Bounce,
+                slit_block,
                 Cleanup,
-            ));
+            ))
+            .with_children(|parent| {
+                parent.spawn_bundle(SpriteBundle {
+                    transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
+                    texture: materials.enemy.clone(),
+                    ..Default::default()
+                });
+
+                parent.spawn_bundle(SpriteBundle {
+                    transform: Transform::from_xyz(PADDLE_WIDTH / 2.0 - 8.0, 0.0, 0.1),
+                    texture: materials.enemy.clone(),
+                    ..Default::default()
+                });
+            });
     }
 }
 
-fn dynamic_slits(mut slits: ResMut<Slits>, mut player_hit_events: EventReader<PlayerHitEvent>) {
+fn change_slits(mut slits: ResMut<Slits>, mut player_hit_events: EventReader<PlayerHitEvent>) {
     for _ in player_hit_events.iter() {
-        let mut next_index = fastrand::usize(0..=slits.count);
-        if next_index == slits.index {
-            next_index = (slits.index + 1) % slits.count;
+        let previous = match &slits.state {
+            SlitState::Stand(index) => *index,
+            SlitState::Move { .. } => continue,
+        };
+
+        let mut next = fastrand::usize(0..=slits.count);
+        if next == previous {
+            next = (previous + 1) % (slits.count + 1);
         }
-        slits.index = next_index;
+        slits.state = SlitState::Move {
+            previous,
+            next,
+            timer: Timer::from_seconds(0.1, false),
+        };
+    }
+}
+
+/// Temporary disables collision between ball and slit blocks when the ball is on top and moving down.
+#[allow(clippy::type_complexity)]
+fn validate_slit_block(
+    mut query: Query<(&Transform, &mut PhysicsLayers, &mut Sprite), With<SlitBlock>>,
+    balls: Query<(&Transform, &Motion), (With<Ball>, Without<SlitBlock>)>,
+) {
+    for (slit_block_transform, mut physics_layers, mut sprite) in query.iter_mut() {
+        *physics_layers = PhysicsLayers::BOUNDARY;
+        sprite.color = PADDLE_COLOR;
+
+        for (ball_transform, motion) in balls.iter() {
+            if ball_transform.translation.y + BALL_SIZE > slit_block_transform.translation.y
+                && motion.velocity.y < 0.0
+            {
+                *physics_layers = PhysicsLayers::SEPARATE;
+                sprite.color.set_a(0.2);
+            }
+        }
     }
 }

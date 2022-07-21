@@ -56,6 +56,7 @@ impl Plugin for GamePlugin {
                     .with_system(update_ball)
                     .with_system(ball_bounce)
                     .with_system(heal_enemy_base)
+                    .with_system(move_slit_block)
                     .with_system(slits_system)
                     // effects and juice
                     .with_system(bounce_audio)

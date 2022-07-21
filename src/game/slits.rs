@@ -1,43 +1,71 @@
-use crate::{config::*, utils::Damp, TimeScale};
-use bevy::{math::Vec3Swizzles, prelude::*};
+use crate::{config::*, utils::Interpolation, TimeScale};
+use bevy::prelude::*;
+use std::time::Duration;
 
 pub struct Slits {
     pub count: usize,
-    pub index: usize,
+    pub state: SlitState,
 }
 
 impl Default for Slits {
     fn default() -> Self {
         Self {
             count: (ARENA_WIDTH / SLIT_BLOCK_WIDTH) as usize - 1,
-            index: 0,
+            state: SlitState::Stand(0),
         }
     }
 }
 
+pub enum SlitState {
+    Stand(usize),
+    Move {
+        previous: usize,
+        next: usize,
+        timer: Timer,
+    },
+}
+
 #[derive(Component)]
 pub struct SlitBlock {
+    pub width: f32,
     pub index: usize,
 }
 
-pub fn slits_system(
-    time: Res<Time>,
-    time_scale: Res<TimeScale>,
-    slits: Res<Slits>,
-    mut query: Query<(&mut Transform, &SlitBlock)>,
-) {
+impl SlitBlock {
+    pub fn position(&self, index: usize) -> f32 {
+        let offset = if self.index < index { 0 } else { 1 };
+        (self.index + offset) as f32 * self.width + (self.width - ARENA_WIDTH) / 2.0
+    }
+}
+
+pub fn move_slit_block(slits: Res<Slits>, mut query: Query<(&mut Transform, &SlitBlock)>) {
     for (mut transform, slit) in query.iter_mut() {
-        let offset = if slit.index < slits.index { 0 } else { 1 };
-        let left = (slit.index + offset) as f32 * SLIT_BLOCK_WIDTH;
-        let position = Vec2::new(
-            left + (SLIT_BLOCK_WIDTH - ARENA_WIDTH) / 2.0,
-            SLIT_POSITION_VERTICAL,
-        );
-        let position = transform.translation.xy().damp(
-            position,
-            SLIT_BLOCK_DAMP,
-            time.delta_seconds() * time_scale.0,
-        );
-        transform.translation = position.extend(0.1);
+        match &slits.state {
+            SlitState::Stand(index) => transform.translation.x = slit.position(*index),
+            SlitState::Move {
+                previous,
+                next,
+                timer,
+            } => {
+                let factor = timer.elapsed_secs() / timer.duration().as_secs_f32();
+                let begin = slit.position(*previous);
+                let end = slit.position(*next);
+                transform.translation.x = begin.lerp(end, factor);
+            }
+        };
+    }
+}
+
+pub fn slits_system(time: Res<Time>, time_scale: Res<TimeScale>, mut slits: ResMut<Slits>) {
+    let switch = match &mut slits.state {
+        SlitState::Move { next, timer, .. } => timer
+            .tick(Duration::from_secs_f32(time.delta_seconds() * time_scale.0))
+            .just_finished()
+            .then_some(*next),
+        _ => None,
+    };
+
+    if let Some(index) = switch {
+        slits.state = SlitState::Stand(index);
     }
 }

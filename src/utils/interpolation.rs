@@ -5,7 +5,7 @@ pub trait Interpolation {
 }
 
 macro_rules! impl_interpolation {
-    ($type:ident) => {
+    ($type:ty) => {
         impl Interpolation for $type {
             fn lerp(self, end: Self, factor: f32) -> Self {
                 self * (1.0 - factor) + end * factor
