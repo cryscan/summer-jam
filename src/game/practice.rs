@@ -96,9 +96,45 @@ fn progress_system(
     }
 }
 
+fn make_slit_blocks(mut commands: Commands, _materials: Res<Materials>, mut slits: ResMut<Slits>) {
+    slits.index = slits.count / 2;
+
+    for index in 0..slits.count {
+        let position = SLIT_BLOCK_WIDTH * index as f32 - (ARENA_WIDTH - SLIT_BLOCK_WIDTH) / 2.0;
+        let position = if index < slits.index {
+            position - ARENA_WIDTH / 2.0
+        } else {
+            position + ARENA_WIDTH / 2.0
+        };
+
+        commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform::from_xyz(position, SLIT_POSITION_VERTICAL, 0.1),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT)),
+                    color: PADDLE_COLOR,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert_bundle((
+                // RigidBody::new(
+                //     Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT),
+                //     0.0,
+                //     1.0,
+                //     1.0,
+                // ),
+                // PhysicsLayers::BOUNDARY,
+                // BounceAudio::Bounce,
+                SlitBlock { index },
+                Cleanup,
+            ));
+    }
+}
+
 fn dynamic_slits(mut slits: ResMut<Slits>, mut player_hit_events: EventReader<PlayerHitEvent>) {
     for _ in player_hit_events.iter() {
-        let mut next_index = fastrand::usize(0..slits.count);
+        let mut next_index = fastrand::usize(0..=slits.count);
         if next_index == slits.index {
             next_index = (slits.index + 1) % slits.count;
         }

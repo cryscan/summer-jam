@@ -5,7 +5,7 @@ use self::{
 use crate::{
     config::*,
     score::Score,
-    utils::{cleanup_system, escape_system, Damp, Interpolation},
+    utils::{cleanup_system, escape_system, Damp, Intermediate},
     AppState, AudioVolume, MusicTrack, TimeScale,
 };
 use bevy::{core::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
@@ -463,42 +463,6 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
                 ..Default::default()
             });
         });
-}
-
-fn make_slit_blocks(mut commands: Commands, _materials: Res<Materials>, mut slits: ResMut<Slits>) {
-    slits.index = slits.count / 2;
-
-    for index in 0..slits.count {
-        let position = SLIT_BLOCK_WIDTH * index as f32 - (ARENA_WIDTH - SLIT_BLOCK_WIDTH) / 2.0;
-        let position = if index <= slits.index {
-            position - ARENA_WIDTH / 2.0
-        } else {
-            position + ARENA_WIDTH / 2.0
-        };
-
-        commands
-            .spawn_bundle(SpriteBundle {
-                transform: Transform::from_xyz(position, SLIT_POSITION_VERTICAL, 0.1),
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT)),
-                    color: PADDLE_COLOR,
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            .insert_bundle((
-                RigidBody::new(
-                    Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT),
-                    0.0,
-                    1.0,
-                    1.0,
-                ),
-                PhysicsLayers::BOUNDARY,
-                BounceAudio::Bounce,
-                SlitBlock { index },
-                Cleanup,
-            ));
-    }
 }
 
 fn make_ball(
