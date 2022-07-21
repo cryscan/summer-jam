@@ -1,6 +1,6 @@
 use self::{
-    ball::*, base::*, effects::*, enemy::*, hint::*, physics::*, player::*, practice::*, slits::*,
-    story::*,
+    ball::*, base::*, battle::*, effects::*, enemy::*, hint::*, physics::*, player::*, practice::*,
+    slits::*,
 };
 use crate::{
     config::*,
@@ -15,6 +15,7 @@ use std::f32::consts::FRAC_PI_4;
 
 mod ball;
 mod base;
+mod battle;
 mod effects;
 mod enemy;
 mod hint;
@@ -22,7 +23,6 @@ mod physics;
 mod player;
 mod practice;
 mod slits;
-mod story;
 
 pub struct GamePlugin;
 

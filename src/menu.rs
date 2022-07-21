@@ -500,7 +500,7 @@ fn button_action(
     for (interaction, action) in interaction_query.iter() {
         if *interaction == Interaction::Clicked {
             let state = match action {
-                ButtonAction::Play => AppState::Story,
+                ButtonAction::Play => AppState::Battle,
                 ButtonAction::Tutorial => AppState::Practice,
                 ButtonAction::Settings => AppState::Settings,
                 ButtonAction::Back => AppState::Menu,
