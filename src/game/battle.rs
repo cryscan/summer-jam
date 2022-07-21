@@ -5,15 +5,15 @@ pub struct StoryPlugin;
 impl Plugin for StoryPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
-            SystemSet::on_enter(AppState::Story)
-                .with_system(enter_story)
+            SystemSet::on_enter(AppState::Battle)
+                .with_system(enter_battle)
                 .with_system(make_arena)
                 .with_system(make_ui)
                 .with_system(make_player)
                 .with_system(make_enemy),
         )
         .add_system_set(
-            SystemSet::on_update(AppState::Story)
+            SystemSet::on_update(AppState::Battle)
                 // logical game-play systems
                 .with_system(escape_system)
                 .with_system(make_ball)
@@ -22,12 +22,14 @@ impl Plugin for StoryPlugin {
                 .with_system(player_miss)
                 .with_system(game_over_system),
         )
-        .add_system_set(SystemSet::on_exit(AppState::Story).with_system(cleanup_system::<Cleanup>));
+        .add_system_set(
+            SystemSet::on_exit(AppState::Battle).with_system(cleanup_system::<Cleanup>),
+        );
     }
 }
 
 #[allow(clippy::too_many_arguments)]
-fn enter_story(
+fn enter_battle(
     asset_server: Res<AssetServer>,
     audio: Res<Audio>,
     volume: Res<AudioVolume>,
