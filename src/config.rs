@@ -52,7 +52,7 @@ pub const PREDICT_TIME_STEP: f64 = 0.01;
 pub const AI_TIME_STEP: f64 = 0.1;
 
 pub const PHYSICS_REST_SPEED: f32 = 100.0;
-pub const PHYSICS_TIME_STEP: f64 = 1.0 / 120.0;
+pub const PHYSICS_TIME_STEP: f64 = 1.0 / 180.0;
 
 pub const PADDLE_WIDTH: f32 = 96.0;
 pub const PADDLE_HEIGHT: f32 = 16.0;
