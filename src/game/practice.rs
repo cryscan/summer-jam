@@ -10,7 +10,8 @@ impl Plugin for PracticePlugin {
                     .with_system(enter_practice)
                     .with_system(make_arena)
                     .with_system(make_ui)
-                    .with_system(make_player),
+                    .with_system(make_player)
+                    .with_system(make_ball),
             )
             .add_system_set(
                 SystemSet::on_update(AppState::Practice)
@@ -18,8 +19,7 @@ impl Plugin for PracticePlugin {
                     .with_system(progress_system)
                     .with_system(change_slits)
                     .with_system(validate_slit_block)
-                    .with_system(make_ball)
-                    .with_system(destroy_remake_ball)
+                    .with_system(reset_ball)
                     .with_system(player_hit)
                     .with_system(player_miss)
                     .with_system(recover_enemy_health)
@@ -48,14 +48,12 @@ fn enter_practice(
     volume: Res<AudioVolume>,
     mut music_track: ResMut<MusicTrack>,
     mut time_scale: ResMut<TimeScale>,
-    mut make_ball_events: EventWriter<MakeBallEvent>,
     mut heal_events: EventWriter<HealEvent>,
 ) {
     let _ = practice_state.set(PracticeState::Plain);
 
     time_scale.reset();
 
-    make_ball_events.send(MakeBallEvent);
     heal_events.send(HealEvent(Heal::default()));
 
     if music_track.0 != GAME_MUSIC {

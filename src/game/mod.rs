@@ -29,7 +29,6 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<GameOverEvent>()
-            .add_event::<MakeBallEvent>()
             .add_event::<PlayerHitEvent>()
             .add_event::<PlayerMissEvent>()
             .add_event::<BounceEvent>()
@@ -91,8 +90,6 @@ enum GameOverEvent {
     Win,
     Lose,
 }
-
-struct MakeBallEvent;
 
 struct PlayerHitEvent {
     ball: Entity,
@@ -466,90 +463,92 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
         });
 }
 
-fn make_ball(
-    mut commands: Commands,
-    materials: Res<Materials>,
-    mut events: EventReader<MakeBallEvent>,
-) {
-    for _ in events.iter() {
-        let alpha = 1.0 / BALL_GHOSTS_COUNT as f32;
-        commands
-            .spawn_bundle(SpriteBundle {
-                transform: Transform::from_xyz(0.0, 0.0, -1.0),
-                texture: materials.ball.clone(),
-                sprite: Sprite {
-                    color: Color::rgba(1.0, 1.0, 1.0, alpha),
-                    ..Default::default()
-                },
+fn make_ball(mut commands: Commands, materials: Res<Materials>) {
+    let alpha = 1.0 / BALL_GHOSTS_COUNT as f32;
+    commands
+        .spawn_bundle(SpriteBundle {
+            transform: Transform::from_xyz(0.0, 0.0, -1.0),
+            texture: materials.ball.clone(),
+            sprite: Sprite {
+                color: Color::rgba(1.0, 1.0, 1.0, alpha),
                 ..Default::default()
-            })
-            .insert_bundle((
-                RigidBody::new(Vec2::new(BALL_SIZE, BALL_SIZE), 1.0, 1.0, 0.5),
-                PhysicsLayers::BALL,
-                BounceAudio::Bounce,
-                Ball::default(),
-                Trajectory::default(),
-                Cleanup,
-            ))
-            .with_children(|parent| {
-                for _ in 0..BALL_GHOSTS_COUNT {
-                    parent.spawn_bundle(SpriteBundle {
-                        texture: materials.ball.clone(),
-                        sprite: Sprite {
-                            color: Color::rgba(1.0, 1.0, 1.0, alpha),
-                            ..Default::default()
-                        },
+            },
+            ..Default::default()
+        })
+        .insert_bundle((
+            RigidBody::new(Vec2::new(BALL_SIZE, BALL_SIZE), 1.0, 1.0, 0.5),
+            PhysicsLayers::BALL,
+            BounceAudio::Bounce,
+            Ball::default(),
+            Trajectory::default(),
+            Cleanup,
+        ))
+        .with_children(|parent| {
+            for _ in 0..BALL_GHOSTS_COUNT {
+                parent.spawn_bundle(SpriteBundle {
+                    texture: materials.ball.clone(),
+                    sprite: Sprite {
+                        color: Color::rgba(1.0, 1.0, 1.0, alpha),
                         ..Default::default()
-                    });
-                }
-            });
-    }
+                    },
+                    ..Default::default()
+                });
+            }
+        });
 }
 
-fn destroy_remake_ball(
+#[allow(clippy::type_complexity)]
+fn reset_ball(
     mut commands: Commands,
-    app_state: Res<State<AppState>>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut player_hit_events: EventReader<PlayerHitEvent>,
-    mut make_ball_events: EventWriter<MakeBallEvent>,
-    hint_query: Query<Option<&Hint>, With<Ball>>,
-    ball_query: Query<(Entity, &Transform), With<Ball>>,
+    mut query: Query<(Entity, &mut Transform), (With<Ball>, With<Motion>)>,
 ) {
     let mut closure = |ball| -> Option<()> {
-        if let Some(hint) = hint_query.get(ball).ok()? {
-            commands.entity(hint.0).despawn();
-        }
-        commands.entity(ball).despawn_recursive();
+        let (_, mut transform) = query.get_mut(ball).ok()?;
+        transform.translation = Vec3::new(0.0, 0.0, -1.0);
+        commands.entity(ball).remove::<Motion>();
         Some(())
     };
 
     for event in player_hit_events.iter() {
         if event.win {
             closure(event.ball);
-
-            if app_state.current() == &AppState::Practice {
-                make_ball_events.send(MakeBallEvent);
-            }
         }
     }
 
     for event in player_miss_events.iter() {
         closure(event.ball);
-
-        if !event.lose {
-            make_ball_events.send(MakeBallEvent);
-        }
     }
 
-    // destroy if the ball if out of range
-    for (entity, transform) in ball_query.iter() {
+    // reset if the ball if out of range
+    for (entity, mut transform) in query.iter_mut() {
         if transform.translation.x < -ARENA_WIDTH / 2.0
             || transform.translation.x > ARENA_WIDTH / 2.0
             || transform.translation.y < -ARENA_HEIGHT / 2.0
             || transform.translation.y > ARENA_HEIGHT / 2.0
         {
-            closure(entity);
-            make_ball_events.send(MakeBallEvent);
+            transform.translation = Vec3::new(0.0, 0.0, -1.0);
+            commands.entity(entity).remove::<Motion>();
+        }
+    }
+}
+
+fn remove_ball(
+    mut commands: Commands,
+    mut player_miss_events: EventReader<PlayerMissEvent>,
+    mut player_hit_events: EventReader<PlayerHitEvent>,
+    query: Query<(), With<Ball>>,
+) {
+    for event in player_miss_events.iter() {
+        if event.lose && query.contains(event.ball) {
+            commands.entity(event.ball).remove::<Ball>();
+        }
+    }
+
+    for event in player_hit_events.iter() {
+        if event.win && query.contains(event.ball) {
+            commands.entity(event.ball).remove::<Ball>();
         }
     }
 }

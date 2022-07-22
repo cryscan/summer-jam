@@ -20,10 +20,11 @@ impl Default for Ball {
     }
 }
 
+/// For an unset ball without [`Motion`], moves it to origin and makes it movable after some time.
 pub fn activate_ball(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut Ball, &mut Transform)>,
+    mut query: Query<(Entity, &mut Ball, &mut Transform), Without<Motion>>,
 ) {
     for (entity, mut ball, mut transform) in query.iter_mut() {
         if ball.set_timer.tick(time.delta()).just_finished() {
@@ -32,12 +33,17 @@ pub fn activate_ball(
 
         if ball.active_timer.tick(time.delta()).just_finished() {
             commands.entity(entity).insert(Motion::default());
+
+            // reset the ball timers
+            ball.set_timer.reset();
+            ball.active_timer.reset();
         }
     }
 }
 
+/// Implements motion blur using a bunch of transparent ghost sprites.
 pub fn update_ball(
-    ball_query: Query<(&Children, &Motion), With<Ball>>,
+    ball_query: Query<(&Children, Option<&Motion>), With<Ball>>,
     mut child_query: Query<&mut Transform, Without<Ball>>,
 ) {
     for (children, motion) in ball_query.iter() {
@@ -49,8 +55,12 @@ pub fn update_ball(
             let offset = offset.acos() / FRAC_PI_2 - 1.0;
 
             let mut transform = child_query.get_mut(*child).unwrap();
-            transform.translation =
-                (extent * offset * motion.velocity / BALL_MAX_SPEED as f32).extend(0.0);
+            if let Some(motion) = motion {
+                transform.translation =
+                    (extent * offset * motion.velocity / BALL_MAX_SPEED as f32).extend(0.0);
+            } else {
+                transform.translation = Vec3::ZERO;
+            }
         }
     }
 }
