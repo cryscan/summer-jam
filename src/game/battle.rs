@@ -10,14 +10,15 @@ impl Plugin for StoryPlugin {
                 .with_system(make_arena)
                 .with_system(make_ui)
                 .with_system(make_player)
-                .with_system(make_enemy),
+                .with_system(make_enemy)
+                .with_system(make_ball),
         )
         .add_system_set(
             SystemSet::on_update(AppState::Battle)
                 // logical game-play systems
                 .with_system(escape_system)
-                .with_system(make_ball)
-                .with_system(destroy_remake_ball)
+                .with_system(reset_ball)
+                .with_system(remove_ball)
                 .with_system(player_hit)
                 .with_system(player_miss)
                 .with_system(game_over_system),
@@ -37,7 +38,6 @@ fn enter_battle(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
     mut score: ResMut<Score>,
-    mut make_ball_events: EventWriter<MakeBallEvent>,
     mut heal_events: EventWriter<HealEvent>,
 ) {
     // clear score state
@@ -47,7 +47,6 @@ fn enter_battle(
 
     time_scale.reset();
 
-    make_ball_events.send(MakeBallEvent);
     heal_events.send(HealEvent(Heal::default()));
 
     if music_track.0 != GAME_MUSIC {
