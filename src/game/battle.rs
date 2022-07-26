@@ -1,8 +1,8 @@
 use super::*;
 
-pub struct StoryPlugin;
+pub struct BattlePlugin;
 
-impl Plugin for StoryPlugin {
+impl Plugin for BattlePlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_enter(AppState::Battle)

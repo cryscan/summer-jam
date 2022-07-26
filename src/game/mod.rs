@@ -80,7 +80,7 @@ impl Plugin for GamePlugin {
             )
             .add_plugin(PhysicsPlugin)
             .add_plugin(EffectsPlugin)
-            .add_plugin(StoryPlugin)
+            .add_plugin(BattlePlugin)
             .add_plugin(PracticePlugin);
     }
 }
