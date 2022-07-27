@@ -8,7 +8,10 @@ pub const BACKGROUND_SHADER: &str = "shaders/background.wgsl";
 pub const FONT_FIRA_MONO: &str = "fonts/FiraMono-Medium.ttf";
 pub const FONT_FIRA_SANS: &str = "fonts/FiraSans-Bold.ttf";
 pub const FONT_ARCADE: &str = "fonts/Arcade.ttf";
-pub const FONT_KARMATIC: &str = "fonts/ka1.ttf";
+pub const FONT_KARMATIC: &str = "fonts/Karmatic.ttf";
+pub const FONT_BOXY: &str = "fonts/Boxy-Bold.ttf";
+pub const FONT_ALAGARD: &str = "fonts/Alagard.ttf";
+pub const FONT_INVASION: &str = "fonts/Invasion2000.ttf";
 
 pub const PLAYER_SPRITE: &str = "sprites/player.png";
 pub const ENEMY_SPRITE: &str = "sprites/enemy.png";
@@ -46,6 +49,8 @@ pub const AUDIO_CHANNEL_COUNT: usize = 16;
 
 pub const MENU_MUSIC: &str = "musics/E2M2 Myrgharok - Halls of Wandering Spirits.ogg";
 pub const GAME_MUSIC: &str = "musics/E3M8 Myrgharok - Mother of All Doom.ogg";
+
+pub const MENU_MUSIC_BPM: f32 = 102.0;
 
 pub const PREDICT_SIZE: usize = 100;
 pub const PREDICT_TIME_STEP: f64 = 0.01;

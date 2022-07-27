@@ -23,6 +23,9 @@ fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {
     loading.push(server.load_untyped(FONT_FIRA_SANS));
     loading.push(server.load_untyped(FONT_ARCADE));
     loading.push(server.load_untyped(FONT_KARMATIC));
+    loading.push(server.load_untyped(FONT_BOXY));
+    loading.push(server.load_untyped(FONT_ALAGARD));
+    loading.push(server.load_untyped(FONT_INVASION));
 
     loading.push(server.load_untyped(PLAYER_SPRITE));
     loading.push(server.load_untyped(ENEMY_SPRITE));

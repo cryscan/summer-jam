@@ -1,4 +1,4 @@
-use crate::{config::*, AppState, TextColor, TimeScale};
+use crate::{config::*, AppState, ColorText, TimeScale};
 use bevy::prelude::*;
 
 pub struct ScorePlugin;
@@ -79,7 +79,10 @@ fn make_ui(
                     ),
                     ..Default::default()
                 })
-                .insert(TextColor::new(FLIP_TEXT_COLORS.into(), 0.3));
+                .insert(ColorText::new(
+                    FLIP_TEXT_COLORS.into(),
+                    30.0 / MENU_MUSIC_BPM,
+                ));
 
             let term_style = Style {
                 size: Size::new(Val::Percent(100.0), Val::Px(30.0)),

@@ -42,18 +42,39 @@ pub struct AudioVolume {
 pub struct MusicTrack(&'static str);
 
 #[derive(Component)]
-pub struct TextColor {
+pub struct ColorText {
     timer: Timer,
     colors: Vec<Color>,
     index: usize,
 }
 
-impl TextColor {
+impl ColorText {
     pub fn new(colors: Vec<Color>, duration: f32) -> Self {
         Self {
             timer: Timer::from_seconds(duration, true),
             colors,
             index: 0,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct HintText {
+    index: usize,
+    timer: Timer,
+}
+
+impl HintText {
+    const HINT_TEXTS: [&'static str; 3] = [
+        "Control your ball speed!",
+        "Can your paddle catch the ball on its own?",
+        "Try to bounce; not to push!",
+    ];
+
+    pub fn new(duration: f32) -> Self {
+        Self {
+            index: 0,
+            timer: Timer::from_seconds(duration, true),
         }
     }
 }
@@ -89,7 +110,8 @@ pub fn run() {
         .add_state(AppState::Loading)
         .add_startup_system(setup)
         .add_system(lock_release_cursor)
-        .add_system(text_color_system)
+        .add_system(color_text_system)
+        .add_system(hint_text_system)
         .add_plugin(loading::LoadingPlugin)
         .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)
@@ -122,11 +144,26 @@ fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Wind
     }
 }
 
-fn text_color_system(time: Res<Time>, mut query: Query<(&mut Text, &mut TextColor)>) {
-    for (mut text, mut text_color) in query.iter_mut() {
-        text.sections[0].style.color = text_color.colors[text_color.index];
-        if text_color.timer.tick(time.delta()).just_finished() {
-            text_color.index = (text_color.index + 1) % text_color.colors.len();
+fn color_text_system(time: Res<Time>, mut query: Query<(&mut Text, &mut ColorText)>) {
+    for (mut text, mut color_text) in query.iter_mut() {
+        text.sections[0].style.color = color_text.colors[color_text.index];
+        if color_text.timer.tick(time.delta()).just_finished() {
+            color_text.index = (color_text.index + 1) % color_text.colors.len();
+        }
+    }
+}
+
+pub fn hint_text_system(time: Res<Time>, mut query: Query<(&mut Text, &mut HintText)>) {
+    for (mut text, mut hint) in query.iter_mut() {
+        text.sections[0].value = HintText::HINT_TEXTS[hint.index].into();
+
+        if hint.timer.tick(time.delta()).just_finished() {
+            let len = HintText::HINT_TEXTS.len();
+            let mut next = fastrand::usize(0..len);
+            if next == hint.index {
+                next = (hint.index + 1) % len;
+            }
+            hint.index = next;
         }
     }
 }

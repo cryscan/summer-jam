@@ -1,7 +1,7 @@
 use crate::{
     config::*,
     utils::{cleanup_system, escape_system},
-    AppState, AudioVolume, MusicTrack, TextColor, TimeScale,
+    AppState, AudioVolume, ColorText, HintText, MusicTrack, TimeScale,
 };
 use bevy::prelude::*;
 use bevy_kira_audio::{Audio, AudioChannel};
@@ -176,7 +176,37 @@ fn make_menu(
                     ),
                     ..Default::default()
                 })
-                .insert(TextColor::new(FLIP_TEXT_COLORS.into(), 0.3));
+                .insert(ColorText::new(
+                    FLIP_TEXT_COLORS.into(),
+                    30.0 / MENU_MUSIC_BPM,
+                ));
+
+            parent
+                .spawn_bundle(TextBundle {
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                        position: Rect {
+                            left: Val::Percent(10.0),
+                            top: Val::Percent(40.0),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    text: Text::with_section(
+                        "",
+                        TextStyle {
+                            font: asset_server.load(FONT_INVASION),
+                            font_size: 15.0,
+                            color: HEALTH_BAR_COLOR,
+                        },
+                        TextAlignment {
+                            horizontal: HorizontalAlign::Left,
+                            ..Default::default()
+                        },
+                    ),
+                    ..Default::default()
+                })
+                .insert(HintText::new(480.0 / MENU_MUSIC_BPM));
 
             parent
                 .spawn_bundle(ButtonBundle {
