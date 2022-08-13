@@ -125,8 +125,11 @@ pub fn run() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-    commands.spawn_bundle(UiCameraBundle::default());
+    commands.spawn_bundle(Camera2dBundle::default()).insert(
+        UiCameraConfig {
+            ..default()
+        }
+    );
 }
 
 fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Windows>) {

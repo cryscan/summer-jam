@@ -1,8 +1,8 @@
 // This shader is inspired by Start Nest by Pablo Roman Andrioli:
 // https://www.shadertoy.com/view/XlfGRj
 
-#import bevy_sprite::mesh2d_view_bind_group
-#import bevy_sprite::mesh2d_struct
+#import bevy_sprite::mesh2d_view_bindings
+#import bevy_sprite::mesh2d_types
 
 let iterations = 17;
 let formuparam = 0.3;
@@ -20,31 +20,31 @@ let distfading = 0.730;
 let saturation = 0.850;
 
 struct Vertex {
-    [[location(0)]] position: vec3<f32>;
-    [[location(1)]] normal: vec3<f32>;
-    [[location(2)]] uv: vec2<f32>;
+    @location(0) position: vec3<f32>,
+    @location(1) normal: vec3<f32>,
+    @location(2) uv: vec2<f32>,
 };
 
 struct VertexOutput {
-    [[builtin(position)]] clip_position: vec4<f32>;
-    [[location(1)]] uv: vec2<f32>;
+    @builtin(position) clip_position: vec4<f32>,
+    @location(1) uv: vec2<f32>,
 };
 
 struct Movement {
-    time: f32;
-    velocity: vec3<f32>;
+    time: f32,
+    velocity: vec3<f32>,
 };
 
-[[group(0), binding(0)]]
-var<uniform> view: View;
+// @group(0) @binding(0)
+// var<uniform> view: View;
 
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var<uniform> movement: Movement;
 
-[[group(2), binding(0)]]
+@group(2) @binding(0)
 var<uniform> mesh: Mesh2d;
 
-[[stage(vertex)]]
+@vertex
 fn vertex(vertex: Vertex) -> VertexOutput {
     let world_position = mesh.model * vec4<f32>(vertex.position, 1.0);
 
@@ -54,19 +54,19 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     return out;
 }
 
-[[stage(fragment)]]
-fn fragment(in: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let dir = vec3<f32>(in.uv * zoom, 1.0);
     let time = movement.time * speed + 0.25;
-    var from = vec3<f32>(1.0, 0.5, 0.5);
-    from = from + time * movement.velocity;
+    var vfrom = vec3<f32>(1.0, 0.5, 0.5);
+    vfrom = vfrom + time * movement.velocity;
     
     // volumetric rendering
     var s = 0.1;
     var fade = 1.0;
     var v = vec3<f32>(0.);
     for (var r = 0; r < volsteps; r = r + 1) {
-        var p = from + s * dir * 0.5;
+        var p = vfrom + s * dir * 0.5;
         p = abs(vec3<f32>(tile) - (p % vec3<f32>(tile * 2.0)));
 
         var pa = 0.0;

@@ -55,24 +55,25 @@ fn make_ui(
             parent
                 .spawn_bundle(TextBundle {
                     style: Style {
-                        position: Rect {
+                        position: UiRect {
                             left: Val::Percent(10.0),
                             ..Default::default()
                         },
-                        margin: Rect {
+                        margin: UiRect {
                             bottom: Val::Percent(20.0),
                             ..Default::default()
                         },
                         ..Default::default()
                     },
-                    text: Text::with_section(
+                    text: Text::from_section(
                         "You Win!",
                         TextStyle {
                             font: asset_server.load(FONT_ARCADE),
                             font_size: 50.0,
                             color: Color::WHITE,
                         },
-                        TextAlignment {
+                    ).with_alignment(
+                    TextAlignment {
                             horizontal: HorizontalAlign::Center,
                             ..Default::default()
                         },
@@ -86,11 +87,11 @@ fn make_ui(
 
             let term_style = Style {
                 size: Size::new(Val::Percent(100.0), Val::Px(30.0)),
-                position: Rect {
+                position: UiRect {
                     left: Val::Percent(10.0),
                     ..Default::default()
                 },
-                margin: Rect {
+                margin: UiRect {
                     top: Val::Px(10.0),
                     bottom: Val::Px(10.0),
                     ..Default::default()
