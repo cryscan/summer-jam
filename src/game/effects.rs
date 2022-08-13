@@ -2,8 +2,9 @@ use crate::{config::HIT_EFFECT_TIME_STEP, TimeScale};
 use bevy::{
     prelude::*,
     sprite::{
-        Material2dPlugin,
-    },
+        Material2d,
+        Material2dPlugin, Material2dKey, ColorMaterialUniform, ColorMaterialFlags,
+    }, render::{render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, BlendState, BlendComponent, BlendFactor, BlendOperation, ShaderRef, AsBindGroupShaderType}, mesh::InnerMeshVertexBufferLayout, render_asset::RenderAssets}, reflect::TypeUuid, utils::{Hashed, FixedState},
 };
 use std::time::Duration;
 
@@ -20,7 +21,76 @@ impl Plugin for EffectsPlugin {
     }
 }
 
-pub type DeathEffectMaterial = ColorMaterial;
+// pub type DeathEffectMaterial = ColorMaterial;
+#[derive(Debug, Clone, TypeUuid, AsBindGroup)]
+#[uuid = "8afb68fd-de70-4be5-be04-72f5dd29d1e2"]
+#[uniform(0, ColorMaterialUniform)]
+pub struct DeathEffectMaterial{
+    pub color: Color,
+    #[texture(1)]
+    #[sampler(2)]
+    pub texture: Option<Handle<Image>>,
+}
+
+impl Default for DeathEffectMaterial {
+    fn default() -> Self {
+        Self {
+            color: Color::WHITE,
+            texture: None,
+        }
+    }
+}
+
+impl From<Handle<Image>> for DeathEffectMaterial {
+    fn from(image: Handle<Image>) -> Self {
+        Self {
+            texture: Some(image),
+            ..Default::default()
+        }
+    }
+}
+
+impl AsBindGroupShaderType<ColorMaterialUniform> for DeathEffectMaterial {
+    fn as_bind_group_shader_type(&self, _images: &RenderAssets<Image>) -> ColorMaterialUniform {
+        let mut flags = ColorMaterialFlags::NONE;
+        if self.texture.is_some() {
+            flags |= ColorMaterialFlags::TEXTURE;
+        }
+
+        ColorMaterialUniform {
+            color: self.color.as_linear_rgba_f32().into(),
+            flags: flags.bits(),
+        }
+    }
+}
+
+impl Material2d for DeathEffectMaterial {
+    fn fragment_shader() -> ShaderRef {
+        ColorMaterial::fragment_shader()
+    }
+
+    fn specialize(
+        descriptor: &mut RenderPipelineDescriptor,
+        _layout: &Hashed<InnerMeshVertexBufferLayout, FixedState>,
+        _key: Material2dKey<Self>
+
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        if let Some(fragment) = &mut descriptor.fragment {
+            if let Some(t) = &mut fragment.targets[0] {
+                t.blend = Some(BlendState {
+                    color: BlendComponent {
+                        src_factor: BlendFactor::OneMinusDst,
+                        dst_factor: BlendFactor::OneMinusSrcAlpha,
+                        operation: BlendOperation::Add,
+                    },
+                    alpha: BlendComponent::OVER,
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
 
 
 #[derive(Clone, Component)]
