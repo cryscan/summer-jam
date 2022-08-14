@@ -3,6 +3,8 @@ This is a game made during the 2021 summer jam. It is written in [rust](https://
 
 Live version is available [here](https://cryscan.itch.io/bounce-up).
 
+Thanks [@fplust](https://https://github.com/fplust) for porting the game to bevy v0.8!
+
 Thanks [@Bobox214](https://github.com/Bobox214) for the [star background](https://github.com/Bobox214/Kataster)!
 
 Sound effects obtained from [Zapslat](https://www.zapsplat.com).
