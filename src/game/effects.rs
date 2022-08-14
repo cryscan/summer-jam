@@ -1,10 +1,19 @@
 use crate::{config::HIT_EFFECT_TIME_STEP, TimeScale};
 use bevy::{
     prelude::*,
+    reflect::TypeUuid,
+    render::{
+        mesh::InnerMeshVertexBufferLayout,
+        render_asset::RenderAssets,
+        render_resource::{
+            AsBindGroup, AsBindGroupShaderType, BlendComponent, BlendFactor, BlendOperation,
+            BlendState, RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError,
+        },
+    },
     sprite::{
-        Material2d,
-        Material2dPlugin, Material2dKey, ColorMaterialUniform, ColorMaterialFlags,
-    }, render::{render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, BlendState, BlendComponent, BlendFactor, BlendOperation, ShaderRef, AsBindGroupShaderType}, mesh::InnerMeshVertexBufferLayout, render_asset::RenderAssets}, reflect::TypeUuid, utils::{Hashed, FixedState},
+        ColorMaterialFlags, ColorMaterialUniform, Material2d, Material2dKey, Material2dPlugin,
+    },
+    utils::{FixedState, Hashed},
 };
 use std::time::Duration;
 
@@ -25,7 +34,7 @@ impl Plugin for EffectsPlugin {
 #[derive(Debug, Clone, TypeUuid, AsBindGroup)]
 #[uuid = "8afb68fd-de70-4be5-be04-72f5dd29d1e2"]
 #[uniform(0, ColorMaterialUniform)]
-pub struct DeathEffectMaterial{
+pub struct DeathEffectMaterial {
     pub color: Color,
     #[texture(1)]
     #[sampler(2)]
@@ -72,8 +81,7 @@ impl Material2d for DeathEffectMaterial {
     fn specialize(
         descriptor: &mut RenderPipelineDescriptor,
         _layout: &Hashed<InnerMeshVertexBufferLayout, FixedState>,
-        _key: Material2dKey<Self>
-
+        _key: Material2dKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
         if let Some(fragment) = &mut descriptor.fragment {
             if let Some(t) = &mut fragment.targets[0] {
@@ -91,7 +99,6 @@ impl Material2d for DeathEffectMaterial {
         Ok(())
     }
 }
-
 
 #[derive(Clone, Component)]
 pub struct DeathEffect {

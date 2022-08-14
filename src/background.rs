@@ -5,12 +5,9 @@ use crate::{
 use bevy::{
     prelude::*,
     reflect::TypeUuid,
-    render::render_resource::{
-        AsBindGroup, ShaderRef
-    },
+    render::render_resource::{AsBindGroup, ShaderRef},
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
 };
-
 
 pub struct BackgroundPlugin;
 
@@ -31,7 +28,6 @@ struct BackgroundMaterial {
     velocity: Vec3,
 }
 
-
 impl Material2d for BackgroundMaterial {
     fn vertex_shader() -> ShaderRef {
         BACKGROUND_SHADER.into()
@@ -41,7 +37,6 @@ impl Material2d for BackgroundMaterial {
         BACKGROUND_SHADER.into()
     }
 }
-
 
 fn setup(
     mut commands: Commands,

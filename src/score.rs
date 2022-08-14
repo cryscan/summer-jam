@@ -72,12 +72,11 @@ fn make_ui(
                             font_size: 50.0,
                             color: Color::WHITE,
                         },
-                    ).with_alignment(
-                    TextAlignment {
-                            horizontal: HorizontalAlign::Center,
-                            ..Default::default()
-                        },
-                    ),
+                    )
+                    .with_alignment(TextAlignment {
+                        horizontal: HorizontalAlign::Center,
+                        ..Default::default()
+                    }),
                     ..Default::default()
                 })
                 .insert(ColorText::new(

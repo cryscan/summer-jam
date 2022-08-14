@@ -3,7 +3,7 @@ use crate::{
     utils::*,
     TimeScale,
 };
-use bevy::{time::FixedTimestep, prelude::*, render::view::RenderLayers};
+use bevy::{prelude::*, render::view::RenderLayers, time::FixedTimestep};
 
 pub struct PhysicsPlugin;
 

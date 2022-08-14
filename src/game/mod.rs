@@ -8,8 +8,8 @@ use crate::{
     utils::{cleanup_system, escape_system, Damp, Intermediate},
     AppState, AudioVolume, MusicTrack, TimeScale,
 };
-use bevy::{time::FixedTimestep, prelude::*, sprite::MaterialMesh2dBundle};
-use bevy_kira_audio::{Audio, AudioChannel, AudioSource, AudioApp};
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle, time::FixedTimestep};
+use bevy_kira_audio::{Audio, AudioApp, AudioChannel, AudioSource};
 use itertools::Itertools;
 use std::f32::consts::FRAC_PI_4;
 

@@ -4,12 +4,11 @@ use crate::{
     AppState, AudioVolume, ColorText, HintText, MusicTrack, TimeScale,
 };
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioChannel, AudioApp};
+use bevy_kira_audio::{Audio, AudioApp, AudioChannel};
 
 pub struct MenuPlugin;
 
 struct ButtonAudio;
-
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
@@ -173,12 +172,11 @@ fn make_menu(
                             font_size: 50.0,
                             color: Color::WHITE,
                         },
-                    ).with_alignment(
-                        TextAlignment {
-                            horizontal: HorizontalAlign::Center,
-                            ..Default::default()
-                        },
-                    ),
+                    )
+                    .with_alignment(TextAlignment {
+                        horizontal: HorizontalAlign::Center,
+                        ..Default::default()
+                    }),
                     ..Default::default()
                 })
                 .insert(ColorText::new(
@@ -204,12 +202,11 @@ fn make_menu(
                             font_size: 15.0,
                             color: HEALTH_BAR_COLOR,
                         },
-                    ).with_alignment(
-                        TextAlignment {
-                            horizontal: HorizontalAlign::Left,
-                            ..Default::default()
-                        },
-                    ),
+                    )
+                    .with_alignment(TextAlignment {
+                        horizontal: HorizontalAlign::Left,
+                        ..Default::default()
+                    }),
                     ..Default::default()
                 })
                 .insert(HintText::new(480.0 / MENU_MUSIC_BPM));
@@ -228,10 +225,7 @@ fn make_menu(
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
-                        text: Text::from_section(
-                            "Play",
-                            button_style.text.clone(),
-                        ),
+                        text: Text::from_section("Play", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
@@ -249,10 +243,7 @@ fn make_menu(
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
-                        text: Text::from_section(
-                            "Practice",
-                            button_style.text.clone(),
-                        ),
+                        text: Text::from_section("Practice", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
@@ -270,10 +261,7 @@ fn make_menu(
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
-                        text: Text::from_section(
-                            "Settings",
-                            button_style.text.clone(),
-                        ),
+                        text: Text::from_section("Settings", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
@@ -317,12 +305,11 @@ fn make_settings(
                         font_size: 30.0,
                         color: Color::WHITE,
                     },
-                ).with_alignment(
-                    TextAlignment {
-                        horizontal: HorizontalAlign::Center,
-                        ..Default::default()
-                    },
-                ),
+                )
+                .with_alignment(TextAlignment {
+                    horizontal: HorizontalAlign::Center,
+                    ..Default::default()
+                }),
                 ..Default::default()
             });
 
@@ -357,12 +344,11 @@ fn make_settings(
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
-                        ).with_alignment(
-                            TextAlignment {
-                                horizontal: HorizontalAlign::Center,
-                                ..Default::default()
-                            },
-                        ),
+                        )
+                        .with_alignment(TextAlignment {
+                            horizontal: HorizontalAlign::Center,
+                            ..Default::default()
+                        }),
                         ..Default::default()
                     });
                     for volume_setting in 0..=10 {
@@ -415,12 +401,11 @@ fn make_settings(
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
-                        ).with_alignment(
-                            TextAlignment {
-                                horizontal: HorizontalAlign::Center,
-                                ..Default::default()
-                            },
-                        ),
+                        )
+                        .with_alignment(TextAlignment {
+                            horizontal: HorizontalAlign::Center,
+                            ..Default::default()
+                        }),
                         ..Default::default()
                     });
                     for volume_setting in 0..=10 {
@@ -456,10 +441,7 @@ fn make_settings(
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
-                        text: Text::from_section(
-                            "Back",
-                            button_style.text.clone(),
-                        ),
+                        text: Text::from_section("Back", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
