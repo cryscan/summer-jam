@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::texture::ImageSettings};
 use bevy_kira_audio::AudioPlugin;
 use wasm_bindgen::prelude::*;
 
@@ -91,6 +91,7 @@ pub fn run() {
             resizable: false,
             ..Default::default()
         })
+        .insert_resource(ImageSettings::default_nearest())
         .init_resource::<TimeScale>()
         .insert_resource(AudioVolume {
             music: 0.3,
