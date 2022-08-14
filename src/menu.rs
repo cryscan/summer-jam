@@ -4,7 +4,7 @@ use crate::{
     AppState, AudioVolume, ColorText, HintText, MusicTrack, TimeScale,
 };
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioApp, AudioChannel};
+use bevy_kira_audio::{Audio, AudioApp, AudioChannel, AudioControl};
 
 pub struct MenuPlugin;
 
@@ -127,8 +127,8 @@ fn enter_menu(
     if music_track.0 != MENU_MUSIC {
         audio.stop();
         audio.set_playback_rate(1.0);
-        audio.set_volume(volume.music);
-        audio.play_looped(asset_server.load(MENU_MUSIC));
+        audio.set_volume(volume.music.into());
+        audio.play(asset_server.load(MENU_MUSIC)).looped();
 
         music_track.0 = MENU_MUSIC;
     }
@@ -463,13 +463,13 @@ fn button_audio(
         match *interaction {
             Interaction::Clicked => {
                 let volume = volume.effects * 0.5;
-                audio.set_volume(volume);
+                audio.set_volume(volume.into());
                 audio.play(asset_server.load(BUTTON_CLICK_AUDIO));
             }
             Interaction::Hovered => {
                 if maybe_action.is_some() {
                     let volume = volume.effects * 0.5;
-                    audio.set_volume(volume);
+                    audio.set_volume(volume.into());
                     audio.play(asset_server.load(BUTTON_HOVER_AUDIO));
                 }
             }
@@ -566,7 +566,7 @@ fn value_action(
                 ValueAction::AudioVolume(v) => volume.effects = *v,
                 ValueAction::MusicVolume(v) => {
                     volume.music = *v;
-                    audio.set_volume(volume.music)
+                    audio.set_volume(volume.music.into());
                 }
             }
         }

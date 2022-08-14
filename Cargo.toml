@@ -23,4 +23,8 @@ bevy = { version = "0.8", default-features = false, features = [
     "png",
     "x11",
 ] }
-bevy_kira_audio = { version = "0.11", features = ["wav", "flac", "ogg"] }
+bevy_kira_audio = { git = "https://github.com/NiklasEi/bevy_kira_audio", branch = "main", features = [
+    "wav",
+    "flac",
+    "ogg"
+] }

@@ -58,9 +58,9 @@ fn enter_practice(
 
     if music_track.0 != GAME_MUSIC {
         audio.stop();
-        audio.set_volume(volume.music);
+        audio.set_volume(volume.music.into());
         audio.set_playback_rate(1.2);
-        audio.play_looped(asset_server.load(GAME_MUSIC));
+        audio.play(asset_server.load(GAME_MUSIC)).looped();
 
         music_track.0 = GAME_MUSIC;
     }
