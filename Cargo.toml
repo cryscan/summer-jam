@@ -6,6 +6,10 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[[bin]]
+name = "game"
+path = "src/main.rs"
+
 [features]
 dot = []
 
@@ -13,10 +17,10 @@ dot = []
 fastrand = "1.7"
 itertools = "0.10"
 wasm-bindgen = "0.2"
-bevy = { version = "0.7", default-features = false, features = [
+bevy = { version = "0.8", default-features = false, features = [
     "bevy_winit",
     "render",
     "png",
     "x11",
 ] }
-bevy_kira_audio = { version = "0.9", features = ["wav", "flac", "ogg"] }
+bevy_kira_audio = { version = "0.11", features = ["wav", "flac", "ogg"] }

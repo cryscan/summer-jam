@@ -4,13 +4,16 @@ use crate::{
     AppState, AudioVolume, ColorText, HintText, MusicTrack, TimeScale,
 };
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioChannel};
+use bevy_kira_audio::{Audio, AudioApp, AudioChannel};
 
 pub struct MenuPlugin;
+
+struct ButtonAudio;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ButtonStyle>()
+            .add_audio_channel::<ButtonAudio>()
             .add_system_set(
                 SystemSet::new()
                     .label(ButtonSystems)
@@ -80,11 +83,11 @@ impl FromWorld for ButtonStyle {
         ButtonStyle {
             button: Style {
                 size: Size::new(Val::Px(200.0), Val::Px(30.0)),
-                position: Rect {
+                position: UiRect {
                     left: Val::Percent(10.0),
                     ..Default::default()
                 },
-                margin: Rect {
+                margin: UiRect {
                     top: Val::Px(10.0),
                     bottom: Val::Px(10.0),
                     ..Default::default()
@@ -96,7 +99,7 @@ impl FromWorld for ButtonStyle {
             icon: Style {
                 size: Size::new(Val::Px(20.0), Val::Auto),
                 position_type: PositionType::Absolute,
-                position: Rect {
+                position: UiRect {
                     left: Val::Px(10.0),
                     right: Val::Auto,
                     top: Val::Auto,
@@ -152,28 +155,28 @@ fn make_menu(
             parent
                 .spawn_bundle(TextBundle {
                     style: Style {
-                        position: Rect {
+                        position: UiRect {
                             left: Val::Percent(10.0),
                             ..Default::default()
                         },
-                        margin: Rect {
+                        margin: UiRect {
                             bottom: Val::Percent(20.0),
                             ..Default::default()
                         },
                         ..Default::default()
                     },
-                    text: Text::with_section(
+                    text: Text::from_section(
                         "Bounce Up!",
                         TextStyle {
                             font: asset_server.load(FONT_ARCADE),
                             font_size: 50.0,
                             color: Color::WHITE,
                         },
-                        TextAlignment {
-                            horizontal: HorizontalAlign::Center,
-                            ..Default::default()
-                        },
-                    ),
+                    )
+                    .with_alignment(TextAlignment {
+                        horizontal: HorizontalAlign::Center,
+                        ..Default::default()
+                    }),
                     ..Default::default()
                 })
                 .insert(ColorText::new(
@@ -185,25 +188,25 @@ fn make_menu(
                 .spawn_bundle(TextBundle {
                     style: Style {
                         position_type: PositionType::Absolute,
-                        position: Rect {
+                        position: UiRect {
                             left: Val::Percent(10.0),
                             top: Val::Percent(40.0),
                             ..Default::default()
                         },
                         ..Default::default()
                     },
-                    text: Text::with_section(
+                    text: Text::from_section(
                         "",
                         TextStyle {
                             font: asset_server.load(FONT_INVASION),
                             font_size: 15.0,
                             color: HEALTH_BAR_COLOR,
                         },
-                        TextAlignment {
-                            horizontal: HorizontalAlign::Left,
-                            ..Default::default()
-                        },
-                    ),
+                    )
+                    .with_alignment(TextAlignment {
+                        horizontal: HorizontalAlign::Left,
+                        ..Default::default()
+                    }),
                     ..Default::default()
                 })
                 .insert(HintText::new(480.0 / MENU_MUSIC_BPM));
@@ -222,11 +225,7 @@ fn make_menu(
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
-                        text: Text::with_section(
-                            "Play",
-                            button_style.text.clone(),
-                            Default::default(),
-                        ),
+                        text: Text::from_section("Play", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
@@ -244,11 +243,7 @@ fn make_menu(
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
-                        text: Text::with_section(
-                            "Practice",
-                            button_style.text.clone(),
-                            Default::default(),
-                        ),
+                        text: Text::from_section("Practice", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
@@ -266,11 +261,7 @@ fn make_menu(
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
-                        text: Text::with_section(
-                            "Settings",
-                            button_style.text.clone(),
-                            Default::default(),
-                        ),
+                        text: Text::from_section("Settings", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
@@ -297,28 +288,28 @@ fn make_settings(
         .with_children(|parent| {
             parent.spawn_bundle(TextBundle {
                 style: Style {
-                    position: Rect {
+                    position: UiRect {
                         left: Val::Percent(10.0),
                         ..Default::default()
                     },
-                    margin: Rect {
+                    margin: UiRect {
                         bottom: Val::Percent(10.0),
                         ..Default::default()
                     },
                     ..Default::default()
                 },
-                text: Text::with_section(
+                text: Text::from_section(
                     "Settings",
                     TextStyle {
                         font: asset_server.load(FONT_KARMATIC),
                         font_size: 30.0,
                         color: Color::WHITE,
                     },
-                    TextAlignment {
-                        horizontal: HorizontalAlign::Center,
-                        ..Default::default()
-                    },
-                ),
+                )
+                .with_alignment(TextAlignment {
+                    horizontal: HorizontalAlign::Center,
+                    ..Default::default()
+                }),
                 ..Default::default()
             });
 
@@ -336,28 +327,28 @@ fn make_settings(
                 .with_children(|parent| {
                     parent.spawn_bundle(TextBundle {
                         style: Style {
-                            position: Rect {
+                            position: UiRect {
                                 left: Val::Percent(10.0),
                                 ..Default::default()
                             },
-                            margin: Rect {
+                            margin: UiRect {
                                 right: Val::Percent(10.0),
                                 ..Default::default()
                             },
                             ..Default::default()
                         },
-                        text: Text::with_section(
+                        text: Text::from_section(
                             "Audio",
                             TextStyle {
                                 font: asset_server.load(FONT_KARMATIC),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
-                            TextAlignment {
-                                horizontal: HorizontalAlign::Center,
-                                ..Default::default()
-                            },
-                        ),
+                        )
+                        .with_alignment(TextAlignment {
+                            horizontal: HorizontalAlign::Center,
+                            ..Default::default()
+                        }),
                         ..Default::default()
                     });
                     for volume_setting in 0..=10 {
@@ -365,7 +356,7 @@ fn make_settings(
                             .spawn_bundle(ButtonBundle {
                                 style: Style {
                                     size: Size::new(Val::Px(20.0), Val::Px(20.0)),
-                                    margin: Rect {
+                                    margin: UiRect {
                                         left: Val::Px(2.0),
                                         right: Val::Px(2.0),
                                         ..Default::default()
@@ -393,28 +384,28 @@ fn make_settings(
                 .with_children(|parent| {
                     parent.spawn_bundle(TextBundle {
                         style: Style {
-                            position: Rect {
+                            position: UiRect {
                                 left: Val::Percent(10.0),
                                 ..Default::default()
                             },
-                            margin: Rect {
+                            margin: UiRect {
                                 right: Val::Percent(10.0),
                                 ..Default::default()
                             },
                             ..Default::default()
                         },
-                        text: Text::with_section(
+                        text: Text::from_section(
                             "Music",
                             TextStyle {
                                 font: asset_server.load(FONT_KARMATIC),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
-                            TextAlignment {
-                                horizontal: HorizontalAlign::Center,
-                                ..Default::default()
-                            },
-                        ),
+                        )
+                        .with_alignment(TextAlignment {
+                            horizontal: HorizontalAlign::Center,
+                            ..Default::default()
+                        }),
                         ..Default::default()
                     });
                     for volume_setting in 0..=10 {
@@ -422,7 +413,7 @@ fn make_settings(
                             .spawn_bundle(ButtonBundle {
                                 style: Style {
                                     size: Size::new(Val::Px(20.0), Val::Px(20.0)),
-                                    margin: Rect {
+                                    margin: UiRect {
                                         left: Val::Px(2.0),
                                         right: Val::Px(2.0),
                                         ..Default::default()
@@ -450,11 +441,7 @@ fn make_settings(
                         ..Default::default()
                     });
                     parent.spawn_bundle(TextBundle {
-                        text: Text::with_section(
-                            "Back",
-                            button_style.text.clone(),
-                            Default::default(),
-                        ),
+                        text: Text::from_section("Back", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
@@ -467,23 +454,23 @@ fn button_audio(
         (&Interaction, Option<&ButtonAction>),
         (Changed<Interaction>, With<Button>),
     >,
-    audio: Res<Audio>,
+    audio: Res<AudioChannel<ButtonAudio>>,
     volume: Res<AudioVolume>,
     asset_server: Res<AssetServer>,
 ) {
-    let channel = AudioChannel::new("button".into());
+    // let channel = AudioChannel::new("button".into());
     for (interaction, maybe_action) in interaction_query.iter() {
         match *interaction {
             Interaction::Clicked => {
                 let volume = volume.effects * 0.5;
-                audio.set_volume_in_channel(volume, &channel);
-                audio.play_in_channel(asset_server.load(BUTTON_CLICK_AUDIO), &channel);
+                audio.set_volume(volume);
+                audio.play(asset_server.load(BUTTON_CLICK_AUDIO));
             }
             Interaction::Hovered => {
                 if maybe_action.is_some() {
                     let volume = volume.effects * 0.5;
-                    audio.set_volume_in_channel(volume, &channel);
-                    audio.play_in_channel(asset_server.load(BUTTON_HOVER_AUDIO), &channel);
+                    audio.set_volume(volume);
+                    audio.play(asset_server.load(BUTTON_HOVER_AUDIO));
                 }
             }
             Interaction::None => {}
