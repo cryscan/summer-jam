@@ -1,13 +1,13 @@
 [package]
 name = "bounce-up"
-version = "1.4.2"
+version = "1.4.3"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "game"
+name = "bounce-up-bin"
 path = "src/main.rs"
 
 [features]

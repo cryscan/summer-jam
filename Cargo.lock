@@ -829,7 +829,7 @@ checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
 name = "bounce-up"
-version = "1.4.2"
+version = "1.4.3"
 dependencies = [
  "bevy",
  "bevy_kira_audio",
