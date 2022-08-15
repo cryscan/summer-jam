@@ -1,11 +1,11 @@
 use super::{
     ball::{Ball, Point, Trajectory},
     enemy::Controller,
-    physics::Motion,
+    physics::{CollisionEvent, Motion},
 };
 use crate::{config::*, utils::Damp, TimeScale};
 use bevy::{input::mouse::MouseMotion, prelude::*};
-use std::ops::Add;
+use std::{ops::Add, time::Duration};
 
 #[derive(Component)]
 pub struct Player {
@@ -20,6 +20,23 @@ impl Default for Player {
             max_speed: PLAYER_MAX_SPEED,
             sensitivity: PLAYER_SENSITIVITY,
             damp: PLAYER_DAMP,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct MotionOverride {
+    pub timer: Timer,
+    pub damp: f32,
+}
+
+impl Default for MotionOverride {
+    fn default() -> Self {
+        let mut timer = Timer::from_seconds(0.1, false);
+        timer.set_elapsed(Duration::from_secs_f32(0.0));
+        Self {
+            timer,
+            damp: PLAYER_DAMP_MOTION_OVERRIDE,
         }
     }
 }
@@ -47,7 +64,7 @@ pub fn move_player(
     time: Res<Time>,
     time_scale: Res<TimeScale>,
     mut mouse_motion_events: EventReader<MouseMotion>,
-    mut query: Query<(&Player, Option<&Controller>, &mut Motion)>,
+    mut query: Query<(&Player, &Controller, &mut MotionOverride, &mut Motion)>,
 ) {
     let delta = mouse_motion_events
         .iter()
@@ -57,13 +74,17 @@ pub fn move_player(
 
     let delta_seconds = time.delta_seconds() * time_scale.0;
 
-    for (player, controller, mut motion) in query.iter_mut() {
-        let velocity = delta * player.sensitivity / delta_seconds
-            + controller.map_or(Vec2::ZERO, |controller| controller.velocity);
+    for (player, controller, mut motion_override, mut motion) in query.iter_mut() {
+        let velocity = delta * player.sensitivity / delta_seconds + controller.velocity;
+        let damp = if motion_override.timer.tick(time.delta()).finished() {
+            player.damp
+        } else {
+            motion_override.damp
+        };
 
         motion.velocity = motion
             .velocity
-            .damp(velocity, player.damp, delta_seconds)
+            .damp(velocity, damp, delta_seconds)
             .clamp_length_max(player.max_speed);
     }
 }
@@ -72,10 +93,19 @@ pub fn move_player(
 pub fn assist_player(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,
-    mut query: Query<(&Transform, &PlayerAssist, &mut Controller), (With<Player>, Without<Ball>)>,
+    mut events: EventReader<CollisionEvent>,
+    mut query: Query<
+        (
+            &Transform,
+            &PlayerAssist,
+            &mut Controller,
+            &mut MotionOverride,
+        ),
+        (With<Player>, Without<Ball>),
+    >,
     ball_query: Query<(&Motion, &Trajectory), With<Ball>>,
 ) {
-    for (transform, assist, mut controller) in query.iter_mut() {
+    for (transform, assist, mut controller, _) in query.iter_mut() {
         controller.velocity = Vec2::ZERO;
 
         for (motion, trajectory) in ball_query.iter() {
@@ -117,6 +147,7 @@ pub fn assist_player(
                         speed *= distance / stop_distance;
                     }
                     controller.velocity = speed * direction.normalize();
+                    controller.velocity.y = 0.0;
                 }
             }
 
@@ -134,5 +165,20 @@ pub fn assist_player(
                     .0
                     .damp(target_time_scale, TIME_SCALE_DAMP, time.delta_seconds());
         }
+    }
+
+    // vertical impulse compensation
+    let mut closure = |e1: Entity, e2: Entity| -> Option<()> {
+        let _ = ball_query.get(e1).ok()?;
+        let (_, _, _, mut motion_override) = query.get_mut(e2).ok()?;
+
+        motion_override.timer.reset();
+
+        Some(())
+    };
+
+    for event in events.iter() {
+        closure(event.entities[0], event.entities[1]);
+        closure(event.entities[1], event.entities[0]);
     }
 }

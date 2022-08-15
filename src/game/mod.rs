@@ -414,6 +414,7 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             PhysicsLayers::PLAYER,
             BounceAudio::Bounce,
             Controller::default(),
+            MotionOverride::default(),
             Player::default(),
             PlayerAssist::default(),
             Cleanup,

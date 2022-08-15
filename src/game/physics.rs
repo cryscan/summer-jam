@@ -87,7 +87,7 @@ pub struct Motion {
 
 pub struct CollisionEvent {
     pub entities: [Entity; 2],
-    pub impulse: f32,
+    pub delta_velocities: [Vec2; 2],
     pub bounciness: f32,
     pub friction: f32,
     pub hit: Hit,
@@ -165,12 +165,13 @@ fn collision(
                            mut motion: Mut<Motion>,
                            mut transform: Mut<Transform>,
                            velocity: Vec2,
-                           normal: Vec2| {
+                           normal: Vec2|
+             -> Option<Vec2> {
                 let normal_speed = velocity.dot(normal);
 
                 // do not process if objects are moving apart
                 if normal_speed < 0.0 {
-                    return;
+                    return None;
                 }
 
                 let tan = (velocity - normal_speed * normal).normalize_or_zero();
@@ -187,7 +188,8 @@ fn collision(
 
                 let normal_delta = normal_impulse * rigid_body.inverted_mass;
                 let tan_delta = tan_impulse * rigid_body.inverted_mass;
-                motion.velocity += normal_delta * normal + tan_delta * tan;
+                let delta_velocity = normal_delta * normal + tan_delta * tan;
+                motion.velocity += delta_velocity;
 
                 // translation correction
                 match &hit {
@@ -211,20 +213,24 @@ fn collision(
                         }
                     }
                 };
+
+                Some(delta_velocity)
             };
 
+            let mut delta_velocities: [Vec2; 2] = Default::default();
             if let Some(motion) = m1 {
-                resolve(rb1, motion, t1, v2 - v1, normal);
+                delta_velocities[0] = resolve(rb1, motion, t1, v2 - v1, normal).unwrap_or_default();
             }
             if let Some(motion) = m2 {
-                resolve(rb2, motion, t2, v1 - v2, -normal);
+                delta_velocities[1] =
+                    resolve(rb2, motion, t2, v1 - v2, -normal).unwrap_or_default();
             }
 
             let mut entities = [e1, e2];
             entities.sort();
             events.send(CollisionEvent {
                 entities,
-                impulse,
+                delta_velocities,
                 bounciness,
                 friction,
                 hit,
