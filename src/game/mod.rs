@@ -9,9 +9,7 @@ use crate::{
     AppState, AudioVolume, MusicTrack, TimeScale,
 };
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, time::FixedTimestep};
-use bevy_kira_audio::{
-    Audio, AudioApp, AudioChannel, AudioControl, AudioSource, DynamicAudioChannels,
-};
+use bevy_kira_audio::{Audio, AudioApp, AudioChannel, AudioControl, AudioSource};
 use itertools::Itertools;
 use std::f32::consts::FRAC_PI_4;
 
@@ -45,6 +43,7 @@ impl Plugin for GamePlugin {
                 miss: Timer::from_seconds(0.5, false),
             })
             .init_resource::<Slits>()
+            .add_audio_channel::<BounceAudioChannel>()
             .add_audio_channel::<ScoreAudioChannel>()
             .add_startup_system(setup_game)
             .add_system_set(
@@ -87,6 +86,8 @@ impl Plugin for GamePlugin {
             .add_plugin(PracticePlugin);
     }
 }
+
+struct BounceAudioChannel;
 
 struct ScoreAudioChannel;
 
@@ -852,13 +853,12 @@ fn score_system(
 
 #[allow(clippy::too_many_arguments)]
 fn bounce_audio(
+    audio: Res<AudioChannel<BounceAudioChannel>>,
     audios: Res<Audios>,
-    mut audio: ResMut<DynamicAudioChannels>,
     volume: Res<AudioVolume>,
     time: Res<Time>,
     mut timer: ResMut<Debounce>,
     mut events: EventReader<CollisionEvent>,
-    mut index: Local<usize>,
     mut bounce_entities: Local<Option<[Entity; 2]>>,
     query: Query<(Entity, &BounceAudio)>,
     balls: Query<(), With<Ball>>,
@@ -867,10 +867,6 @@ fn bounce_audio(
     let mut can_play_audio = timer.audio_bounce_long.tick(time.delta()).finished();
     timer.audio_bounce_short.tick(time.delta());
     timer.audio_hit.tick(time.delta());
-
-    let channels = (0..AUDIO_CHANNEL_COUNT)
-        .map(|index| format!("impact_{}", index))
-        .collect_vec();
 
     for event in events.iter() {
         // one of the entities must be a ball
@@ -907,9 +903,6 @@ fn bounce_audio(
             *bounce_entities = entities;
         }
 
-        *index = (*index + 1) % AUDIO_CHANNEL_COUNT;
-        let channel = audio.create_channel(&channels[*index]);
-
         if can_play_audio {
             let velocities = motions
                 .many(event.entities)
@@ -921,15 +914,13 @@ fn bounce_audio(
                     .clamp(0.0, 1.0);
 
                 let panning = event.hit.location().x / ARENA_WIDTH + 0.5;
-                channel.set_panning(panning.into());
-
                 let volume = volume.effects * (0.5 * normalized_speed + 0.5);
-                channel.set_volume(volume.into());
-
                 let playback_rate = 0.4 * fastrand::f32() + 0.8;
-                channel.set_playback_rate(playback_rate.into());
-
-                channel.play(audio_source);
+                audio
+                    .play(audio_source)
+                    .with_volume(volume.into())
+                    .with_panning(panning.into())
+                    .with_playback_rate(playback_rate.into());
 
                 timer.audio_bounce_long.reset();
                 timer.audio_bounce_short.reset();
@@ -939,30 +930,25 @@ fn bounce_audio(
 }
 
 fn score_audio(
-    audios: Res<Audios>,
     audio: Res<AudioChannel<ScoreAudioChannel>>,
+    audios: Res<Audios>,
     volume: Res<AudioVolume>,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut game_over_events: EventReader<GameOverEvent>,
 ) {
     for event in player_miss_events.iter() {
-        // let channel = &AudioChannel::new("miss".into());
         let panning = event.location.x / ARENA_WIDTH + 0.5;
-        // audio.set_volume_in_channel(volume.effects, channel);
-        // audio.set_panning_in_channel(panning, channel);
-        // audio.play_in_channel(audios.miss_audio.clone(), channel);
-        audio.set_volume(volume.effects.into());
-        audio.set_panning(panning.into());
-        audio.play(audios.miss_audio.clone());
+        audio
+            .play(audios.miss_audio.clone())
+            .with_volume(volume.effects.into())
+            .with_panning(panning.into());
     }
 
     for event in game_over_events.iter() {
-        // let channel = &AudioChannel::new("over".into());
-        // audio.set_volume_in_channel(volume.effects, channel);
-        audio.set_volume(volume.effects.into());
-        match event {
-            GameOverEvent::Win => audio.play(audios.explosion_audio.clone()),
-            GameOverEvent::Lose => audio.play(audios.lose_audio.clone()),
+        let audio_source = match event {
+            GameOverEvent::Win => audios.explosion_audio.clone(),
+            GameOverEvent::Lose => audios.lose_audio.clone(),
         };
+        audio.play(audio_source).with_volume(volume.effects.into());
     }
 }

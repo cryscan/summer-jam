@@ -45,8 +45,6 @@ pub const IMPACT_AUDIOS: [&str; 2] = ["audios/impacts/impact-1.ogg", "audios/imp
 pub const BUTTON_HOVER_AUDIO: &str = "audios/button/hover.ogg";
 pub const BUTTON_CLICK_AUDIO: &str = "audios/button/click.ogg";
 
-pub const AUDIO_CHANNEL_COUNT: usize = 16;
-
 pub const MENU_MUSIC: &str = "musics/E2M2 Myrgharok - Halls of Wandering Spirits.ogg";
 pub const GAME_MUSIC: &str = "musics/E3M8 Myrgharok - Mother of All Doom.ogg";
 

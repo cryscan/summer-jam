@@ -1,6 +1,6 @@
 [package]
 name = "bounce-up"
-version = "1.4.3"
+version = "1.4.4"
 edition = "2021"
 
 [lib]
@@ -23,7 +23,7 @@ bevy = { version = "0.8", default-features = false, features = [
     "png",
     "x11",
 ] }
-bevy_kira_audio = { git = "https://github.com/NiklasEi/bevy_kira_audio", branch = "main", features = [
+bevy_kira_audio = { version = "0.12", features = [
     "wav",
     "flac",
     "ogg"
