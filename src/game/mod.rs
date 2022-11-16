@@ -60,6 +60,7 @@ impl Plugin for GamePlugin {
                     .with_system(move_slit_block)
                     .with_system(slits_system)
                     // effects and juice
+                    .with_system(game_over_slow_motion)
                     .with_system(bounce_audio)
                     .with_system(score_audio)
                     .with_system(score_effects)
@@ -524,12 +525,17 @@ fn reset_ball(
     mut commands: Commands,
     mut player_miss_events: EventReader<PlayerMissEvent>,
     mut player_hit_events: EventReader<PlayerHitEvent>,
+    mut time_scale: ResMut<TimeScale>,
     mut query: Query<(Entity, &mut Transform), (With<Ball>, With<Motion>)>,
 ) {
     let mut closure = |ball| -> Option<()> {
         let (_, mut transform) = query.get_mut(ball).ok()?;
         transform.translation = Vec3::new(0.0, 0.0, -1.0);
         commands.entity(ball).remove::<Motion>();
+
+        // also reset time scale
+        time_scale.reset();
+
         Some(())
     };
 
@@ -712,6 +718,42 @@ fn player_miss(
 
             closure(event.entities[0], event.entities[1])
                 .or_else(|| closure(event.entities[1], event.entities[0]));
+        }
+    }
+}
+
+/// Deals with [`GameOverEvent`].
+/// The system triggers a slow motion with the duration of [`GAME_OVER_SLOW_MOTION_DURATION`]
+fn game_over_slow_motion(
+    time: Res<Time>,
+    mut time_scale: ResMut<TimeScale>,
+    mut game_over_events: EventReader<GameOverEvent>,
+    mut game_over: Local<GameOver>,
+) {
+    if game_over.event.is_some() {
+        let mut target_time_scale = GAME_OVER_SLOW_MOTION_TIME_SCALE;
+        let mut time_scale_damp = TIME_SCALE_DAMP;
+
+        if game_over.slow_motion_timer.tick(time.delta()).finished() {
+            target_time_scale = 1.0;
+            time_scale_damp = GAME_OVER_TIME_SCALE_DAMP;
+        }
+
+        time_scale.0 = time_scale
+            .0
+            .damp(target_time_scale, time_scale_damp, time.delta_seconds());
+
+        if game_over
+            .state_change_timer
+            .tick(time.delta())
+            .just_finished()
+        {
+            time_scale.reset();
+            *game_over = GameOver::default();
+        }
+    } else {
+        for event in game_over_events.iter() {
+            game_over.event = Some(*event);
         }
     }
 }

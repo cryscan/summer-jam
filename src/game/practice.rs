@@ -68,13 +68,28 @@ fn enter_practice(
 
 /// Triggers a full recovery of enemy base health after beating it.
 fn recover_enemy_health(
+    time: Res<Time>,
     mut game_over_events: EventReader<GameOverEvent>,
+    mut game_over: Local<GameOver>,
     mut heal_events: EventWriter<HealEvent>,
 ) {
-    for event in game_over_events.iter() {
-        match event {
-            GameOverEvent::Win => heal_events.send(HealEvent(Heal::default())),
-            GameOverEvent::Lose => {}
+    if let Some(event) = game_over.event {
+        // it's time to switch state
+        if game_over
+            .state_change_timer
+            .tick(time.delta())
+            .just_finished()
+        {
+            *game_over = GameOver::default();
+
+            match event {
+                GameOverEvent::Win => heal_events.send(HealEvent(Heal::default())),
+                GameOverEvent::Lose => {}
+            }
+        }
+    } else {
+        for event in game_over_events.iter() {
+            game_over.event = Some(*event);
         }
     }
 }
@@ -87,11 +102,25 @@ fn player_ball_infinite(mut query: Query<&mut PlayerBase>) {
 }
 
 fn progress_system(
+    time: Res<Time>,
     mut practice_state: ResMut<State<PracticeState>>,
-    game_over_events: EventReader<GameOverEvent>,
+    mut game_over_events: EventReader<GameOverEvent>,
+    mut game_over: Local<GameOver>,
 ) {
-    if !game_over_events.is_empty() {
-        let _ = practice_state.set(PracticeState::Slits);
+    if game_over.event.is_some() {
+        // it's time to switch state
+        if game_over
+            .state_change_timer
+            .tick(time.delta())
+            .just_finished()
+        {
+            *game_over = GameOver::default();
+            let _ = practice_state.set(PracticeState::Slits);
+        }
+    } else {
+        for event in game_over_events.iter() {
+            game_over.event = Some(*event);
+        }
     }
 }
 

@@ -60,34 +60,20 @@ fn enter_battle(
 }
 
 /// Deals with [`GameOverEvent`].
-/// The system triggers a slow motion with the duration of [`GAME_OVER_SLOW_MOTION_DURATION`]
-/// and also changes the [`AppState`] after [`GAME_OVER_STATE_CHANGE_DURATION`].
+/// Changes the [`AppState`] after [`GAME_OVER_STATE_CHANGE_DURATION`].
 fn game_over_system(
     time: Res<Time>,
-    mut time_scale: ResMut<TimeScale>,
     mut app_state: ResMut<State<AppState>>,
     mut game_over_events: EventReader<GameOverEvent>,
     mut game_over: Local<GameOver>,
 ) {
     if let Some(event) = game_over.event {
-        let mut target_time_scale = 0.2;
-        let mut time_scale_damp = TIME_SCALE_DAMP;
-
-        if game_over.slow_motion_timer.tick(time.delta()).finished() {
-            target_time_scale = 1.0;
-            time_scale_damp = GAME_OVER_TIME_SCALE_DAMP;
-        }
-        time_scale.0 = time_scale
-            .0
-            .damp(target_time_scale, time_scale_damp, time.delta_seconds());
-
         // it's time to switch state
         if game_over
             .state_change_timer
             .tick(time.delta())
             .just_finished()
         {
-            time_scale.reset();
             *game_over = GameOver::default();
 
             match event {
@@ -98,7 +84,6 @@ fn game_over_system(
     } else {
         for event in game_over_events.iter() {
             game_over.event = Some(*event);
-            time_scale.0 = 0.2;
         }
     }
 }
