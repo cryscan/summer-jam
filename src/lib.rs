@@ -141,7 +141,12 @@ fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Wind
     if let Some(window) = windows.get_primary_mut() {
         match app_state.current() {
             AppState::Battle | AppState::Practice => {
-                window.set_cursor_grab_mode(CursorGrabMode::Confined);
+                if cfg!(any(target_arch = "wasm32", target_os = "macos")) {
+                    window.set_cursor_grab_mode(CursorGrabMode::Locked);
+                } else {
+                    window.set_cursor_grab_mode(CursorGrabMode::Confined);
+                }
+
                 window.set_cursor_visibility(false);
             }
             _ => {
