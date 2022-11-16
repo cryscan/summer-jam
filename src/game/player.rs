@@ -32,7 +32,7 @@ pub struct MotionOverride {
 
 impl Default for MotionOverride {
     fn default() -> Self {
-        let mut timer = Timer::from_seconds(0.1, false);
+        let mut timer = Timer::from_seconds(0.1, TimerMode::Once);
         timer.set_elapsed(Duration::from_secs_f32(0.0));
         Self {
             timer,
@@ -117,7 +117,7 @@ pub fn assist_player(
                 && delta.x.abs() > assist.range
             {
                 // very dangerous, try to assist the player
-                let delta_seconds = time.seconds_since_startup() - trajectory.start_time;
+                let delta_seconds = time.elapsed_seconds() - trajectory.start_time;
                 if let Some(candidate) = trajectory
                     .points
                     .iter()
@@ -127,7 +127,7 @@ pub fn assist_player(
                     .max_by(|a, b| {
                         let cost = |point: &Point| {
                             // space-time cost
-                            let time = (point.time - delta_seconds) as f32;
+                            let time = point.time - delta_seconds;
                             let distance = (point.position - position).length();
                             time - distance / assist.speed
                         };
@@ -137,7 +137,7 @@ pub fn assist_player(
                     })
                 {
                     let direction = candidate.position - position;
-                    let time = (candidate.time - delta_seconds) as f32;
+                    let time = candidate.time - delta_seconds;
                     let distance = direction.length();
 
                     let mut speed = (1.5 * (distance / time + 1.0)).clamp(0.0, assist.speed);

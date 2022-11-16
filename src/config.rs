@@ -51,11 +51,11 @@ pub const GAME_MUSIC: &str = "musics/E3M8 Myrgharok - Mother of All Doom.ogg";
 pub const MENU_MUSIC_BPM: f32 = 102.0;
 
 pub const PREDICT_SIZE: usize = 100;
-pub const PREDICT_TIME_STEP: f64 = 0.01;
-pub const AI_TIME_STEP: f64 = 0.1;
+pub const PREDICT_TIME_STEP: f32 = 0.01;
+pub const AI_TIME_STEP: f32 = 0.1;
 
 pub const PHYSICS_REST_SPEED: f32 = 100.0;
-pub const PHYSICS_TIME_STEP: f64 = 1.0 / 180.0;
+pub const PHYSICS_TIME_STEP: f32 = 1.0 / 180.0;
 
 pub const PADDLE_WIDTH: f32 = 96.0;
 pub const PADDLE_HEIGHT: f32 = 16.0;

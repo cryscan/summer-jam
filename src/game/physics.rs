@@ -10,7 +10,7 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         let systems = SystemSet::new()
-            .with_run_criteria(FixedTimestep::step(PHYSICS_TIME_STEP))
+            .with_run_criteria(FixedTimestep::step(PHYSICS_TIME_STEP as f64))
             .with_system(init_motion)
             .with_system(movement)
             .with_system(collision.after(init_motion).after(movement));
@@ -103,7 +103,7 @@ fn movement(time_scale: Res<TimeScale>, mut query: Query<(&mut Motion, &mut Tran
     for (mut motion, mut transform) in query.iter_mut() {
         motion.translation = transform.translation;
 
-        let delta_time = PHYSICS_TIME_STEP as f32 * time_scale.0;
+        let delta_time = PHYSICS_TIME_STEP * time_scale.0;
         transform.translation += motion.velocity.extend(0.0) * delta_time;
     }
 }
@@ -120,7 +120,7 @@ fn collision(
     )>,
     mut events: EventWriter<CollisionEvent>,
 ) {
-    let delta_time = PHYSICS_TIME_STEP as f32 * time_scale.0;
+    let delta_time = PHYSICS_TIME_STEP * time_scale.0;
     let mut combinations = query.iter_combinations_mut();
     while let Some([(e1, rb1, t1, m1, pl1), (e2, rb2, t2, m2, pl2)]) = combinations.fetch_next() {
         if !pl1.collision.intersects(&pl2.collision) {

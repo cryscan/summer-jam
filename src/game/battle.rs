@@ -41,7 +41,7 @@ fn enter_battle(
     mut heal_events: EventWriter<HealEvent>,
 ) {
     // clear score state
-    score.timestamp = time.seconds_since_startup();
+    score.timestamp = time.elapsed_seconds();
     score.hits = 0;
     score.miss = 0;
 

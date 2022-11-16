@@ -13,8 +13,9 @@ impl Plugin for ScorePlugin {
     }
 }
 
+#[derive(Resource)]
 pub struct Score {
-    pub timestamp: f64,
+    pub timestamp: f32,
     pub hits: i32,
     pub miss: i32,
 }
@@ -23,7 +24,7 @@ impl FromWorld for Score {
     fn from_world(world: &mut World) -> Self {
         let time = world.resource::<Time>();
         Self {
-            timestamp: time.seconds_since_startup(),
+            timestamp: time.elapsed_seconds(),
             hits: 0,
             miss: 0,
         }
@@ -41,19 +42,19 @@ fn make_ui(
     asset_server: Res<AssetServer>,
 ) {
     commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::Center,
                 ..Default::default()
             },
-            color: Color::NONE.into(),
+            background_color: Color::NONE.into(),
             ..Default::default()
         })
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TextBundle {
+            parent.spawn((
+                TextBundle {
                     style: Style {
                         position: UiRect {
                             left: Val::Percent(10.0),
@@ -78,11 +79,9 @@ fn make_ui(
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
-                .insert(ColorText::new(
-                    FLIP_TEXT_COLORS.into(),
-                    30.0 / MENU_MUSIC_BPM,
-                ));
+                },
+                ColorText::new(FLIP_TEXT_COLORS.into(), 30.0 / MENU_MUSIC_BPM),
+            ));
 
             let term_style = Style {
                 size: Size::new(Val::Percent(100.0), Val::Px(30.0)),
@@ -99,8 +98,8 @@ fn make_ui(
             };
 
             // time
-            let time_passed = time.seconds_since_startup() - score.timestamp;
-            parent.spawn_bundle(TextBundle {
+            let time_passed = time.elapsed_seconds() - score.timestamp;
+            parent.spawn(TextBundle {
                 style: term_style.clone(),
                 text: Text {
                     sections: vec![
@@ -127,7 +126,7 @@ fn make_ui(
             });
 
             // player hits
-            parent.spawn_bundle(TextBundle {
+            parent.spawn(TextBundle {
                 style: term_style.clone(),
                 text: Text {
                     sections: vec![
@@ -154,7 +153,7 @@ fn make_ui(
             });
 
             // player miss
-            parent.spawn_bundle(TextBundle {
+            parent.spawn(TextBundle {
                 style: term_style,
                 text: Text {
                     sections: vec![

@@ -1,4 +1,4 @@
-use bevy::{prelude::*, render::texture::ImageSettings};
+use bevy::{prelude::*, render::texture::ImageSampler, window::CursorGrabMode};
 use bevy_kira_audio::AudioPlugin;
 use wasm_bindgen::prelude::*;
 
@@ -20,6 +20,7 @@ pub enum AppState {
     Win,
 }
 
+#[derive(Resource)]
 pub struct TimeScale(pub f32);
 
 impl Default for TimeScale {
@@ -34,11 +35,13 @@ impl TimeScale {
     }
 }
 
+#[derive(Resource)]
 pub struct AudioVolume {
     pub music: f32,
     pub effects: f32,
 }
 
+#[derive(Resource)]
 pub struct MusicTrack(&'static str);
 
 #[derive(Component)]
@@ -51,7 +54,7 @@ pub struct ColorText {
 impl ColorText {
     pub fn new(colors: Vec<Color>, duration: f32) -> Self {
         Self {
-            timer: Timer::from_seconds(duration, true),
+            timer: Timer::from_seconds(duration, TimerMode::Repeating),
             colors,
             index: 0,
         }
@@ -74,7 +77,7 @@ impl HintText {
     pub fn new(duration: f32) -> Self {
         Self {
             index: 0,
-            timer: Timer::from_seconds(duration, true),
+            timer: Timer::from_seconds(duration, TimerMode::Repeating),
         }
     }
 }
@@ -84,14 +87,6 @@ pub fn run() {
     let mut app = App::new();
 
     app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
-        .insert_resource(WindowDescriptor {
-            title: "Bounce Up!".into(),
-            width: config::ARENA_WIDTH,
-            height: config::ARENA_HEIGHT,
-            resizable: false,
-            ..Default::default()
-        })
-        .insert_resource(ImageSettings::default_nearest())
         .init_resource::<TimeScale>()
         .insert_resource(AudioVolume {
             music: 0.3,
@@ -99,13 +94,26 @@ pub fn run() {
         })
         .insert_resource(MusicTrack(""));
 
+    let default_plugins = DefaultPlugins
+        .set(WindowPlugin {
+            window: WindowDescriptor {
+                title: "Bounce Up!".into(),
+                width: config::ARENA_WIDTH,
+                height: config::ARENA_HEIGHT,
+                resizable: false,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .set(ImagePlugin {
+            default_sampler: ImageSampler::nearest_descriptor(),
+        });
+
     #[cfg(feature = "dot")]
-    app.add_plugins_with(DefaultPlugins, |plugins| {
-        plugins.disable::<bevy::log::LogPlugin>()
-    });
+    app.add_plugins(default_plugins.disable::<LogPlugin>());
 
     #[cfg(not(feature = "dot"))]
-    app.add_plugins(DefaultPlugins);
+    app.add_plugins(default_plugins);
 
     app.add_plugin(AudioPlugin)
         .add_state(AppState::Loading)
@@ -126,20 +134,18 @@ pub fn run() {
 }
 
 fn setup(mut commands: Commands) {
-    commands
-        .spawn_bundle(Camera2dBundle::default())
-        .insert(UiCameraConfig { ..default() });
+    commands.spawn((Camera2dBundle::default(), UiCameraConfig::default()));
 }
 
 fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Windows>) {
     if let Some(window) = windows.get_primary_mut() {
         match app_state.current() {
             AppState::Battle | AppState::Practice => {
-                window.set_cursor_lock_mode(true);
+                window.set_cursor_grab_mode(CursorGrabMode::Confined);
                 window.set_cursor_visibility(false);
             }
             _ => {
-                window.set_cursor_lock_mode(false);
+                window.set_cursor_grab_mode(CursorGrabMode::None);
                 window.set_cursor_visibility(true);
             }
         }

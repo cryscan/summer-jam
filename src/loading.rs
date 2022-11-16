@@ -13,7 +13,7 @@ impl Plugin for LoadingPlugin {
     }
 }
 
-#[derive(Default, Deref, DerefMut)]
+#[derive(Default, Resource, Deref, DerefMut)]
 struct AssetsLoading(Vec<HandleUntyped>);
 
 fn setup(server: Res<AssetServer>, mut loading: ResMut<AssetsLoading>) {

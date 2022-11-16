@@ -34,13 +34,13 @@ impl Plugin for GamePlugin {
             .add_event::<BounceEvent>()
             .add_event::<HealEvent>()
             .insert_resource(Debounce {
-                audio_bounce_long: Timer::from_seconds(0.5, false),
-                audio_bounce_short: Timer::from_seconds(0.1, false),
-                audio_hit: Timer::from_seconds(0.1, false),
-                bounce: Timer::from_seconds(0.1, false),
-                effects: Timer::from_seconds(0.1, false),
-                hit: Timer::from_seconds(0.1, false),
-                miss: Timer::from_seconds(0.5, false),
+                audio_bounce_long: Timer::from_seconds(0.5, TimerMode::Once),
+                audio_bounce_short: Timer::from_seconds(0.1, TimerMode::Once),
+                audio_hit: Timer::from_seconds(0.1, TimerMode::Once),
+                bounce: Timer::from_seconds(0.1, TimerMode::Once),
+                effects: Timer::from_seconds(0.1, TimerMode::Once),
+                hit: Timer::from_seconds(0.1, TimerMode::Once),
+                miss: Timer::from_seconds(0.5, TimerMode::Once),
             })
             .init_resource::<Slits>()
             .add_audio_channel::<BounceAudioChannel>()
@@ -76,7 +76,7 @@ impl Plugin for GamePlugin {
             )
             .add_system_set(
                 SystemSet::new()
-                    .with_run_criteria(FixedTimestep::step(AI_TIME_STEP))
+                    .with_run_criteria(FixedTimestep::step(AI_TIME_STEP as f64))
                     .with_system(predict_ball)
                     .with_system(control_enemy),
             )
@@ -87,8 +87,10 @@ impl Plugin for GamePlugin {
     }
 }
 
+#[derive(Resource)]
 struct BounceAudioChannel;
 
+#[derive(Resource)]
 struct ScoreAudioChannel;
 
 #[derive(Clone, Copy)]
@@ -116,6 +118,7 @@ struct BounceEvent {
     location: Vec2,
 }
 
+#[derive(Resource)]
 struct Debounce {
     audio_bounce_long: Timer,
     audio_bounce_short: Timer,
@@ -126,6 +129,8 @@ struct Debounce {
     hit: Timer,
     miss: Timer,
 }
+
+#[derive(Resource)]
 struct GameOver {
     slow_motion_timer: Timer,
     state_change_timer: Timer,
@@ -135,8 +140,11 @@ struct GameOver {
 impl Default for GameOver {
     fn default() -> Self {
         Self {
-            slow_motion_timer: Timer::from_seconds(GAME_OVER_SLOW_MOTION_DURATION, false),
-            state_change_timer: Timer::from_seconds(GAME_OVER_STATE_CHANGE_DURATION, false),
+            slow_motion_timer: Timer::from_seconds(GAME_OVER_SLOW_MOTION_DURATION, TimerMode::Once),
+            state_change_timer: Timer::from_seconds(
+                GAME_OVER_STATE_CHANGE_DURATION,
+                TimerMode::Once,
+            ),
             event: None,
         }
     }
@@ -151,6 +159,7 @@ enum BounceAudio {
     Hit,
 }
 
+#[derive(Resource)]
 struct Materials {
     player: Handle<Image>,
     enemy: Handle<Image>,
@@ -160,6 +169,7 @@ struct Materials {
     hit: Handle<TextureAtlas>,
 }
 
+#[derive(Resource)]
 struct Audios {
     hit_audio: Handle<AudioSource>,
     miss_audio: Handle<AudioSource>,
@@ -184,6 +194,8 @@ fn setup_game(
             Vec2::new(1024.0, 1024.0),
             4,
             4,
+            None,
+            None,
         )),
     });
 
@@ -204,22 +216,22 @@ fn setup_game(
 fn make_arena(mut commands: Commands) {
     // middle Separate
     commands
-        .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0.0, 8.0, 0.0),
-            sprite: Sprite {
-                color: BOUNDARY_COLOR,
-                custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
+        .spawn((
+            SpriteBundle {
+                transform: Transform::from_xyz(0.0, 8.0, 0.0),
+                sprite: Sprite {
+                    color: BOUNDARY_COLOR,
+                    custom_size: Some(Vec2::new(ARENA_WIDTH, 32.0)),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
-        .insert_bundle((
             RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5),
             PhysicsLayers::SEPARATE,
             Cleanup,
         ))
         .with_children(|parent| {
-            parent.spawn_bundle(SpriteBundle {
+            parent.spawn(SpriteBundle {
                 transform: Transform::from_xyz(0.0, -8.0, 0.0),
                 sprite: Sprite {
                     color: SEPARATE_COLOR,
@@ -231,8 +243,8 @@ fn make_arena(mut commands: Commands) {
         });
 
     // top boundary
-    commands
-        .spawn_bundle(SpriteBundle {
+    commands.spawn((
+        SpriteBundle {
             transform: Transform::from_xyz(0.0, ARENA_HEIGHT * 0.5 + 16.0, 0.0),
             sprite: Sprite {
                 color: BOUNDARY_COLOR,
@@ -240,18 +252,17 @@ fn make_arena(mut commands: Commands) {
                 ..Default::default()
             },
             ..Default::default()
-        })
-        .insert_bundle((
-            RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.0),
-            PhysicsLayers::BOUNDARY,
-            BounceAudio::Hit,
-            EnemyBase::default(),
-            Cleanup,
-        ));
+        },
+        RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.0),
+        PhysicsLayers::BOUNDARY,
+        BounceAudio::Hit,
+        EnemyBase::default(),
+        Cleanup,
+    ));
 
     // bottom boundary
-    commands
-        .spawn_bundle(SpriteBundle {
+    commands.spawn((
+        SpriteBundle {
             transform: Transform::from_xyz(0.0, -ARENA_HEIGHT * 0.5 - 16.0, 0.0),
             sprite: Sprite {
                 color: BOUNDARY_COLOR,
@@ -259,17 +270,16 @@ fn make_arena(mut commands: Commands) {
                 ..Default::default()
             },
             ..Default::default()
-        })
-        .insert_bundle((
-            RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5),
-            PhysicsLayers::BOUNDARY,
-            PlayerBase::default(),
-            Cleanup,
-        ));
+        },
+        RigidBody::new(Vec2::new(ARENA_WIDTH, 32.0), 0.0, 0.9, 0.5),
+        PhysicsLayers::BOUNDARY,
+        PlayerBase::default(),
+        Cleanup,
+    ));
 
     // left boundary
-    commands
-        .spawn_bundle(SpriteBundle {
+    commands.spawn((
+        SpriteBundle {
             transform: Transform::from_xyz(-ARENA_WIDTH * 0.5 - 16.0, 0.0, 0.0),
             sprite: Sprite {
                 color: BOUNDARY_COLOR,
@@ -277,17 +287,16 @@ fn make_arena(mut commands: Commands) {
                 ..Default::default()
             },
             ..Default::default()
-        })
-        .insert_bundle((
-            RigidBody::new(Vec2::new(32.0, ARENA_HEIGHT + 64.0), 0.0, 1.0, 0.0),
-            PhysicsLayers::BOUNDARY,
-            BounceAudio::Bounce,
-            Cleanup,
-        ));
+        },
+        RigidBody::new(Vec2::new(32.0, ARENA_HEIGHT + 64.0), 0.0, 1.0, 0.0),
+        PhysicsLayers::BOUNDARY,
+        BounceAudio::Bounce,
+        Cleanup,
+    ));
 
     // right boundary
-    commands
-        .spawn_bundle(SpriteBundle {
+    commands.spawn((
+        SpriteBundle {
             transform: Transform::from_xyz(ARENA_WIDTH * 0.5 + 16.0, 0.0, 0.0),
             sprite: Sprite {
                 color: BOUNDARY_COLOR,
@@ -295,72 +304,77 @@ fn make_arena(mut commands: Commands) {
                 ..Default::default()
             },
             ..Default::default()
-        })
-        .insert_bundle((
-            RigidBody::new(Vec2::new(32.0, ARENA_HEIGHT + 64.0), 0.0, 1.0, 0.0),
-            PhysicsLayers::BOUNDARY,
-            BounceAudio::Bounce,
-            Cleanup,
-        ));
+        },
+        RigidBody::new(Vec2::new(32.0, ARENA_HEIGHT + 64.0), 0.0, 1.0, 0.0),
+        PhysicsLayers::BOUNDARY,
+        BounceAudio::Bounce,
+        Cleanup,
+    ));
 }
 
 fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<AssetServer>) {
     commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Px(4.0)),
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    top: Val::Px(0.0),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Percent(100.0), Val::Px(4.0)),
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        top: Val::Px(0.0),
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
+                background_color: Color::NONE.into(),
                 ..Default::default()
             },
-            color: Color::NONE.into(),
-            ..Default::default()
-        })
-        .insert(Cleanup)
+            Cleanup,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(NodeBundle {
+            parent.spawn((
+                NodeBundle {
                     style: Style {
                         size: Size::new(Val::Percent(0.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    color: HEALTH_BAR_COLOR.into(),
+                    background_color: HEALTH_BAR_COLOR.into(),
                     ..Default::default()
-                })
-                .insert(HealthBar);
-            parent
-                .spawn_bundle(NodeBundle {
+                },
+                HealthBar,
+            ));
+            parent.spawn((
+                NodeBundle {
                     style: Style {
                         size: Size::new(Val::Percent(0.0), Val::Percent(100.0)),
                         ..Default::default()
                     },
-                    color: HEALTH_BAR_TRACKER_COLOR.into(),
+                    background_color: HEALTH_BAR_TRACKER_COLOR.into(),
                     ..Default::default()
-                })
-                .insert(HealthBarTracker::default());
+                },
+                HealthBarTracker::default(),
+            ));
         });
 
     commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Px(16.0)),
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    left: Val::Px(16.0),
-                    bottom: Val::Px(16.0),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Percent(100.0), Val::Px(16.0)),
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        left: Val::Px(16.0),
+                        bottom: Val::Px(16.0),
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
+                background_color: Color::NONE.into(),
                 ..Default::default()
             },
-            color: Color::NONE.into(),
-            ..Default::default()
-        })
-        .insert(Cleanup)
+            Cleanup,
+        ))
         .with_children(|parent| {
-            parent.spawn_bundle(NodeBundle {
+            parent.spawn(ImageBundle {
                 style: Style {
                     size: Size::new(Val::Px(16.0), Val::Px(16.0)),
                     ..Default::default()
@@ -369,8 +383,8 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                 ..Default::default()
             });
 
-            parent
-                .spawn_bundle(TextBundle {
+            parent.spawn((
+                TextBundle {
                     text: Text {
                         sections: vec![
                             TextSection {
@@ -393,23 +407,24 @@ fn make_ui(mut commands: Commands, materials: Res<Materials>, asset_server: Res<
                         ..Default::default()
                     },
                     ..Default::default()
-                })
-                .insert(BallCounter);
+                },
+                BallCounter,
+            ));
         });
 }
 
 fn make_player(mut commands: Commands, materials: Res<Materials>) {
     commands
-        .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0.0, -160.0, 0.0),
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT)),
-                color: PADDLE_COLOR,
+        .spawn((
+            SpriteBundle {
+                transform: Transform::from_xyz(0.0, -160.0, 0.0),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT)),
+                    color: PADDLE_COLOR,
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
-        .insert_bundle((
             RigidBody::new(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT), 3.0, 2.0, 1.0),
             Motion::default(),
             PhysicsLayers::PLAYER,
@@ -421,13 +436,13 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
             Cleanup,
         ))
         .with_children(|parent| {
-            parent.spawn_bundle(SpriteBundle {
+            parent.spawn(SpriteBundle {
                 transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
                 texture: materials.player.clone(),
                 ..Default::default()
             });
 
-            parent.spawn_bundle(SpriteBundle {
+            parent.spawn(SpriteBundle {
                 transform: Transform::from_xyz(PADDLE_WIDTH / 2.0 - 8.0, 0.0, 0.1),
                 texture: materials.player.clone(),
                 ..Default::default()
@@ -437,16 +452,16 @@ fn make_player(mut commands: Commands, materials: Res<Materials>) {
 
 fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
     commands
-        .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0.0, 160.0, 0.0),
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT)),
-                color: PADDLE_COLOR,
+        .spawn((
+            SpriteBundle {
+                transform: Transform::from_xyz(0.0, 160.0, 0.0),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT)),
+                    color: PADDLE_COLOR,
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
-        .insert_bundle((
             RigidBody::new(Vec2::new(PADDLE_WIDTH, PADDLE_HEIGHT), 3.0, 1.0, 1.0),
             Motion::default(),
             PhysicsLayers::PLAYER,
@@ -456,13 +471,13 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
             Cleanup,
         ))
         .with_children(|parent| {
-            parent.spawn_bundle(SpriteBundle {
+            parent.spawn(SpriteBundle {
                 transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
                 texture: materials.enemy.clone(),
                 ..Default::default()
             });
 
-            parent.spawn_bundle(SpriteBundle {
+            parent.spawn(SpriteBundle {
                 transform: Transform::from_xyz(PADDLE_WIDTH / 2.0 - 8.0, 0.0, 0.1),
                 texture: materials.enemy.clone(),
                 ..Default::default()
@@ -473,16 +488,16 @@ fn make_enemy(mut commands: Commands, materials: Res<Materials>) {
 fn make_ball(mut commands: Commands, materials: Res<Materials>) {
     let alpha = 1.0 / BALL_GHOSTS_COUNT as f32;
     commands
-        .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0.0, 0.0, -1.0),
-            texture: materials.ball.clone(),
-            sprite: Sprite {
-                color: Color::rgba(1.0, 1.0, 1.0, alpha),
+        .spawn((
+            SpriteBundle {
+                transform: Transform::from_xyz(0.0, 0.0, -1.0),
+                texture: materials.ball.clone(),
+                sprite: Sprite {
+                    color: Color::rgba(1.0, 1.0, 1.0, alpha),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
-        .insert_bundle((
             RigidBody::new(Vec2::new(BALL_SIZE, BALL_SIZE), 1.0, 1.0, 0.5),
             PhysicsLayers::BALL,
             BounceAudio::Bounce,
@@ -492,7 +507,7 @@ fn make_ball(mut commands: Commands, materials: Res<Materials>) {
         ))
         .with_children(|parent| {
             for _ in 0..BALL_GHOSTS_COUNT {
-                parent.spawn_bundle(SpriteBundle {
+                parent.spawn(SpriteBundle {
                     texture: materials.ball.clone(),
                     sprite: Sprite {
                         color: Color::rgba(1.0, 1.0, 1.0, alpha),
@@ -567,16 +582,18 @@ fn make_player_hint(
 ) {
     for entity in query.iter() {
         let hint = commands
-            .spawn_bundle(SpriteBundle {
-                transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
-                texture: materials.hint.clone(),
-                sprite: Sprite {
-                    color: HINT_COLOR,
+            .spawn((
+                SpriteBundle {
+                    transform: Transform::from_xyz(0.0, ARENA_HEIGHT / 2.0, 0.0),
+                    texture: materials.hint.clone(),
+                    sprite: Sprite {
+                        color: HINT_COLOR,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
-                ..Default::default()
-            })
-            .insert(Cleanup)
+                Cleanup,
+            ))
             .id();
 
         commands.entity(entity).insert(Hint(hint));
@@ -590,16 +607,18 @@ fn make_ball_hint(
 ) {
     for entity in query.iter() {
         let hint = commands
-            .spawn_bundle(SpriteBundle {
-                transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
-                texture: materials.hint.clone(),
-                sprite: Sprite {
-                    color: HINT_COLOR,
+            .spawn((
+                SpriteBundle {
+                    transform: Transform::from_xyz(0.0, -ARENA_HEIGHT / 2.0, 0.0),
+                    texture: materials.hint.clone(),
+                    sprite: Sprite {
+                        color: HINT_COLOR,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
-                ..Default::default()
-            })
-            .insert(Cleanup)
+                Cleanup,
+            ))
             .id();
 
         commands.entity(entity).insert(Hint(hint));
@@ -770,8 +789,8 @@ fn bounce_effects(
                     timer.effects.reset();
 
                     // hit effect
-                    commands
-                        .spawn_bundle(SpriteSheetBundle {
+                    commands.spawn((
+                        SpriteSheetBundle {
                             transform: Transform {
                                 translation: event.hit.location().extend(0.0),
                                 rotation: Quat::from_rotation_z(
@@ -781,9 +800,10 @@ fn bounce_effects(
                             },
                             texture_atlas: materials.hit.clone(),
                             ..Default::default()
-                        })
-                        .insert(HitEffect::default())
-                        .insert(Cleanup);
+                        },
+                        HitEffect::default(),
+                        Cleanup,
+                    ));
                 }
 
                 *bounce_entities = Some(event.entities);
@@ -808,19 +828,20 @@ fn score_effects(
             Vec2::new(0.0, -100.0),
             Vec2::new(0.0, 100.0),
         ] {
-            commands
-                .spawn_bundle(MaterialMesh2dBundle {
+            commands.spawn((
+                MaterialMesh2dBundle {
                     mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
                     material: color_materials.add(materials.death.clone().into()),
                     transform: Transform::from_translation((location + offset).extend(0.9)),
                     ..Default::default()
-                })
-                .insert(DeathEffect {
-                    timer: Timer::from_seconds(duration, false),
+                },
+                DeathEffect {
+                    timer: Timer::from_seconds(duration, TimerMode::Once),
                     speed: DEATH_EFFECT_SPEED,
                     acceleration: DEATH_EFFECT_ACCELERATION,
-                })
-                .insert(Cleanup);
+                },
+                Cleanup,
+            ));
         }
     };
 

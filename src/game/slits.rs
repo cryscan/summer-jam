@@ -2,6 +2,7 @@ use crate::{config::*, utils::Interpolation, TimeScale};
 use bevy::prelude::*;
 use std::time::Duration;
 
+#[derive(Resource)]
 pub struct Slits {
     pub count: usize,
     pub state: SlitState,

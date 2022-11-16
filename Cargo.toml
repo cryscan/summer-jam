@@ -1,6 +1,6 @@
 [package]
 name = "bounce-up"
-version = "1.4.4"
+version = "1.5.0"
 edition = "2021"
 
 [lib]
@@ -17,13 +17,13 @@ dot = []
 fastrand = "1.7"
 itertools = "0.10"
 wasm-bindgen = "0.2"
-bevy = { version = "0.8", default-features = false, features = [
+bevy = { version = "0.9", default-features = false, features = [
     "bevy_winit",
     "render",
     "png",
     "x11",
 ] }
-bevy_kira_audio = { version = "0.12", features = [
+bevy_kira_audio = { version = "0.13", features = [
     "wav",
     "flac",
     "ogg"

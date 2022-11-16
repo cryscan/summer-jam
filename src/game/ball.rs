@@ -14,8 +14,8 @@ impl Default for Ball {
     fn default() -> Self {
         Self {
             gravity: -1000.0,
-            set_timer: Timer::from_seconds(1.0, false),
-            active_timer: Timer::from_seconds(2.0, false),
+            set_timer: Timer::from_seconds(1.0, TimerMode::Once),
+            active_timer: Timer::from_seconds(2.0, TimerMode::Once),
         }
     }
 }
@@ -57,7 +57,7 @@ pub fn update_ball(
             let mut transform = child_query.get_mut(*child).unwrap();
             if let Some(motion) = motion {
                 transform.translation =
-                    (extent * offset * motion.velocity / BALL_MAX_SPEED as f32).extend(0.0);
+                    (extent * offset * motion.velocity / BALL_MAX_SPEED).extend(0.0);
             } else {
                 transform.translation = Vec3::ZERO;
             }
@@ -84,12 +84,12 @@ pub fn move_ball(
 pub struct Point {
     pub position: Vec2,
     pub velocity: Vec2,
-    pub time: f64,
+    pub time: f32,
 }
 
 #[derive(Component)]
 pub struct Trajectory {
-    pub start_time: f64,
+    pub start_time: f32,
     pub points: Vec<Point>,
 }
 
@@ -107,7 +107,7 @@ pub fn predict_ball(
     mut query: Query<(&Ball, &RigidBody, &Motion, &mut Trajectory)>,
 ) {
     for (ball, rigid_body, motion, mut trajectory) in query.iter_mut() {
-        let start_time = time.seconds_since_startup();
+        let start_time = time.elapsed_seconds();
         let boundary = (Vec2::new(ARENA_WIDTH, ARENA_HEIGHT) + rigid_body.size) / 2.0;
 
         let mut position = motion.translation.truncate();
@@ -124,8 +124,8 @@ pub fn predict_ball(
 
         trajectory.start_time = start_time;
         for point in trajectory.points.iter_mut().skip(1) {
-            velocity.y += ball.gravity * PREDICT_TIME_STEP as f32;
-            position += velocity * PREDICT_TIME_STEP as f32;
+            velocity.y += ball.gravity * PREDICT_TIME_STEP;
+            position += velocity * PREDICT_TIME_STEP;
 
             if position.x.abs() > boundary.x {
                 velocity.x *= -rigid_body.bounciness;

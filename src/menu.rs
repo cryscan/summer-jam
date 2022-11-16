@@ -8,6 +8,7 @@ use bevy_kira_audio::{Audio, AudioApp, AudioChannel, AudioControl};
 
 pub struct MenuPlugin;
 
+#[derive(Resource)]
 struct ButtonAudio;
 
 impl Plugin for MenuPlugin {
@@ -71,6 +72,7 @@ enum ValueAction {
     MusicVolume(f32),
 }
 
+#[derive(Resource)]
 struct ButtonStyle {
     button: Style,
     icon: Style,
@@ -140,20 +142,22 @@ fn make_menu(
     button_style: Res<ButtonStyle>,
 ) {
     commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                flex_direction: FlexDirection::ColumnReverse,
-                justify_content: JustifyContent::Center,
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
+                },
+                background_color: Color::NONE.into(),
                 ..Default::default()
             },
-            color: Color::NONE.into(),
-            ..Default::default()
-        })
-        .insert(Cleanup)
+            Cleanup,
+        ))
         .with_children(|parent| {
-            parent
-                .spawn_bundle(TextBundle {
+            parent.spawn((
+                TextBundle {
                     style: Style {
                         position: UiRect {
                             left: Val::Percent(10.0),
@@ -178,14 +182,12 @@ fn make_menu(
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
-                .insert(ColorText::new(
-                    FLIP_TEXT_COLORS.into(),
-                    30.0 / MENU_MUSIC_BPM,
-                ));
+                },
+                ColorText::new(FLIP_TEXT_COLORS.into(), 30.0 / MENU_MUSIC_BPM),
+            ));
 
-            parent
-                .spawn_bundle(TextBundle {
+            parent.spawn((
+                TextBundle {
                     style: Style {
                         position_type: PositionType::Absolute,
                         position: UiRect {
@@ -208,59 +210,66 @@ fn make_menu(
                         ..Default::default()
                     }),
                     ..Default::default()
-                })
-                .insert(HintText::new(480.0 / MENU_MUSIC_BPM));
+                },
+                HintText::new(480.0 / MENU_MUSIC_BPM),
+            ));
 
             parent
-                .spawn_bundle(ButtonBundle {
-                    style: button_style.button.clone(),
-                    color: NORMAL_BUTTON.into(),
-                    ..Default::default()
-                })
-                .insert(ButtonAction::Play)
+                .spawn((
+                    ButtonBundle {
+                        style: button_style.button.clone(),
+                        background_color: NORMAL_BUTTON.into(),
+                        ..Default::default()
+                    },
+                    ButtonAction::Play,
+                ))
                 .with_children(|parent| {
-                    parent.spawn_bundle(ImageBundle {
+                    parent.spawn(ImageBundle {
                         style: button_style.icon.clone(),
                         image: UiImage(asset_server.load(RIGHT_ICON)),
                         ..Default::default()
                     });
-                    parent.spawn_bundle(TextBundle {
+                    parent.spawn(TextBundle {
                         text: Text::from_section("Play", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
             parent
-                .spawn_bundle(ButtonBundle {
-                    style: button_style.button.clone(),
-                    color: NORMAL_BUTTON.into(),
-                    ..Default::default()
-                })
-                .insert(ButtonAction::Tutorial)
+                .spawn((
+                    ButtonBundle {
+                        style: button_style.button.clone(),
+                        background_color: NORMAL_BUTTON.into(),
+                        ..Default::default()
+                    },
+                    ButtonAction::Tutorial,
+                ))
                 .with_children(|parent| {
-                    parent.spawn_bundle(ImageBundle {
+                    parent.spawn(ImageBundle {
                         style: button_style.icon.clone(),
                         image: UiImage(asset_server.load(RETICLE_ICON)),
                         ..Default::default()
                     });
-                    parent.spawn_bundle(TextBundle {
+                    parent.spawn(TextBundle {
                         text: Text::from_section("Practice", button_style.text.clone()),
                         ..Default::default()
                     });
                 });
             parent
-                .spawn_bundle(ButtonBundle {
-                    style: button_style.button.clone(),
-                    color: NORMAL_BUTTON.into(),
-                    ..Default::default()
-                })
-                .insert(ButtonAction::Settings)
+                .spawn((
+                    ButtonBundle {
+                        style: button_style.button.clone(),
+                        background_color: NORMAL_BUTTON.into(),
+                        ..Default::default()
+                    },
+                    ButtonAction::Settings,
+                ))
                 .with_children(|parent| {
-                    parent.spawn_bundle(ImageBundle {
+                    parent.spawn(ImageBundle {
                         style: button_style.icon.clone(),
                         image: UiImage(asset_server.load(WRENCH_ICON)),
                         ..Default::default()
                     });
-                    parent.spawn_bundle(TextBundle {
+                    parent.spawn(TextBundle {
                         text: Text::from_section("Settings", button_style.text.clone()),
                         ..Default::default()
                     });
@@ -274,19 +283,21 @@ fn make_settings(
     button_style: Res<ButtonStyle>,
 ) {
     commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                flex_direction: FlexDirection::ColumnReverse,
-                justify_content: JustifyContent::Center,
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
+                },
+                background_color: Color::NONE.into(),
                 ..Default::default()
             },
-            color: Color::NONE.into(),
-            ..Default::default()
-        })
-        .insert(Cleanup)
+            Cleanup,
+        ))
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle {
+            parent.spawn(TextBundle {
                 style: Style {
                     position: UiRect {
                         left: Val::Percent(10.0),
@@ -315,17 +326,17 @@ fn make_settings(
 
             // audio volume
             parent
-                .spawn_bundle(NodeBundle {
+                .spawn(NodeBundle {
                     style: Style {
                         size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
                         align_items: AlignItems::Center,
                         ..Default::default()
                     },
-                    color: Color::NONE.into(),
+                    background_color: Color::NONE.into(),
                     ..Default::default()
                 })
                 .with_children(|parent| {
-                    parent.spawn_bundle(TextBundle {
+                    parent.spawn(TextBundle {
                         style: Style {
                             position: UiRect {
                                 left: Val::Percent(10.0),
@@ -352,8 +363,8 @@ fn make_settings(
                         ..Default::default()
                     });
                     for volume_setting in 0..=10 {
-                        parent
-                            .spawn_bundle(ButtonBundle {
+                        parent.spawn((
+                            ButtonBundle {
                                 style: Style {
                                     size: Size::new(Val::Px(20.0), Val::Px(20.0)),
                                     margin: UiRect {
@@ -363,26 +374,27 @@ fn make_settings(
                                     },
                                     ..button_style.button.clone()
                                 },
-                                color: NORMAL_SETTING_BUTTON.into(),
+                                background_color: NORMAL_SETTING_BUTTON.into(),
                                 ..Default::default()
-                            })
-                            .insert(ValueAction::AudioVolume(volume_setting as f32 / 10.0));
+                            },
+                            ValueAction::AudioVolume(volume_setting as f32 / 10.0),
+                        ));
                     }
                 });
 
             // music volume
             parent
-                .spawn_bundle(NodeBundle {
+                .spawn(NodeBundle {
                     style: Style {
                         size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
                         align_items: AlignItems::Center,
                         ..Default::default()
                     },
-                    color: Color::NONE.into(),
+                    background_color: Color::NONE.into(),
                     ..Default::default()
                 })
                 .with_children(|parent| {
-                    parent.spawn_bundle(TextBundle {
+                    parent.spawn(TextBundle {
                         style: Style {
                             position: UiRect {
                                 left: Val::Percent(10.0),
@@ -409,8 +421,8 @@ fn make_settings(
                         ..Default::default()
                     });
                     for volume_setting in 0..=10 {
-                        parent
-                            .spawn_bundle(ButtonBundle {
+                        parent.spawn((
+                            ButtonBundle {
                                 style: Style {
                                     size: Size::new(Val::Px(20.0), Val::Px(20.0)),
                                     margin: UiRect {
@@ -420,27 +432,30 @@ fn make_settings(
                                     },
                                     ..button_style.button.clone()
                                 },
-                                color: NORMAL_SETTING_BUTTON.into(),
+                                background_color: NORMAL_SETTING_BUTTON.into(),
                                 ..Default::default()
-                            })
-                            .insert(ValueAction::MusicVolume(volume_setting as f32 / 10.0));
+                            },
+                            ValueAction::MusicVolume(volume_setting as f32 / 10.0),
+                        ));
                     }
                 });
 
             parent
-                .spawn_bundle(ButtonBundle {
-                    style: button_style.button.clone(),
-                    color: NORMAL_BUTTON.into(),
-                    ..Default::default()
-                })
-                .insert(ButtonAction::Back)
+                .spawn((
+                    ButtonBundle {
+                        style: button_style.button.clone(),
+                        background_color: NORMAL_BUTTON.into(),
+                        ..Default::default()
+                    },
+                    ButtonAction::Back,
+                ))
                 .with_children(|parent| {
-                    parent.spawn_bundle(ImageBundle {
+                    parent.spawn(ImageBundle {
                         style: button_style.icon.clone(),
                         image: UiImage(asset_server.load(EXIT_ICON)),
                         ..Default::default()
                     });
-                    parent.spawn_bundle(TextBundle {
+                    parent.spawn(TextBundle {
                         text: Text::from_section("Back", button_style.text.clone()),
                         ..Default::default()
                     });
@@ -481,7 +496,7 @@ fn button_audio(
 #[allow(clippy::type_complexity)]
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut UiColor, &Children),
+        (&Interaction, &mut BackgroundColor, &Children),
         (Changed<Interaction>, With<Button>, With<ButtonAction>),
     >,
     mut text_query: Query<&mut Text>,
@@ -529,7 +544,7 @@ fn button_action(
 
 #[allow(clippy::type_complexity)]
 fn value_system(
-    mut interaction_query: Query<(&Interaction, &mut UiColor, &ValueAction), With<Button>>,
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor, &ValueAction), With<Button>>,
     volume: Res<AudioVolume>,
 ) {
     for (interaction, mut color, action) in interaction_query.iter_mut() {

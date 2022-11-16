@@ -101,7 +101,7 @@ impl Default for Heal {
     fn default() -> Self {
         Self {
             amount_per_second: ENEMY_BASE_FULL_HP,
-            timer: Timer::from_seconds(1.0, false),
+            timer: Timer::from_seconds(1.0, TimerMode::Once),
         }
     }
 }

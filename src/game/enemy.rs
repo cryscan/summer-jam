@@ -74,7 +74,7 @@ pub fn control_enemy(
                 enemy.max_speed * direction.normalize()
             } else {
                 // find the most suitable trajectory point
-                let delta_seconds = time.seconds_since_startup() - trajectory.start_time;
+                let delta_seconds = time.elapsed_seconds() - trajectory.start_time;
 
                 if let Some(candidate) = trajectory
                     .points
@@ -84,7 +84,7 @@ pub fn control_enemy(
                     .filter(|point| point.velocity.y > 0.0)
                     .filter(|point| {
                         // filter reachable points
-                        let time = (point.time - delta_seconds) as f32;
+                        let time = point.time - delta_seconds;
                         let distance = (point.position - position).length();
                         time > distance / enemy.normal_speed
                     })
@@ -100,7 +100,7 @@ pub fn control_enemy(
                 {
                     // find candidate, move to it at proper speed
                     let direction = candidate.position - position;
-                    let time = (candidate.time - delta_seconds) as f32;
+                    let time = candidate.time - delta_seconds;
                     let distance = direction.length();
 
                     let mut speed =

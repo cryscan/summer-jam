@@ -106,20 +106,20 @@ fn make_slit_blocks(mut commands: Commands, materials: Res<Materials>, mut slits
         };
 
         commands
-            .spawn_bundle(SpriteBundle {
-                transform: Transform::from_xyz(
-                    slit_block.position(slits_index),
-                    SLIT_POSITION_VERTICAL,
-                    0.1,
-                ),
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT)),
-                    color: PADDLE_COLOR,
+            .spawn((
+                SpriteBundle {
+                    transform: Transform::from_xyz(
+                        slit_block.position(slits_index),
+                        SLIT_POSITION_VERTICAL,
+                        0.1,
+                    ),
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT)),
+                        color: PADDLE_COLOR,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
-                ..Default::default()
-            })
-            .insert_bundle((
                 RigidBody::new(
                     Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT),
                     0.0,
@@ -132,13 +132,13 @@ fn make_slit_blocks(mut commands: Commands, materials: Res<Materials>, mut slits
                 Cleanup,
             ))
             .with_children(|parent| {
-                parent.spawn_bundle(SpriteBundle {
+                parent.spawn(SpriteBundle {
                     transform: Transform::from_xyz(-PADDLE_WIDTH / 2.0 + 8.0, 0.0, 0.1),
                     texture: materials.enemy.clone(),
                     ..Default::default()
                 });
 
-                parent.spawn_bundle(SpriteBundle {
+                parent.spawn(SpriteBundle {
                     transform: Transform::from_xyz(PADDLE_WIDTH / 2.0 - 8.0, 0.0, 0.1),
                     texture: materials.enemy.clone(),
                     ..Default::default()
@@ -161,7 +161,7 @@ fn change_slits(mut slits: ResMut<Slits>, mut player_hit_events: EventReader<Pla
         slits.state = SlitState::Move {
             previous,
             next,
-            timer: Timer::from_seconds(0.1, false),
+            timer: Timer::from_seconds(0.1, TimerMode::Once),
         };
     }
 }
