@@ -89,7 +89,7 @@ pub fn move_player(
     }
 }
 
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::manual_clamp)]
 pub fn assist_player(
     time: Res<Time>,
     mut time_scale: ResMut<TimeScale>,

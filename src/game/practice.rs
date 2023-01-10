@@ -153,7 +153,7 @@ fn make_slit_blocks(mut commands: Commands, materials: Res<Materials>, mut slits
                     Vec2::new(SLIT_BLOCK_WIDTH, SLIT_BLOCK_HEIGHT),
                     0.0,
                     1.0,
-                    1.0,
+                    0.0,
                 ),
                 PhysicsLayers::BOUNDARY,
                 BounceAudio::Bounce,

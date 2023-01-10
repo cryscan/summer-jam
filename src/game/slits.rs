@@ -34,7 +34,7 @@ pub struct SlitBlock {
 
 impl SlitBlock {
     pub fn position(&self, index: usize) -> f32 {
-        let offset = if self.index < index { 0 } else { 1 };
+        let offset = usize::from(self.index >= index);
         (self.index + offset) as f32 * self.width + (self.width - ARENA_WIDTH) / 2.0
     }
 }
