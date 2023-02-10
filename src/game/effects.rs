@@ -83,17 +83,19 @@ impl Material2d for DeathEffectMaterial {
         _layout: &Hashed<InnerMeshVertexBufferLayout, FixedState>,
         _key: Material2dKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
-        if let Some(fragment) = &mut descriptor.fragment {
-            if let Some(t) = &mut fragment.targets[0] {
-                t.blend = Some(BlendState {
-                    color: BlendComponent {
-                        src_factor: BlendFactor::OneMinusDst,
-                        dst_factor: BlendFactor::OneMinusSrcAlpha,
-                        operation: BlendOperation::Add,
-                    },
-                    alpha: BlendComponent::OVER,
-                });
-            }
+        if let Some(target) = descriptor
+            .fragment
+            .as_mut()
+            .and_then(|fragment| fragment.targets[0].as_mut())
+        {
+            target.blend = Some(BlendState {
+                color: BlendComponent {
+                    src_factor: BlendFactor::OneMinusDst,
+                    dst_factor: BlendFactor::OneMinusSrc,
+                    operation: BlendOperation::Add,
+                },
+                alpha: BlendComponent::OVER,
+            });
         }
 
         Ok(())
