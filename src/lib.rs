@@ -134,7 +134,16 @@ pub fn run() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn((Camera2dBundle::default(), UiCameraConfig::default()));
+    commands.spawn((
+        Camera2dBundle {
+            camera: Camera {
+                hdr: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        UiCameraConfig::default(),
+    ));
 }
 
 fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Windows>) {
