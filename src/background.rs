@@ -43,13 +43,10 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<BackgroundMaterial>>,
 ) {
+    let size = Vec2::new(ARENA_WIDTH + 16.0, ARENA_HEIGHT + 16.0);
     commands.spawn(MaterialMesh2dBundle {
-        mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
-        transform: Transform {
-            translation: Vec3::new(0.0, 0.0, -0.09),
-            scale: Vec3::new(ARENA_WIDTH + 16.0, ARENA_HEIGHT + 16.0, 1.0),
-            ..Default::default()
-        },
+        mesh: meshes.add(Mesh::from(shape::Quad::new(size))).into(),
+        transform: Transform::from_xyz(0.0, 0.0, -0.09),
         material: materials.add(BackgroundMaterial {
             time: 0.0,
             velocity: Vec3::new(2.0, 1.0, 0.0),

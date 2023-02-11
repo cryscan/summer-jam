@@ -872,7 +872,7 @@ fn score_effects(
         ] {
             commands.spawn((
                 MaterialMesh2dBundle {
-                    mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
+                    mesh: meshes.add(shape::Quad::default().into()).into(),
                     material: color_materials.add(materials.death.clone().into()),
                     transform: Transform::from_translation((location + offset).extend(0.9)),
                     ..Default::default()
@@ -882,6 +882,7 @@ fn score_effects(
                     speed: DEATH_EFFECT_SPEED,
                     acceleration: DEATH_EFFECT_ACCELERATION,
                 },
+                DEATH_EFFECT_LAYER,
                 Cleanup,
             ));
         }

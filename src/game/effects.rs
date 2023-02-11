@@ -1,17 +1,18 @@
-use crate::{constants::HIT_EFFECT_TIME_STEP, TimeScale};
+use crate::{
+    constants::{ARENA_HEIGHT, ARENA_WIDTH, DEATH_EFFECT_LAYER, HIT_EFFECT_TIME_STEP},
+    TimeScale,
+};
 use bevy::{
+    core_pipeline::clear_color::ClearColorConfig,
     prelude::*,
     reflect::TypeUuid,
     render::{
-        mesh::InnerMeshVertexBufferLayout,
-        render_asset::RenderAssets,
-        render_resource::{
-            AsBindGroup, AsBindGroupShaderType, BlendComponent, BlendFactor, BlendOperation,
-            BlendState, RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError,
-        },
+        camera::RenderTarget, mesh::InnerMeshVertexBufferLayout, render_asset::RenderAssets,
+        render_resource::*, texture::BevyDefault,
     },
     sprite::{
         ColorMaterialFlags, ColorMaterialUniform, Material2d, Material2dKey, Material2dPlugin,
+        MaterialMesh2dBundle,
     },
     utils::{FixedState, Hashed},
 };
@@ -21,12 +22,45 @@ pub struct EffectsPlugin;
 
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(CameraShakeTimer(Timer::from_seconds(0.02, TimerMode::Once)))
+        app.add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
+            .init_resource::<DeathEffectTexture>()
+            .insert_resource(CameraShakeTimer(Timer::from_seconds(0.02, TimerMode::Once)))
             .add_event::<CameraShakeEvent>()
-            .add_plugin(Material2dPlugin::<DeathEffectMaterial>::default())
+            .add_startup_system(setup)
             .add_system(death_effect_system)
             .add_system(hit_effect_system)
             .add_system(camera_shake_system);
+    }
+}
+
+#[derive(Resource)]
+pub struct DeathEffectTexture(Handle<Image>);
+
+impl FromWorld for DeathEffectTexture {
+    fn from_world(world: &mut World) -> Self {
+        let size = Extent3d {
+            width: ARENA_WIDTH as u32,
+            height: ARENA_HEIGHT as u32,
+            depth_or_array_layers: 1,
+        };
+        let mut image = Image {
+            texture_descriptor: TextureDescriptor {
+                label: None,
+                size,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::bevy_default(),
+                usage: TextureUsages::RENDER_ATTACHMENT
+                    | TextureUsages::COPY_DST
+                    | TextureUsages::TEXTURE_BINDING,
+            },
+            ..Default::default()
+        };
+        image.resize(size);
+
+        let mut images = world.resource_mut::<Assets<Image>>();
+        Self(images.add(image))
     }
 }
 
@@ -88,13 +122,14 @@ impl Material2d for DeathEffectMaterial {
             .as_mut()
             .and_then(|fragment| fragment.targets[0].as_mut())
         {
+            let blend = BlendComponent {
+                src_factor: BlendFactor::OneMinusDst,
+                dst_factor: BlendFactor::OneMinusSrc,
+                operation: BlendOperation::Add,
+            };
             target.blend = Some(BlendState {
-                color: BlendComponent {
-                    src_factor: BlendFactor::OneMinusDst,
-                    dst_factor: BlendFactor::OneMinusSrc,
-                    operation: BlendOperation::Add,
-                },
-                alpha: BlendComponent::OVER,
+                color: blend,
+                alpha: blend,
             });
         }
 
@@ -107,6 +142,37 @@ pub struct DeathEffect {
     pub timer: Timer,
     pub speed: f32,
     pub acceleration: f32,
+}
+
+fn setup(
+    mut commands: Commands,
+    texture: Res<DeathEffectTexture>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<DeathEffectMaterial>>,
+) {
+    commands.spawn((
+        Camera2dBundle {
+            camera: Camera {
+                priority: -1,
+                target: RenderTarget::Image(texture.0.clone()),
+                ..Default::default()
+            },
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(Color::NONE),
+            },
+            ..Default::default()
+        },
+        UiCameraConfig { show_ui: false },
+        DEATH_EFFECT_LAYER,
+    ));
+
+    let size = Vec2::new(ARENA_WIDTH, ARENA_HEIGHT);
+    commands.spawn(MaterialMesh2dBundle {
+        mesh: meshes.add(shape::Quad::new(size).into()).into(),
+        material: materials.add(texture.0.clone().into()),
+        transform: Transform::from_xyz(0.0, 0.0, 0.1),
+        ..Default::default()
+    });
 }
 
 fn death_effect_system(

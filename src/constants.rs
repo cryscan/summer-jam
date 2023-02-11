@@ -1,7 +1,9 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 
 pub const ARENA_WIDTH: f32 = 480.0;
 pub const ARENA_HEIGHT: f32 = 640.0;
+
+pub const DEATH_EFFECT_LAYER: RenderLayers = RenderLayers::layer(1);
 
 pub const BACKGROUND_SHADER: &str = "shaders/background.wgsl";
 

@@ -112,7 +112,7 @@ fn make_ui(
                             },
                         },
                         TextSection {
-                            value: format!("{:.2}", time_passed),
+                            value: format!("{time_passed:.2}"),
                             style: TextStyle {
                                 font: asset_server.load(FONT_KARMATIC),
                                 font_size: 20.0,
