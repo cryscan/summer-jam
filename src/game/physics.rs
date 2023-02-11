@@ -1,5 +1,5 @@
 use crate::{
-    config::{PHYSICS_REST_SPEED, PHYSICS_TIME_STEP},
+    constants::{PHYSICS_REST_SPEED, PHYSICS_TIME_STEP},
     utils::*,
     TimeScale,
 };

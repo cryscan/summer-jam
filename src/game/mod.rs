@@ -3,7 +3,7 @@ use self::{
     slits::*,
 };
 use crate::{
-    config::*,
+    constants::*,
     score::Score,
     utils::{cleanup_system, escape_system, Damp, Intermediate},
     AppState, AudioVolume, MusicTrack, TimeScale,

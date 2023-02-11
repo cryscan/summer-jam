@@ -1,5 +1,5 @@
 use crate::{
-    config::{ARENA_HEIGHT, ARENA_WIDTH, BACKGROUND_SHADER},
+    constants::{ARENA_HEIGHT, ARENA_WIDTH, BACKGROUND_SHADER},
     TimeScale,
 };
 use bevy::{

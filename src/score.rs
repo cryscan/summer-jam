@@ -1,4 +1,4 @@
-use crate::{config::*, AppState, ColorText, TimeScale};
+use crate::{constants::*, AppState, ColorText, TimeScale};
 use bevy::prelude::*;
 
 pub struct ScorePlugin;

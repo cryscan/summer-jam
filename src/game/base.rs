@@ -1,4 +1,4 @@
-use crate::{config::*, utils::Damp};
+use crate::{constants::*, utils::Damp};
 use bevy::prelude::*;
 
 #[derive(Component)]

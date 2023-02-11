@@ -1,4 +1,4 @@
-use crate::{config::*, AppState};
+use crate::{constants::*, AppState};
 use bevy::{app::AppExit, prelude::*};
 
 pub struct LoadingPlugin;

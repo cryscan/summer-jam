@@ -2,7 +2,7 @@ use super::{
     ball::{Ball, Trajectory},
     physics::Motion,
 };
-use crate::{config::*, utils::Damp, TimeScale};
+use crate::{constants::*, utils::Damp, TimeScale};
 use bevy::prelude::*;
 
 #[derive(Component)]

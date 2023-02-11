@@ -1,5 +1,5 @@
 use crate::{
-    config::*,
+    constants::*,
     utils::{cleanup_system, escape_system},
     AppState, AudioVolume, ColorText, HintText, MusicTrack, TimeScale,
 };

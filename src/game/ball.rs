@@ -1,5 +1,5 @@
 use super::physics::{Motion, RigidBody};
-use crate::{config::*, TimeScale};
+use crate::{constants::*, TimeScale};
 use bevy::prelude::*;
 use std::f32::consts::FRAC_PI_2;
 

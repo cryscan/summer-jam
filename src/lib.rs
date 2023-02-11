@@ -3,7 +3,7 @@ use bevy_kira_audio::AudioPlugin;
 use wasm_bindgen::prelude::*;
 
 mod background;
-mod config;
+mod constants;
 mod game;
 mod loading;
 mod menu;
@@ -98,8 +98,8 @@ pub fn run() {
         .set(WindowPlugin {
             window: WindowDescriptor {
                 title: "Bounce Up!".into(),
-                width: config::ARENA_WIDTH,
-                height: config::ARENA_HEIGHT,
+                width: constants::ARENA_WIDTH,
+                height: constants::ARENA_HEIGHT,
                 resizable: false,
                 ..Default::default()
             },

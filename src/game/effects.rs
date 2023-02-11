@@ -1,4 +1,4 @@
-use crate::{config::HIT_EFFECT_TIME_STEP, TimeScale};
+use crate::{constants::HIT_EFFECT_TIME_STEP, TimeScale};
 use bevy::{
     prelude::*,
     reflect::TypeUuid,

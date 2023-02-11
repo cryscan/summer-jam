@@ -3,7 +3,7 @@ use super::{
     enemy::Controller,
     physics::{CollisionEvent, Motion},
 };
-use crate::{config::*, utils::Damp, TimeScale};
+use crate::{constants::*, utils::Damp, TimeScale};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use std::{ops::Add, time::Duration};
 
