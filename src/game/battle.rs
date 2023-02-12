@@ -77,7 +77,7 @@ fn game_over_system(
             *game_over = GameOver::default();
 
             match event {
-                GameOverEvent::Win => app_state.set(AppState::Win).unwrap(),
+                GameOverEvent::Win => app_state.set(AppState::Score).unwrap(),
                 GameOverEvent::Lose => app_state.set(AppState::Menu).unwrap(),
             }
         }

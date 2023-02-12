@@ -4,7 +4,6 @@ use self::{
 use crate::{
     constants::*,
     effects::*,
-    score::Score,
     utils::{cleanup_system, escape_system, Damp, Intermediate},
     AppState, AudioVolume, MusicTrack, TimeScale,
 };
@@ -41,6 +40,7 @@ impl Plugin for GamePlugin {
                 hit: Timer::from_seconds(0.1, TimerMode::Once),
                 miss: Timer::from_seconds(0.5, TimerMode::Once),
             })
+            .init_resource::<Score>()
             .init_resource::<Slits>()
             .add_audio_channel::<BounceAudioChannel>()
             .add_audio_channel::<ScoreAudioChannel>()
@@ -145,6 +145,24 @@ impl Default for GameOver {
                 TimerMode::Once,
             ),
             event: None,
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct Score {
+    pub timestamp: f32,
+    pub hits: i32,
+    pub miss: i32,
+}
+
+impl FromWorld for Score {
+    fn from_world(world: &mut World) -> Self {
+        let time = world.resource::<Time>();
+        Self {
+            timestamp: time.elapsed_seconds(),
+            hits: 0,
+            miss: 0,
         }
     }
 }

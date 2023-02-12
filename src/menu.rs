@@ -1,5 +1,6 @@
 use crate::{
     constants::*,
+    game::Score,
     utils::{cleanup_system, escape_system},
     AppState, AudioVolume, ColorText, HintText, MusicTrack, TimeScale,
 };
@@ -36,6 +37,14 @@ impl Plugin for MenuPlugin {
             .add_system_set(SystemSet::on_update(AppState::Settings).with_system(escape_system))
             .add_system_set(
                 SystemSet::on_exit(AppState::Settings).with_system(cleanup_system::<Cleanup>),
+            )
+            .add_system_set(
+                SystemSet::on_enter(AppState::Score)
+                    .with_system(enter_score)
+                    .with_system(make_score),
+            )
+            .add_system_set(
+                SystemSet::on_exit(AppState::Score).with_system(cleanup_system::<Cleanup>),
             );
     }
 }
@@ -427,6 +436,181 @@ fn make_settings(
                         ));
                     }
                 });
+
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: button_style.button.clone(),
+                        background_color: BUTTON_NORMAL_COLOR.into(),
+                        ..Default::default()
+                    },
+                    ButtonAction::Back,
+                ))
+                .with_children(|parent| {
+                    parent.spawn(ImageBundle {
+                        style: button_style.icon.clone(),
+                        image: UiImage(asset_server.load(EXIT_ICON)),
+                        ..Default::default()
+                    });
+                    parent.spawn(TextBundle {
+                        text: Text::from_section("Back", button_style.text.clone()),
+                        ..Default::default()
+                    });
+                });
+        });
+}
+
+fn enter_score(mut time_scale: ResMut<TimeScale>) {
+    time_scale.reset();
+}
+
+fn make_score(
+    mut commands: Commands,
+    time: Res<Time>,
+    score: Res<Score>,
+    asset_server: Res<AssetServer>,
+    button_style: Res<ButtonStyle>,
+) {
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
+                },
+                background_color: Color::NONE.into(),
+                ..Default::default()
+            },
+            Cleanup,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                TextBundle {
+                    style: Style {
+                        position: UiRect {
+                            left: Val::Percent(10.0),
+                            ..Default::default()
+                        },
+                        margin: UiRect {
+                            bottom: Val::Percent(20.0),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    text: Text::from_section(
+                        "You Win!",
+                        TextStyle {
+                            font: asset_server.load(FONT_ARCADE),
+                            font_size: 50.0,
+                            color: Color::WHITE,
+                        },
+                    )
+                    .with_alignment(TextAlignment {
+                        horizontal: HorizontalAlign::Center,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                ColorText::new(FLIP_TEXT_COLORS.into(), 30.0 / MENU_MUSIC_BPM),
+            ));
+
+            let term_style = Style {
+                size: Size::new(Val::Percent(100.0), Val::Px(30.0)),
+                position: UiRect {
+                    left: Val::Percent(10.0),
+                    ..Default::default()
+                },
+                margin: UiRect {
+                    top: Val::Px(10.0),
+                    bottom: Val::Px(10.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+
+            // time
+            let time_passed = time.elapsed_seconds() - score.timestamp;
+            parent.spawn(TextBundle {
+                style: term_style.clone(),
+                text: Text {
+                    sections: vec![
+                        TextSection {
+                            value: "Time: ".into(),
+                            style: TextStyle {
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                            },
+                        },
+                        TextSection {
+                            value: format!("{time_passed:.2}"),
+                            style: TextStyle {
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
+                                color: Color::GOLD,
+                            },
+                        },
+                    ],
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
+
+            // player hits
+            parent.spawn(TextBundle {
+                style: term_style.clone(),
+                text: Text {
+                    sections: vec![
+                        TextSection {
+                            value: "Hits: ".into(),
+                            style: TextStyle {
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                            },
+                        },
+                        TextSection {
+                            value: score.hits.to_string(),
+                            style: TextStyle {
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
+                                color: Color::GOLD,
+                            },
+                        },
+                    ],
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
+
+            // player miss
+            parent.spawn(TextBundle {
+                style: term_style,
+                text: Text {
+                    sections: vec![
+                        TextSection {
+                            value: "Miss: ".into(),
+                            style: TextStyle {
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                            },
+                        },
+                        TextSection {
+                            value: score.miss.to_string(),
+                            style: TextStyle {
+                                font: asset_server.load(FONT_KARMATIC),
+                                font_size: 20.0,
+                                color: Color::GOLD,
+                            },
+                        },
+                    ],
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
 
             parent
                 .spawn((

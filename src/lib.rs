@@ -8,7 +8,6 @@ mod effects;
 mod game;
 mod loading;
 mod menu;
-mod score;
 mod utils;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -18,7 +17,7 @@ pub enum AppState {
     Settings,
     Battle,
     Practice,
-    Win,
+    Score,
 }
 
 #[derive(Resource)]
@@ -128,7 +127,6 @@ pub fn run() {
         .add_plugin(loading::LoadingPlugin)
         .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)
-        .add_plugin(score::ScorePlugin)
         .add_plugin(effects::EffectsPlugin)
         .add_plugin(background::BackgroundPlugin);
 
