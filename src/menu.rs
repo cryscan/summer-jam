@@ -40,18 +40,6 @@ impl Plugin for MenuPlugin {
     }
 }
 
-const NORMAL_BUTTON: Color = Color::NONE;
-const HOVERED_BUTTON: Color = Color::WHITE;
-const PRESSED_BUTTON: Color = Color::WHITE;
-
-const NORMAL_SETTING_BUTTON: Color = Color::BLACK;
-const ACTIVE_SETTING_BUTTON: Color = Color::WHITE;
-const HOVERED_SETTING_BUTTON: Color = Color::GRAY;
-
-const NORMAL_BUTTON_TEXT: Color = Color::WHITE;
-const HOVERED_BUTTON_TEXT: Color = Color::BLACK;
-const PRESSED_BUTTON_TEXT: Color = Color::BLACK;
-
 #[derive(Component)]
 struct Cleanup;
 
@@ -112,7 +100,7 @@ impl FromWorld for ButtonStyle {
             text: TextStyle {
                 font: asset_server.load(FONT_KARMATIC),
                 font_size: 20.0,
-                color: NORMAL_BUTTON_TEXT,
+                color: BUTTON_TEXT_NORMAL_COLOR,
             },
         }
     }
@@ -218,7 +206,7 @@ fn make_menu(
                 .spawn((
                     ButtonBundle {
                         style: button_style.button.clone(),
-                        background_color: NORMAL_BUTTON.into(),
+                        background_color: BUTTON_NORMAL_COLOR.into(),
                         ..Default::default()
                     },
                     ButtonAction::Play,
@@ -238,7 +226,7 @@ fn make_menu(
                 .spawn((
                     ButtonBundle {
                         style: button_style.button.clone(),
-                        background_color: NORMAL_BUTTON.into(),
+                        background_color: BUTTON_NORMAL_COLOR.into(),
                         ..Default::default()
                     },
                     ButtonAction::Tutorial,
@@ -258,7 +246,7 @@ fn make_menu(
                 .spawn((
                     ButtonBundle {
                         style: button_style.button.clone(),
-                        background_color: NORMAL_BUTTON.into(),
+                        background_color: BUTTON_NORMAL_COLOR.into(),
                         ..Default::default()
                     },
                     ButtonAction::Settings,
@@ -374,7 +362,7 @@ fn make_settings(
                                     },
                                     ..button_style.button.clone()
                                 },
-                                background_color: NORMAL_SETTING_BUTTON.into(),
+                                background_color: SETTING_NORMAL_COLOR.into(),
                                 ..Default::default()
                             },
                             ValueAction::AudioVolume(volume_setting as f32 / 10.0),
@@ -432,7 +420,7 @@ fn make_settings(
                                     },
                                     ..button_style.button.clone()
                                 },
-                                background_color: NORMAL_SETTING_BUTTON.into(),
+                                background_color: SETTING_NORMAL_COLOR.into(),
                                 ..Default::default()
                             },
                             ValueAction::MusicVolume(volume_setting as f32 / 10.0),
@@ -444,7 +432,7 @@ fn make_settings(
                 .spawn((
                     ButtonBundle {
                         style: button_style.button.clone(),
-                        background_color: NORMAL_BUTTON.into(),
+                        background_color: BUTTON_NORMAL_COLOR.into(),
                         ..Default::default()
                     },
                     ButtonAction::Back,
@@ -507,16 +495,16 @@ fn button_system(
                 let text_color = &mut text.sections[0].style.color;
                 match *interaction {
                     Interaction::Clicked => {
-                        *text_color = PRESSED_BUTTON_TEXT;
-                        *color = PRESSED_BUTTON.into();
+                        *text_color = BUTTON_TEXT_PRESSED_COLOR;
+                        *color = BUTTON_PRESSED_COLOR.into();
                     }
                     Interaction::Hovered => {
-                        *text_color = HOVERED_BUTTON_TEXT;
-                        *color = HOVERED_BUTTON.into();
+                        *text_color = BUTTON_TEXT_HOVERED_COLOR;
+                        *color = BUTTON_HOVERED_COLOR.into();
                     }
                     Interaction::None => {
-                        *text_color = NORMAL_BUTTON_TEXT;
-                        *color = NORMAL_BUTTON.into();
+                        *text_color = BUTTON_TEXT_NORMAL_COLOR;
+                        *color = BUTTON_NORMAL_COLOR.into();
                     }
                 }
             }
@@ -549,18 +537,18 @@ fn value_system(
 ) {
     for (interaction, mut color, action) in interaction_query.iter_mut() {
         match *interaction {
-            Interaction::Hovered => *color = HOVERED_SETTING_BUTTON.into(),
+            Interaction::Hovered => *color = SETTING_HOVERED_COLOR.into(),
             _ => {
-                *color = NORMAL_SETTING_BUTTON.into();
+                *color = SETTING_NORMAL_COLOR.into();
                 match action {
                     ValueAction::AudioVolume(v) => {
                         if volume.effects >= *v {
-                            *color = ACTIVE_SETTING_BUTTON.into();
+                            *color = SETTING_ACTIVE_COLOR.into();
                         }
                     }
                     ValueAction::MusicVolume(v) => {
                         if volume.music >= *v {
-                            *color = ACTIVE_SETTING_BUTTON.into();
+                            *color = SETTING_ACTIVE_COLOR.into();
                         }
                     }
                 };

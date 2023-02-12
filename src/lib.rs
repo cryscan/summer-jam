@@ -4,6 +4,7 @@ use wasm_bindgen::prelude::*;
 
 mod background;
 mod constants;
+mod effects;
 mod game;
 mod loading;
 mod menu;
@@ -128,6 +129,7 @@ pub fn run() {
         .add_plugin(menu::MenuPlugin)
         .add_plugin(game::GamePlugin)
         .add_plugin(score::ScorePlugin)
+        .add_plugin(effects::EffectsPlugin)
         .add_plugin(background::BackgroundPlugin);
 
     #[cfg(feature = "dot")]

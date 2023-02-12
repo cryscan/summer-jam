@@ -36,6 +36,18 @@ pub const HEALTH_BAR_COLOR: Color = Color::rgb(0.608, 0.678, 0.718);
 pub const HEALTH_BAR_TRACKER_COLOR: Color = Color::rgb(0.851, 0.341, 0.388);
 pub const HINT_COLOR: Color = Color::rgba(1.0, 1.0, 1.0, 0.2);
 
+pub const BUTTON_NORMAL_COLOR: Color = Color::NONE;
+pub const BUTTON_HOVERED_COLOR: Color = Color::WHITE;
+pub const BUTTON_PRESSED_COLOR: Color = Color::WHITE;
+
+pub const SETTING_NORMAL_COLOR: Color = Color::BLACK;
+pub const SETTING_ACTIVE_COLOR: Color = Color::WHITE;
+pub const SETTING_HOVERED_COLOR: Color = Color::GRAY;
+
+pub const BUTTON_TEXT_NORMAL_COLOR: Color = Color::WHITE;
+pub const BUTTON_TEXT_HOVERED_COLOR: Color = Color::BLACK;
+pub const BUTTON_TEXT_PRESSED_COLOR: Color = Color::BLACK;
+
 pub const FLIP_TEXT_COLORS: [Color; 2] = [Color::WHITE, Color::GOLD];
 
 pub const MISS_AUDIO: &str = "audios/miss.flac";

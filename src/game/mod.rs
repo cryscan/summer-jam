@@ -1,9 +1,9 @@
 use self::{
-    ball::*, base::*, battle::*, effects::*, enemy::*, hint::*, physics::*, player::*, practice::*,
-    slits::*,
+    ball::*, base::*, battle::*, enemy::*, hint::*, physics::*, player::*, practice::*, slits::*,
 };
 use crate::{
     constants::*,
+    effects::*,
     score::Score,
     utils::{cleanup_system, escape_system, Damp, Intermediate},
     AppState, AudioVolume, MusicTrack, TimeScale,
@@ -16,7 +16,6 @@ use std::f32::consts::FRAC_PI_4;
 mod ball;
 mod base;
 mod battle;
-mod effects;
 mod enemy;
 mod hint;
 mod physics;
@@ -82,7 +81,6 @@ impl Plugin for GamePlugin {
                     .with_system(control_enemy),
             )
             .add_plugin(PhysicsPlugin)
-            .add_plugin(EffectsPlugin)
             .add_plugin(BattlePlugin)
             .add_plugin(PracticePlugin);
     }
