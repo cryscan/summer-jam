@@ -1,6 +1,6 @@
 use crate::{
     constants::{ARENA_HEIGHT, ARENA_WIDTH, DEATH_EFFECT_LAYER, HIT_EFFECT_TIME_STEP},
-    TimeScale,
+    MainCamera, TimeScale,
 };
 use bevy::{
     core_pipeline::clear_color::ClearColorConfig,
@@ -137,7 +137,10 @@ impl Material2d for DeathEffectMaterial {
     }
 }
 
-#[derive(Clone, Component)]
+#[derive(Component)]
+pub struct DeathEffectCamera;
+
+#[derive(Component)]
 pub struct DeathEffect {
     pub timer: Timer,
     pub speed: f32,
@@ -163,6 +166,7 @@ fn setup(
             ..Default::default()
         },
         UiCameraConfig { show_ui: false },
+        DeathEffectCamera,
         DEATH_EFFECT_LAYER,
     ));
 
@@ -249,7 +253,7 @@ fn camera_shake_system(
     mut events: EventReader<CameraShakeEvent>,
     time: Res<Time>,
     mut timer: ResMut<CameraShakeTimer>,
-    mut cameras: Query<(&mut Transform, &Camera)>,
+    mut cameras: Query<(&mut Transform, &Camera), With<MainCamera>>,
     mut camera_position: Local<Option<Vec3>>,
 ) {
     for (mut transform, camera) in cameras.iter_mut() {

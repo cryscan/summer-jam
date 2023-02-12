@@ -45,6 +45,9 @@ pub struct AudioVolume {
 pub struct MusicTrack(&'static str);
 
 #[derive(Component)]
+pub struct MainCamera;
+
+#[derive(Component)]
 pub struct ColorText {
     timer: Timer,
     colors: Vec<Color>,
@@ -134,7 +137,11 @@ pub fn run() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn((Camera2dBundle::default(), UiCameraConfig::default()));
+    commands.spawn((
+        Camera2dBundle::default(),
+        UiCameraConfig::default(),
+        MainCamera,
+    ));
 }
 
 fn lock_release_cursor(app_state: Res<State<AppState>>, mut windows: ResMut<Windows>) {
